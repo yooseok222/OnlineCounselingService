@@ -1,4 +1,4 @@
-package kr.or.kosa.visang.service;
+package kr.or.kosa.visang.common.redis;
 
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
