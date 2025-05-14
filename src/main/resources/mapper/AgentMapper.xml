@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.kosa.visang.domain.agent.repository.AgentMapper">
+    <resultMap id="AgentResultMap" type="kr.or.kosa.visang.domain.agent.model.Agent">
+        <id column="agent_id" property="agentId" jdbcType="VARCHAR"/>
+        <result column="company_id" property="companyId" jdbcType="VARCHAR"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="phone_number" property="phoneNumber" jdbcType="VARCHAR"/>
+        <result column="email" property="email" jdbcType="VARCHAR"/>
+        <result column="address" property="address" jdbcType="VARCHAR"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <select id="selectAllAgents" resultMap="AgentResultMap">
+        SELECT agent_id, company_id, name, phone_number, email, address, created_at
+        FROM agent
+    </select>
+
+    <select id="selectAgentById" resultMap="AgentResultMap">
+        SELECT agent_id, company_id, name, phone_number, email, address, created_at
+        FROM agent
+        WHERE agent_id = #{id}
+    </select>
+
+    <select id="selectAgentByCondition" resultMap="AgentResultMap">
+        SELECT *
+        FROM agent
+        <where>
+            <if test="id != null and id != ''">
+                AND agent_id = #{id}
+            </if>
+            <if test="email != null and email != ''">
+                AND email = #{email}
+            </if>
+            <if test="state != null and state != ''">
+                AND state = #{state}
+            </if>
+        </where>
+    </select>
+
+    <update id="updateAgent">
+        UPDATE agent
+        SET name = #{name},
+            email = #{email},
+            password = #{password},
+            phone_number = #{phoneNumber},
+            address = #{address}
+        WHERE agent_id = #{agentId}
+    </update>
+
+    <update id="updateAgentStatus">
+        UPDATE agent
+        SET status = #{status}
+        WHERE agent_id = #{id}
+    </update>
+
+    <update id="updateAgentPassword">
+        UPDATE agent
+        SET password = #{password}
+        WHERE agent_id = #{agentId}
+    </update>
+</mapper>
