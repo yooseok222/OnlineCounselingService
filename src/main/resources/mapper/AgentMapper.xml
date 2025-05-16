@@ -13,6 +13,15 @@
         <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
     </resultMap>
 
+    <resultMap id="AgentUpdateMap" type="kr.or.kosa.visang.domain.agent.model.UpdateAgentDto">
+        <result column="name"            property="name"            jdbcType="VARCHAR"/>
+        <result column="email"           property="email"           jdbcType="VARCHAR"/>
+        <result column="phone_number"    property="phoneNumber"     jdbcType="VARCHAR"/>
+        <result column="address"         property="address"         jdbcType="VARCHAR"/>
+        <result column="state"           property="state"           jdbcType="VARCHAR"/>
+        <result column="profile_image_url" property="profileImageUrl" jdbcType="VARCHAR"/>
+    </resultMap>
+
     <select id="selectAllAgents" resultMap="AgentResultMap">
         SELECT agent_id, company_id, name, phone_number,state, email, address, created_at
         FROM agent
@@ -40,13 +49,14 @@
         </where>
     </select>
 
-    <update id="updateAgent">
+    <update id="updateAgent" parameterType="kr.or.kosa.visang.domain.agent.model.UpdateAgentDto">
         UPDATE agent
         SET name = #{name},
             email = #{email},
-            password = #{password},
             phone_number = #{phoneNumber},
-            address = #{address}
+            address = #{address},
+            state = #{state},
+            profile_image_url = #{profileImageUrl}
         WHERE agent_id = #{agentId}
     </update>
 

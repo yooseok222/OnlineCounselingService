@@ -1,6 +1,7 @@
 package kr.or.kosa.visang.domain.admin.controller;
 
 import kr.or.kosa.visang.domain.agent.model.Agent;
+import kr.or.kosa.visang.domain.agent.model.UpdateAgentDto;
 import kr.or.kosa.visang.domain.agent.service.AgentService;
 import kr.or.kosa.visang.domain.contract.model.Contract;
 import kr.or.kosa.visang.domain.contract.service.ContractService;
@@ -8,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 
@@ -41,16 +43,24 @@ public class AdminController {
 
     // 상세정보 조회
     @GetMapping("/detail/{id}")
-    public String detail(@PathVariable Long id, Model model) {
-        model.addAttribute("agent", agentService.getAgentInfo(id));
-        return "admin/adminDetail";
+    @ResponseBody
+    public Agent detail(@PathVariable Long id){
+        return agentService.getAgentInfo(id);
     }
 
     // 에이전트 수정
-    @GetMapping("/edit/{id}")
-    public String editForm(@PathVariable Long id, Model model) {
-        model.addAttribute("agentDto", agentService.getAgentInfo(id));
-        return "admin/adminEdit";
+    @PostMapping("/update/{id}")
+    public String updateAgent(@PathVariable Long id,
+                              @ModelAttribute UpdateAgentDto agentDto,
+                              RedirectAttributes redirectAttributes) {
+        try {
+            agentService.updateAgent(id, agentDto);
+            redirectAttributes.addFlashAttribute("message", "상담사 정보가 성공적으로 수정되었습니다.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "수정 중 오류 발생: " + e.getMessage());
+        }
+
+        return "redirect:/admin/list";
     }
 
     // 에이전트 상태 변경

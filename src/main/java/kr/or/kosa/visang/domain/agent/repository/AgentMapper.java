@@ -1,6 +1,7 @@
 package kr.or.kosa.visang.domain.agent.repository;
 
 import kr.or.kosa.visang.domain.agent.model.Agent;
+import kr.or.kosa.visang.domain.agent.model.UpdateAgentDto;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -21,7 +22,7 @@ public interface AgentMapper {
 
 
     // 4) 편집
-    int updateAgent(Agent counselor);
+    int updateAgent(UpdateAgentDto updateAgentDto);
 
     // 5) 상태 변경 (휴직, 퇴직, 복귀)
     int updateAgentStatus(
