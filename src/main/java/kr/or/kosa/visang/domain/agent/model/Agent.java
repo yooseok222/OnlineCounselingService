@@ -12,6 +12,7 @@ public class Agent {
     private String companyId;
     private String name;
     private String email;
+    private String state; // 상태 (휴직, 퇴직, 복귀)
     private String phoneNumber;
     private String address;
 

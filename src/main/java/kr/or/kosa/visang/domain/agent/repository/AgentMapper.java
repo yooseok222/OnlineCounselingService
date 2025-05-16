@@ -12,7 +12,7 @@ public interface AgentMapper {
     List<Agent> selectAllAgents();
 
     // 2) 조건 검색
-    List<Agent> selectAgentByCondition(@Param("id")    Long id,
+    List<Agent> selectAgentByCondition(@Param("name")    String name,
                                        @Param("email") String email,
                                        @Param("state") String state);
 
