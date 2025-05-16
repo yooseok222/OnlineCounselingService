@@ -152,18 +152,18 @@
       searchForm.reset(); // 모든 input/select 초기화
     });
 
-    // 테이블 행 클릭 → 상세 페이지
-    function attachRowClick() {
-      tableBody.querySelectorAll('tr').forEach(row => {
-        row.style.cursor = 'pointer';
-        row.addEventListener('click', (event) => {
-          if (event.target.closest('button') || event.target.closest('a') || event.target.closest('form')) {
-            return;
-          }
-          window.location.href = row.dataset.href;
-        });
-      });
-    }
+    // // 테이블 행 클릭 → 상세 페이지
+    // function attachRowClick() {
+    //   tableBody.querySelectorAll('tr').forEach(row => {
+    //     row.style.cursor = 'pointer';
+    //     row.addEventListener('click', (event) => {
+    //       if (event.target.closest('button') || event.target.closest('a') || event.target.closest('form')) {
+    //         return;
+    //       }
+    //       window.location.href = row.dataset.href;
+    //     });
+    //   });
+    // }
     // 테이블 초기화 후 다시 그리기
     function renderTable(agentList) {
       tableBody.innerHTML = ''; // 기존 행 삭제
@@ -223,7 +223,8 @@
         tableBody.appendChild(row);
       });
 
-      attachRowClick();
+      // attachRowClick();
+      attachDetailRowClick();
     }
 
     // 검색 이벤트 비동기 처리
@@ -243,7 +244,8 @@
       }
     });
     // 최초 실행
-    attachRowClick();
+    // attachRowClick();
+    attachDetailRowClick();
   });
   // 수정 버튼 클릭 시 상담사 정보 수정 폼 렌더링
   function renderEditForm(agentId) {
@@ -334,6 +336,109 @@
 
     reader.readAsDataURL(file);
   });
+
+  function attachDetailRowClick() {
+    const tableBody = document.getElementById("agentTableBody");
+
+    tableBody.querySelectorAll("tr").forEach((row) => {
+      row.style.cursor = "pointer";
+      row.addEventListener("click", async (event) => {
+        if (event.target.closest("button") || event.target.closest("a") || event.target.closest("form")) return;
+
+        const agentId = row.querySelector("td").innerText.trim();
+        let detailRow = row.nextElementSibling;
+
+        if (detailRow && detailRow.classList.contains("agent-detail-row")) {
+          detailRow.remove();
+          return;
+        }
+
+        document.querySelectorAll(".agent-detail-row").forEach((el) => el.remove());
+
+        detailRow = document.createElement("tr");
+        detailRow.className = "agent-detail-row";
+        const td = document.createElement("td");
+        td.colSpan = 6;
+        td.innerHTML = `<div class="text-center py-3"><div class="spinner-border text-primary" role="status"></div></div>`;
+        detailRow.appendChild(td);
+        row.insertAdjacentElement("afterend", detailRow);
+
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth() + 1;
+
+        try {
+          const detailRes = await fetch(`/admin/detail/${agentId}`);
+          const agent = await detailRes.json();
+
+          const renderDetail = (schedules, year, month) => {
+            td.innerHTML = `
+              <div class="card p-4 shadow-sm">
+                <div class="row">
+                  <div class="col-md-3 text-center">
+                    <img src="${agent.profileImageUrl || '/images/profile/default_profile.png'}"
+                         class="img-thumbnail mb-3"
+                         alt="프로필"
+                         style="width: 100%; max-width: 200px; height: 250px; object-fit: cover;" />
+                  </div>
+                  <div class="col-md-9">
+                    <h5>${agent.name} <span class="badge ${agent.state === 'ACTIVE' ? 'bg-success' : agent.state === 'ON_LEAVE' ? 'bg-warning' : 'bg-secondary'}">${{
+              ACTIVE: '활성',
+              ON_LEAVE: '휴직',
+              RETIRED: '퇴직'
+            }[agent.state]}</span></h5>
+                    <p><strong>이메일:</strong> ${agent.email}</p>
+                    <p><strong>전화번호:</strong> ${agent.phoneNumber}</p>
+                    <p><strong>주소:</strong> ${agent.address || '-'}</p>
+                  </div>
+                </div>
+                <hr />
+                <div class="mb-3 d-flex align-items-center gap-2">
+                  <label class="form-label mb-0">조회 월 선택:</label>
+                  <input type="month" id="scheduleMonth-${agentId}" class="form-control form-control-sm" style="width: auto;" value="${year}-${String(month).padStart(2, '0')}" />
+                </div>
+                <div id="scheduleList-${agentId}">
+                  <div class="text-center py-2">
+                    <div class="spinner-border text-primary" role="status"></div>
+                  </div>
+                </div>
+              </div>
+            `;
+
+            const monthPicker = document.getElementById(`scheduleMonth-${agentId}`);
+            monthPicker.addEventListener("change", async () => {
+              const [y, m] = monthPicker.value.split("-").map(Number);
+              updateSchedule(agentId, y, m);
+            });
+
+            updateSchedule(agentId, year, month);
+          };
+
+          function updateSchedule(agentId, year, month) {
+            const scheduleContainer = document.getElementById(`scheduleList-${agentId}`);
+            scheduleContainer.innerHTML = `<div class="text-center py-2"><div class="spinner-border text-primary" role="status"></div></div>`;
+
+            fetch(`/admin/schedule?id=${agentId}&year=${year}&month=${month}`)
+                    .then(res => res.json())
+                    .then(schedules => {
+                      if (!schedules.length) {
+                        scheduleContainer.innerHTML = '<div class="text-muted">계약 일정 없음</div>';
+                      } else {
+                        scheduleContainer.innerHTML = `<ul class="list-group">${schedules.map(s => `<li class="list-group-item">${s.agentId} - ${s.clientId} - ${s.contractTime} - ${s.status} - ${s.memo}- ${s.templateId}</li>`).join('')}</ul>`;
+                      }
+                    })
+                    .catch(() => {
+                      scheduleContainer.innerHTML = `<div class="text-danger">일정 정보를 불러오지 못했습니다.</div>`;
+                    });
+          }
+
+          renderDetail([], currentYear, currentMonth);
+        } catch (e) {
+          td.innerHTML = `<div class="text-danger">상세 정보를 불러오지 못했습니다.</div>`;
+          console.error(e);
+        }
+      });
+    });
+  }
 </script>
 </body>
 </html>

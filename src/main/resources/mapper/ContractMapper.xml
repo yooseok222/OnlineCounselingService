@@ -10,6 +10,7 @@
         <result column="agent_id" property="agentId" jdbcType="VARCHAR"/>
         <result column="client_id" property="clientId" jdbcType="VARCHAR"/>
         <result column="contract_template_id" property="templateId" jdbcType="TIMESTAMP"/>
+        <result column="memo" property="memo" jdbcType="CLOB"/>
     </resultMap>
 
     <select id="selectMonthlyScheduleByAgentId" resultMap="ContractResultMap">

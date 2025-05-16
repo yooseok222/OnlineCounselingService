@@ -79,14 +79,13 @@ public class AdminController {
 
 
     @GetMapping("/schedule")
-    public String schedule(
+    @ResponseBody
+    public List<Contract> schedule(
             @RequestParam Long id,
             @RequestParam String year,
             @RequestParam String month,
             Model model
     ) {
-        List<Contract> schedule = contractService.getMonthlyScheduleByAgentId(id, year, month);
-        model.addAttribute("schedule", schedule);
-        return "admin/adminSchedule";
+         return contractService.getMonthlyScheduleByAgentId(id, year, month);
     }
 }

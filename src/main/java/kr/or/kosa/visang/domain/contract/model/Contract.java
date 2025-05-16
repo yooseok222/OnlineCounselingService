@@ -17,6 +17,7 @@ public class Contract {
     private String clientId; // 고객 ID
 
     private String templateId; // 계약서 템플릿 ID
+    private String  memo; // 계약 메모
 
 //    // 추가 필드
 //    private int totalCount; // 총 건수
