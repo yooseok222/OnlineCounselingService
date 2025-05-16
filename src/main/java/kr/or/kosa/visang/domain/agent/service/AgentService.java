@@ -45,8 +45,8 @@ public class AgentService {
     }
 
     // 에이전트 상태 변경
-    public void updateAgentStatus(Long id, String status) {
-        agentMapper.updateAgentStatus(id, status);
+    public void updateAgentStatus(Long id, String state) {
+        agentMapper.updateAgentStatus(id, state);
     }
 
     // 에이전트 비밀번호 변경

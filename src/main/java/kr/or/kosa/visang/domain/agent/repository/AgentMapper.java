@@ -26,7 +26,7 @@ public interface AgentMapper {
     // 5) 상태 변경 (휴직, 퇴직, 복귀)
     int updateAgentStatus(
             @Param("id") Long id,
-            @Param("status") String status
+            @Param("state") String state
     );
 
     // 6) 비밀번호 변경
