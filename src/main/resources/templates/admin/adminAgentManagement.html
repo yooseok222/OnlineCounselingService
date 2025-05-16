@@ -1,0 +1,446 @@
+<!-- src/main/resources/templates/admin/adminAgentManagement.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>상담사 관리</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet"/>
+  <!-- 공통 CSS -->
+  <link rel="stylesheet" th:href="@{/css/common/main.css}" />
+
+</head>
+<body>
+<!-- Thymeleaf Fragment 정의 -->
+<div th:fragment="content">
+  <main class="dashboard-content container-fluid py-4">
+    <!-- 타이틀-->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h3>상담사 관리</h3>
+      <!-- 1) 검색 폼 -->
+      <form id ="searchForm" class="row row-cols-auto gx-2 gy-2 align-items-center mb-3">
+        <div class="col">
+          <input type="text"
+                 name="name"
+                 class="form-control form-control-sm"
+                 placeholder="이름"
+                 th:value="${param.name}"/>
+        </div>
+        <div class="col">
+          <input type="text"
+                 name="email"
+                 class="form-control form-control-sm"
+                 placeholder="이메일"
+                 th:value="${param.email}"/>
+        </div>
+        <div class="col">
+          <select name="state"
+                  class="form-select form-select-sm">
+            <option value="">상태</option>
+            <option value="ACTIVE"
+                    th:selected="${param.state=='ACTIVE'}">활성</option>
+            <option value="ON_LEAVE"
+                    th:selected="${param.state=='ON_LEAVE'}">휴직</option>
+            <option value="RETIRED"
+                    th:selected="${param.state=='RETIRED'}">퇴직</option>
+          </select>
+        </div>
+        <div class="col">
+          <button id="search-button" type="submit" class="btn btn-primary btn-sm">
+            <i class="bi bi-search me-1"></i> 검색
+          </button>
+        </div>
+        <div class="col">
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="reset-button">
+            초기화
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 3) 상담사 리스트 -->
+    <div id="agentTableArea" class="table-responsive mb-4">
+      <table class="table table-striped table-hover align-middle">
+        <thead class="table-light">
+        <tr>
+          <th>ID</th>
+          <th>이름</th>
+          <th>이메일</th>
+          <th>전화번호</th>
+          <th>상태</th>
+          <th>액션</th>
+        </tr>
+        </thead>
+        <tbody id="agentTableBody">
+        <tr th:each="agent : ${agentList}"
+            th:data-href="@{/admin/detail/{id}(id=${agent.agentId})}">
+          <td th:text="${agent.agentId}">1</td>
+          <td th:text="${agent.name}">홍길동</td>
+          <td th:text="${agent.email}">hong@example.com</td>
+          <td th:text="${agent.phoneNumber}">010-1234-5678</td>
+          <td>
+            <div th:switch="${agent.state}">
+              <span th:case="'ACTIVE'"  class="badge bg-success"   th:text="'활성'">활성</span>
+              <span th:case="'ON_LEAVE'" class="badge bg-warning"   th:text="'휴직'">휴직</span>
+              <span th:case="'RETIRED'"  class="badge bg-secondary" th:text="'퇴직'">퇴직</span>
+              <span th:case="*"
+                    class="badge bg-light text-dark"
+                    th:text="${agent.state}">미정</span>
+            </div>
+          </td>
+          <td class="d-flex gap-1">
+            <!-- ACTIVE → ON_LEAVE -->
+            <form th:if="${agent.state=='ACTIVE'}"
+                  th:action="@{/admin/state/{id}(id=${agent.agentId})}"
+                  method="post"
+                  onsubmit="return confirm('정말 이 상담사를 휴직 처리하시겠습니까?');">
+              <input type="hidden" name="state" value="ON_LEAVE"/>
+              <button type="submit" class="btn btn-sm btn-outline-warning">휴직</button>
+            </form>
+            <!-- ON_LEAVE → ACTIVE -->
+            <form th:if="${agent.state=='ON_LEAVE'}"
+                  th:action="@{/admin/state/{id}(id=${agent.agentId})}"
+                  method="post"
+                  onsubmit="return confirm('정말 상담사를 복귀 처리하시겠습니까?');">
+              <input type="hidden" name="state" value="ACTIVE"/>
+              <button type="submit" class="btn btn-sm btn-outline-success">복귀</button>
+            </form>
+            <!-- 퇴직 -->
+            <form th:unless="${agent.state=='RETIRED'}"
+                  th:action="@{/admin/state/{id}(id=${agent.agentId})}"
+                  method="post"
+                  onsubmit="return confirm('정말 상담사를 퇴직 처리하시겠습니까?');">
+              <input type="hidden" name="state" value="RETIRED"/>
+              <button type="submit" class="btn btn-sm btn-outline-dark">퇴직</button>
+            </form>
+            <!-- 정보 수정 -->
+<!--            <a th:href="@{/admin/edit/{id}(id=${agent.agentId})}"-->
+<!--               class="btn btn-sm btn-outline-primary">수정</a>-->
+<!--            <a href="#" onclick="renderEditForm(agent); return false;" class="btn btn-sm btn-outline-primary">수정</a>-->
+            <a href="#" class="btn btn-sm btn-outline-primary edit-button" th:attr="data-id=${agent.agentId}">
+              수정
+            </a>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- Bootstrap JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!--  행 클릭 이동 스크립트 -->
+<script th:fragment="script">
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.edit-button');
+    if (!btn) return;
+
+    renderEditForm(btn.dataset.id);
+  });
+  document.addEventListener('DOMContentLoaded', () => {
+    const searchForm = document.getElementById('searchForm');
+    const tableBody  = document.getElementById('agentTableBody');
+
+    // 초기화 버튼
+    const resetButton = document.getElementById('reset-button');
+    resetButton.addEventListener('click', () => {
+      searchForm.reset(); // 모든 input/select 초기화
+    });
+
+    // // 테이블 행 클릭 → 상세 페이지
+    // function attachRowClick() {
+    //   tableBody.querySelectorAll('tr').forEach(row => {
+    //     row.style.cursor = 'pointer';
+    //     row.addEventListener('click', (event) => {
+    //       if (event.target.closest('button') || event.target.closest('a') || event.target.closest('form')) {
+    //         return;
+    //       }
+    //       window.location.href = row.dataset.href;
+    //     });
+    //   });
+    // }
+    // 테이블 초기화 후 다시 그리기
+    function renderTable(agentList) {
+      tableBody.innerHTML = ''; // 기존 행 삭제
+
+      if (!agentList || agentList.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML=`
+          <td colspan="6" class="text-center">검색 결과가 없습니다.</td>
+        `;
+        tableBody.appendChild(row);
+        return;
+      }
+
+      agentList.forEach(agent => {
+        const row = document.createElement('tr');
+        row.dataset.href = `/admin/detail/${agent.agentId}`;
+
+        row.innerHTML = `
+        <td>${agent.agentId}</td>
+        <td>${agent.name}</td>
+        <td>${agent.email}</td>
+        <td>${agent.phoneNumber}</td>
+        <td>
+          <span class="badge ${
+                agent.state === 'ACTIVE' ? 'bg-success' :
+                        agent.state === 'ON_LEAVE' ? 'bg-warning' :
+                                agent.state === 'RETIRED' ? 'bg-secondary' : 'bg-light text-dark'
+        }">${{
+          ACTIVE: '활성',
+          ON_LEAVE: '휴직',
+          RETIRED: '퇴직'
+        }[agent.state] || agent.state}</span>
+        </td>
+        <td class="d-flex gap-1">
+          ${agent.state === 'ACTIVE' ? `
+            <form action="/admin/state/${agent.agentId}" method="post" onsubmit="return confirm('정말 이 상담사를 휴직 처리하시겠습니까?');">
+              <input type="hidden" name="state" value="ON_LEAVE"/>
+              <button type="submit" class="btn btn-sm btn-outline-warning">휴직</button>
+            </form>` : ''}
+          ${agent.state === 'ON_LEAVE' ? `
+            <form action="/admin/state/${agent.agentId}" method="post" onsubmit="return confirm('정말 상담사를 복귀 처리하시겠습니까?');">
+              <input type="hidden" name="state" value="ACTIVE"/>
+              <button type="submit" class="btn btn-sm btn-outline-success">복귀</button>
+            </form>` : ''}
+          ${agent.state !== 'RETIRED' ? `
+            <form action="/admin/state/${agent.agentId}" method="post" onsubmit="return confirm('정말 상담사를 퇴직 처리하시겠습니까?');">
+              <input type="hidden" name="state" value="RETIRED"/>
+              <button type="submit" class="btn btn-sm btn-outline-dark">퇴직</button>
+            </form>` : ''}
+          <a href="#" class="btn btn-sm btn-outline-primary edit-button" th:attr="data-id=${agent.agentId}">
+            수정
+            </a>
+
+        </td>
+      `;
+
+        tableBody.appendChild(row);
+      });
+
+      // attachRowClick();
+      attachDetailRowClick();
+    }
+
+    // 검색 이벤트 비동기 처리
+    searchForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(searchForm);
+      const params = new URLSearchParams(formData);
+      try {
+        const response = await fetch(`/admin/search?${params.toString()}`);
+        if (!response.ok) throw new Error('서버 오류');
+
+        const data = await response.json(); // [{agentId, name, ...}, ...]
+        renderTable(data);
+      } catch (err) {
+        alert('검색 중 오류가 발생했습니다.');
+        console.error(err);
+      }
+    });
+    // 최초 실행
+    // attachRowClick();
+    attachDetailRowClick();
+  });
+  // 수정 버튼 클릭 시 상담사 정보 수정 폼 렌더링
+  function renderEditForm(agentId) {
+    // 상담사 정보 요청 fectch
+    fetch(`/admin/detail/${agentId}`)
+      .then(response => {
+        if (!response.ok) throw new Error('상담사 정보 요청 실패');
+        return response.json();
+      })
+      .then(agent => {
+        // 상담사 정보 수정 폼 렌더링
+        const tableArea = document.getElementById('agentTableArea');
+        tableArea.innerHTML = `
+  <div class="card p-4 shadow-sm">
+    <h5 class="mb-3">상담사 정보 수정</h5>
+    <hr/>
+    <form action="/admin/update/${agent.agentId}" method="post" enctype="multipart/form-data">
+      <div class="row">
+        <!-- 프로필 이미지 업로드 -->
+        <div class="col-md-3 text-center">
+          <img src="${agent.profileImageUrl}"
+               alt="프로필 이미지"
+               class="img-thumbnail mb-2"
+               style="width: 100%; max-width: 200px; height: 250px; object-fit: cover;" />
+          <input type="file" name="profileImage" class="form-control form-control-sm" />
+        </div>
+
+        <!-- 상담사 정보 입력 -->
+        <div class="col-md-9">
+          <div class="mb-3">
+            <label class="form-label">이름</label>
+            <input name="name" class="form-control" value="${agent.name}" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">이메일</label>
+            <input name="email" class="form-control" value="${agent.email}" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">전화번호</label>
+            <input name="phoneNumber" class="form-control" value="${agent.phoneNumber}" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">주소</label>
+            <input name="address" class="form-control" value="${agent.address || ''}" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">상태</label>
+            <select name="state" class="form-select">
+              <option value="ACTIVE" ${agent.state === 'ACTIVE' ? 'selected' : ''}>활성</option>
+              <option value="ON_LEAVE" ${agent.state === 'ON_LEAVE' ? 'selected' : ''}>휴직</option>
+              <option value="RETIRED" ${agent.state === 'RETIRED' ? 'selected' : ''}>퇴직</option>
+            </select>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2">
+            <button type="submit" class="btn btn-primary">저장</button>
+            <button type="button" class="btn btn-secondary" onclick="reloadAgentList()">취소</button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+`;
+      })
+      .catch(err => {
+        alert('상담사 정보 요청 중 오류가 발생했습니다.');
+        console.error(err);
+      });
+
+  }
+  function reloadAgentList() {
+    location.reload(); // 간단하게 새로고침으로 리스트 복구
+  }
+  // 이미지 미리보기 처리
+  document.addEventListener('change', function (e) {
+    const fileInput = e.target.closest('input[type="file"][name="profileImage"]');
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) return;
+
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+      const imgPreview = fileInput.closest('.col-md-3').querySelector('img');
+      if (imgPreview) {
+        imgPreview.src = e.target.result; // 업로드된 이미지의 DataURL을 미리보기로 표시
+      }
+    };
+
+    reader.readAsDataURL(file);
+  });
+
+  function attachDetailRowClick() {
+    const tableBody = document.getElementById("agentTableBody");
+
+    tableBody.querySelectorAll("tr").forEach((row) => {
+      row.style.cursor = "pointer";
+      row.addEventListener("click", async (event) => {
+        if (event.target.closest("button") || event.target.closest("a") || event.target.closest("form")) return;
+
+        const agentId = row.querySelector("td").innerText.trim();
+        let detailRow = row.nextElementSibling;
+
+        if (detailRow && detailRow.classList.contains("agent-detail-row")) {
+          detailRow.remove();
+          return;
+        }
+
+        document.querySelectorAll(".agent-detail-row").forEach((el) => el.remove());
+
+        detailRow = document.createElement("tr");
+        detailRow.className = "agent-detail-row";
+        const td = document.createElement("td");
+        td.colSpan = 6;
+        td.innerHTML = `<div class="text-center py-3"><div class="spinner-border text-primary" role="status"></div></div>`;
+        detailRow.appendChild(td);
+        row.insertAdjacentElement("afterend", detailRow);
+
+        let currentYear = new Date().getFullYear();
+        let currentMonth = new Date().getMonth() + 1;
+
+        try {
+          const detailRes = await fetch(`/admin/detail/${agentId}`);
+          const agent = await detailRes.json();
+
+          const renderDetail = (schedules, year, month) => {
+            td.innerHTML = `
+              <div class="card p-4 shadow-sm">
+                <div class="row">
+                  <div class="col-md-3 text-center">
+                    <img src="${agent.profileImageUrl || '/images/profile/default_profile.png'}"
+                         class="img-thumbnail mb-3"
+                         alt="프로필"
+                         style="width: 100%; max-width: 200px; height: 250px; object-fit: cover;" />
+                  </div>
+                  <div class="col-md-9">
+                    <h5>${agent.name} <span class="badge ${agent.state === 'ACTIVE' ? 'bg-success' : agent.state === 'ON_LEAVE' ? 'bg-warning' : 'bg-secondary'}">${{
+              ACTIVE: '활성',
+              ON_LEAVE: '휴직',
+              RETIRED: '퇴직'
+            }[agent.state]}</span></h5>
+                    <p><strong>이메일:</strong> ${agent.email}</p>
+                    <p><strong>전화번호:</strong> ${agent.phoneNumber}</p>
+                    <p><strong>주소:</strong> ${agent.address || '-'}</p>
+                  </div>
+                </div>
+                <hr />
+                <div class="mb-3 d-flex align-items-center gap-2">
+                  <label class="form-label mb-0">조회 월 선택:</label>
+                  <input type="month" id="scheduleMonth-${agentId}" class="form-control form-control-sm" style="width: auto;" value="${year}-${String(month).padStart(2, '0')}" />
+                </div>
+                <div id="scheduleList-${agentId}">
+                  <div class="text-center py-2">
+                    <div class="spinner-border text-primary" role="status"></div>
+                  </div>
+                </div>
+              </div>
+            `;
+
+            const monthPicker = document.getElementById(`scheduleMonth-${agentId}`);
+            monthPicker.addEventListener("change", async () => {
+              const [y, m] = monthPicker.value.split("-").map(Number);
+              updateSchedule(agentId, y, m);
+            });
+
+            updateSchedule(agentId, year, month);
+          };
+
+          function updateSchedule(agentId, year, month) {
+            const scheduleContainer = document.getElementById(`scheduleList-${agentId}`);
+            scheduleContainer.innerHTML = `<div class="text-center py-2"><div class="spinner-border text-primary" role="status"></div></div>`;
+
+            fetch(`/admin/schedule?id=${agentId}&year=${year}&month=${month}`)
+                    .then(res => res.json())
+                    .then(schedules => {
+                      if (!schedules.length) {
+                        scheduleContainer.innerHTML = '<div class="text-muted">계약 일정 없음</div>';
+                      } else {
+                        scheduleContainer.innerHTML = `<ul class="list-group">${schedules.map(s => `<li class="list-group-item">${s.agentId} - ${s.clientId} - ${s.contractTime} - ${s.status} - ${s.memo}- ${s.templateId}</li>`).join('')}</ul>`;
+                      }
+                    })
+                    .catch(() => {
+                      scheduleContainer.innerHTML = `<div class="text-danger">일정 정보를 불러오지 못했습니다.</div>`;
+                    });
+          }
+
+          renderDetail([], currentYear, currentMonth);
+        } catch (e) {
+          td.innerHTML = `<div class="text-danger">상세 정보를 불러오지 못했습니다.</div>`;
+          console.error(e);
+        }
+      });
+    });
+  }
+</script>
+</body>
+</html>
+
+

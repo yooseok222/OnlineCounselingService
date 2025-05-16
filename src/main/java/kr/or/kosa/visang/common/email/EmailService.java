@@ -1,4 +1,4 @@
-package kr.or.kosa.visang.service;
+package kr.or.kosa.visang.common.email;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.SimpleMailMessage;

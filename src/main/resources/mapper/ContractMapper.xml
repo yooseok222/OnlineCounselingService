@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.kosa.visang.domain.contract.repository.ContractMapper">
+    <resultMap id="ContractResultMap" type="kr.or.kosa.visang.domain.contract.model.Contract">
+        <id column="contract_id" property="contractId" jdbcType="VARCHAR"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="created_at" property="createdAt" jdbcType="VARCHAR"/>
+        <result column="contract_time" property="contractTime" jdbcType="TIMESTAMP"/>
+        <result column="agent_id" property="agentId" jdbcType="VARCHAR"/>
+        <result column="client_id" property="clientId" jdbcType="VARCHAR"/>
+        <result column="contract_template_id" property="templateId" jdbcType="TIMESTAMP"/>
+        <result column="memo" property="memo" jdbcType="CLOB"/>
+    </resultMap>
+
+    <select id="selectMonthlyScheduleByAgentId" resultMap="ContractResultMap">
+        SELECT *
+        FROM contract
+        WHERE agent_id = #{id}
+          AND contract_time BETWEEN
+            TO_DATE(#{year} || '-'|| LPAD(#{month}, 2, '0'), 'YYYY-MM')
+            AND LAST_DAY(TO_DATE(#{year}|| '-'|| LPAD(#{month}, 2, '0'), 'YYYY-MM')) + (1 - 1/86400)
+        ORDER BY contract_time
+    </select>
+
+
+</mapper>
