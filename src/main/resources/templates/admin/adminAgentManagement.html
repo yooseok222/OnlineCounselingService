@@ -264,10 +264,10 @@
       <div class="row">
         <!-- 프로필 이미지 업로드 -->
         <div class="col-md-3 text-center">
-          <img src="${agent.profileImageUrl || '/images/default-profile.png'}"
+          <img src="${agent.profileImageUrl}"
                alt="프로필 이미지"
                class="img-thumbnail mb-2"
-               style="width: 100%; max-width: 200px; height: auto;" />
+               style="width: 100%; max-width: 200px; height: 250px; object-fit: cover;" />
           <input type="file" name="profileImage" class="form-control form-control-sm" />
         </div>
 
@@ -317,7 +317,23 @@
   function reloadAgentList() {
     location.reload(); // 간단하게 새로고침으로 리스트 복구
   }
+  // 이미지 미리보기 처리
+  document.addEventListener('change', function (e) {
+    const fileInput = e.target.closest('input[type="file"][name="profileImage"]');
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) return;
 
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+      const imgPreview = fileInput.closest('.col-md-3').querySelector('img');
+      if (imgPreview) {
+        imgPreview.src = e.target.result; // 업로드된 이미지의 DataURL을 미리보기로 표시
+      }
+    };
+
+    reader.readAsDataURL(file);
+  });
 </script>
 </body>
 </html>

@@ -11,6 +11,7 @@
         <result column="email" property="email" jdbcType="VARCHAR"/>
         <result column="address" property="address" jdbcType="VARCHAR"/>
         <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="profile_image_url" property="profileImageUrl" jdbcType="VARCHAR"/>
     </resultMap>
 
     <resultMap id="AgentUpdateMap" type="kr.or.kosa.visang.domain.agent.model.UpdateAgentDto">
@@ -28,7 +29,7 @@
     </select>
 
     <select id="selectAgentById" resultMap="AgentResultMap">
-        SELECT agent_id, company_id, name, phone_number,state, email, address, created_at
+        SELECT agent_id, company_id, name, phone_number,state, email, address, created_at, profile_image_url
         FROM agent
         WHERE agent_id = #{id}
     </select>
