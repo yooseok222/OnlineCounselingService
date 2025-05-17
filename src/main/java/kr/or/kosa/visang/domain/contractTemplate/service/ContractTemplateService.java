@@ -45,8 +45,11 @@ public class ContractTemplateService {
         // 계약서 템플릿 ID를 사용하여 기존 템플릿을 조회
         contractTemplate.setContractTemplateId(contractTemplateId);
 
-        savePDF(contractTemplate);
-
+        // 파일이 새로 업로드된 경우에만 새로 저장
+        if (contractTemplate.getPdf() != null && !contractTemplate.getPdf().isEmpty()) {
+            String newPath = savePDF(contractTemplate);
+            contractTemplate.setFilePath(newPath);
+        }
         contractTemplateMapper.updateTemplate(contractTemplate);
     }
 
@@ -55,11 +58,12 @@ public class ContractTemplateService {
         contractTemplateMapper.deleteTemplate(contractTemplateId);
     }
 
-    private void savePDF(ContractTemplate contractTemplate) {
+    private String savePDF(ContractTemplate contractTemplate) {
         MultipartFile pdfFile = contractTemplate.getPdf();
         try {
-            String savedPath = fileStorageService.savePDF(pdfFile, contractTemplate.getContractTemplateId());
-            contractTemplate.setFilePath(savedPath);
+            String savePath = fileStorageService.savePDF(pdfFile, contractTemplate.getContractTemplateId());
+            contractTemplate.setFilePath(savePath);
+            return savePath;
         } catch (IOException e) {
             throw new RuntimeException("PDF 파일 저장 중 오류가 발생했습니다.", e);
         }

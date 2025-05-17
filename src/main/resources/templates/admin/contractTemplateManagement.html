@@ -61,8 +61,10 @@
               <input class="form-control" name="version" value="${template?.version || ''}" required/>
             </div>
             <div class="mb-2">
-              <label class="form-label">계약서 템플릿</label>
-              <input type ="file" class="form-control" name="pdf" value="${template?.filePath || ''}" required/>
+                <label class="form-label">계약서 템플릿</label>
+                <input type="file" class="form-control" name="pdf" />
+                ${template?.filePath ? `<div class="form-text">기존 파일: ${template.filePath}</div>` : ''}
+                <input type="hidden" name="filePath" value="${template?.filePath || ''}" />
             </div>
 
             <div class="d-flex gap-2 justify-content-end">
@@ -81,7 +83,10 @@
             formData.append("contractName", form.contractName.value);
             formData.append("descript", form.descript.value);
             formData.append("version", form.version.value);
-            formData.append("pdf", form.pdf.files[0]); // PDF 파일
+            if (form.pdf.files.length > 0) {
+                formData.append("pdf", form.pdf.files[0]); // 새 파일만 전송
+            }
+            formData.append("filePath", form.filePath.value || '');
             formData.append("companyId", 1); // TODO: 실제 회사 ID로 변경
 
             const url = id ? `/admin/template/${id}` : "/admin/template";
