@@ -3,7 +3,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="kr.or.kosa.visang.domain.contract.repository.ContractMapper">
     <resultMap id="ContractResultMap" type="kr.or.kosa.visang.domain.contract.model.Contract">
-        <id column="contract_id" property="contractId" jdbcType="VARCHAR"/>
+        <id column="contract_id" property="contractId" jdbcType="BIGINT"/>
         <result column="status" property="status" jdbcType="VARCHAR"/>
         <result column="created_at" property="createdAt" jdbcType="VARCHAR"/>
         <result column="contract_time" property="contractTime" jdbcType="TIMESTAMP"/>

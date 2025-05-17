@@ -3,8 +3,8 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="kr.or.kosa.visang.domain.agent.repository.AgentMapper">
     <resultMap id="AgentResultMap" type="kr.or.kosa.visang.domain.agent.model.Agent">
-        <id column="agent_id" property="agentId" jdbcType="VARCHAR"/>
-        <result column="company_id" property="companyId" jdbcType="VARCHAR"/>
+        <id column="agent_id" property="agentId" jdbcType="BIGINT"/>
+        <result column="company_id" property="companyId" jdbcType="BIGINT"/>
         <result column="name" property="name" jdbcType="VARCHAR"/>
         <result column="phone_number" property="phoneNumber" jdbcType="VARCHAR"/>
         <result column="state" property="state" jdbcType="VARCHAR"/>
