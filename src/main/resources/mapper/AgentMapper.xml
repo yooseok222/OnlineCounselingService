@@ -3,40 +3,49 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="kr.or.kosa.visang.domain.agent.repository.AgentMapper">
     <resultMap id="AgentResultMap" type="kr.or.kosa.visang.domain.agent.model.Agent">
-        <id column="agent_id" property="agentId" jdbcType="VARCHAR"/>
-        <result column="company_id" property="companyId" jdbcType="VARCHAR"/>
+        <id column="agent_id" property="agentId" jdbcType="BIGINT"/>
+        <result column="company_id" property="companyId" jdbcType="BIGINT"/>
         <result column="name" property="name" jdbcType="VARCHAR"/>
-        <result column="phone_number" property="phoneNumber" jdbcType="VARCHAR"/>
-        <result column="state" property="state" jdbcType="VARCHAR"/>
         <result column="email" property="email" jdbcType="VARCHAR"/>
+        <result column="password" property="password" jdbcType="VARCHAR"/>
+        <result column="phone_number" property="phoneNumber" jdbcType="VARCHAR"/>
         <result column="address" property="address" jdbcType="VARCHAR"/>
+        <result column="role" property="role" jdbcType="VARCHAR"/>
+        <result column="state" property="state" jdbcType="VARCHAR"/>
         <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
         <result column="profile_image_url" property="profileImageUrl" jdbcType="VARCHAR"/>
+        <result column="email_verified" property="emailVerified" jdbcType="BOOLEAN"/>
     </resultMap>
 
     <resultMap id="AgentUpdateMap" type="kr.or.kosa.visang.domain.agent.model.UpdateAgentDto">
-        <result column="name"            property="name"            jdbcType="VARCHAR"/>
-        <result column="email"           property="email"           jdbcType="VARCHAR"/>
-        <result column="phone_number"    property="phoneNumber"     jdbcType="VARCHAR"/>
-        <result column="address"         property="address"         jdbcType="VARCHAR"/>
-        <result column="state"           property="state"           jdbcType="VARCHAR"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="email" property="email" jdbcType="VARCHAR"/>
+        <result column="phone_number" property="phoneNumber" jdbcType="VARCHAR"/>
+        <result column="address" property="address" jdbcType="VARCHAR"/>
+        <result column="state" property="state" jdbcType="VARCHAR"/>
         <result column="profile_image_url" property="profileImageUrl" jdbcType="VARCHAR"/>
     </resultMap>
 
     <select id="selectAllAgents" resultMap="AgentResultMap">
-        SELECT agent_id, company_id, name, phone_number,state, email, address, created_at
-        FROM agent
+        SELECT agent_id, company_id, name, phone_number, state, email, address, role, created_at, profile_image_url, email_verified
+        FROM agents
     </select>
 
     <select id="selectAgentById" resultMap="AgentResultMap">
-        SELECT agent_id, company_id, name, phone_number,state, email, address, created_at, profile_image_url
-        FROM agent
+        SELECT agent_id, company_id, name, phone_number, state, email, address, role, created_at, profile_image_url, email_verified
+        FROM agents
         WHERE agent_id = #{id}
+    </select>
+    
+    <select id="findByEmail" resultMap="AgentResultMap">
+        SELECT agent_id, company_id, name, email, password, phone_number, address, role, state, created_at, profile_image_url, email_verified
+        FROM agents
+        WHERE email = #{email}
     </select>
 
     <select id="selectAgentByCondition" resultMap="AgentResultMap">
-        SELECT agent_id, company_id, name, phone_number,state, email, address, created_at
-        FROM agent
+        SELECT agent_id, company_id, name, phone_number, state, email, address, role, created_at, profile_image_url, email_verified
+        FROM agents
         <where>
             <if test="name != null and name != ''">
                 AND name = #{name}
@@ -49,9 +58,14 @@
             </if>
         </where>
     </select>
+    
+    <insert id="save" parameterType="kr.or.kosa.visang.domain.agent.model.Agent">
+        INSERT INTO agents (company_id, name, email, password, phone_number, address, role, state, created_at, profile_image_url, email_verified)
+        VALUES (#{companyId}, #{name}, #{email}, #{password}, #{phoneNumber}, #{address}, #{role}, #{state}, #{createdAt}, #{profileImageUrl}, #{emailVerified})
+    </insert>
 
     <update id="updateAgent" parameterType="kr.or.kosa.visang.domain.agent.model.UpdateAgentDto">
-        UPDATE agent
+        UPDATE agents
         SET name = #{name},
             email = #{email},
             phone_number = #{phoneNumber},
@@ -62,14 +76,32 @@
     </update>
 
     <update id="updateAgentStatus">
-        UPDATE agent
+        UPDATE agents
         SET state = #{state}
         WHERE agent_id = #{id}
     </update>
 
     <update id="updateAgentPassword">
-        UPDATE agent
+        UPDATE agents
         SET password = #{password}
         WHERE agent_id = #{agentId}
+    </update>
+    
+    <select id="isEmailExists" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM agents
+        WHERE email = #{email}
+    </select>
+    
+    <select id="isPhoneNumberExists" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM agents
+        WHERE REPLACE(phone_number, '-', '') = REPLACE(#{phoneNumber}, '-', '')
+    </select>
+    
+    <update id="updateEmailVerificationStatus">
+        UPDATE agents
+        SET email_verified = #{verified}
+        WHERE email = #{email}
     </update>
 </mapper>
