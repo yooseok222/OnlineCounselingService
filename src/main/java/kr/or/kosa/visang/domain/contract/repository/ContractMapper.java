@@ -12,6 +12,11 @@ import kr.or.kosa.visang.domain.contract.model.Schedule;
 
 @Mapper
 public interface ContractMapper {
+    List<Contract> selectContractByStatus(
+            @Param("companyId") Long companyId,
+            @Param("status")String status
+    );
+
     List<Contract> selectMonthlyScheduleByAgentId(
             @Param("id") Long agentId,
             @Param("year") String year,

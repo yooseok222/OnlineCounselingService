@@ -13,4 +13,5 @@ public class VisangApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(VisangApplication.class, args);
 	}
+
 }
