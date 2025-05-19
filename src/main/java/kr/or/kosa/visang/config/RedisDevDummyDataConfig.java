@@ -23,7 +23,7 @@ public class RedisDevDummyDataConfig {
     private final RedisTemplate<String, Object> redisTemplate;
 
     private static final long EXPIRATION_DAYS = 7;
-    private static final String FIXED_CODE = "TESTINV1"; // 고정 테스트 초대코드
+    private static final String FIXED_CODE = "LOVE"; // 고정 테스트 초대코드
 
     /**
      * 애플리케이션 기동 후 테스트용 초대코드를 하나 생성한다.

@@ -34,6 +34,12 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        // 이메일 입력값 전처리 (대소문자 및 공백 무시)
+        if (email == null || email.trim().isEmpty()) {
+            throw new UsernameNotFoundException("이메일을 입력해주세요.");
+        }
+
+        email = email.trim().toLowerCase();
         // 이메일로 사용자 유형 확인
         String userType = userMapper.findUserTypeByEmail(email);
         

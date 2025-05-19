@@ -67,6 +67,9 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponse register(UserRegistrationRequest request) {
         // 이메일 중복 확인
+        String normalizedEmail = request.getEmail().trim().toLowerCase();
+        request.setEmail(normalizedEmail);
+        
         if (isEmailDuplicated(request.getEmail())) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다: " + request.getEmail());
         }
@@ -227,6 +230,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public boolean isEmailDuplicated(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            return false;
+        }
+        email = email.trim().toLowerCase();
+
         log.info("이메일 중복 체크 시작 - 이메일: {}", email);
         
         // 각 테이블에서 이메일 중복 체크
@@ -297,6 +305,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public boolean requestEmailVerification(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("이메일을 입력해주세요.");
+        }
+        email = email.trim().toLowerCase();
+
         try {
             // 1. 이미 인증된 이메일인지 확인
             String userType = userMapper.findUserTypeByEmail(email);
@@ -395,6 +408,11 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public boolean verifyEmail(String email, String verificationCode) {
+        if (email == null || email.trim().isEmpty()) {
+            return false;
+        }
+        email = email.trim().toLowerCase();
+
         try {
             // 1. 이미 인증된 이메일인지 확인
             String userType = userMapper.findUserTypeByEmail(email);
@@ -417,6 +435,9 @@ public class UserServiceImpl implements UserService {
                     Agent agent = agentMapper.findByEmail(email);
                     isVerified = agent != null && agent.isEmailVerified();
                     break;
+                default:
+                    log.error("알 수 없는 사용자 유형: {}", userType);
+                    return false;
             }
             
             if (isVerified) {
@@ -450,7 +471,16 @@ public class UserServiceImpl implements UserService {
                     adminMapper.updateEmailVerificationStatus(email, true);
                     break;
                 case "AGENT":
-                    agentMapper.updateEmailVerificationStatus(email, true);
+                    // 상담원인 경우 이메일 인증 성공 시 상태도 ACTIVE로 업데이트
+                    Agent agent = agentMapper.findByEmail(email);
+                    if (agent != null) {
+                        agentMapper.updateEmailVerificationStatus(email, true);
+                        agentMapper.updateAgentStatus(agent.getAgentId(), "ACTIVE");
+                        log.info("상담원 이메일 인증 및 상태 ACTIVE로 업데이트: {}", email);
+                    } else {
+                        log.error("상담원 정보를 찾을 수 없습니다: {}", email);
+                        return false;
+                    }
                     break;
                 default:
                     log.error("알 수 없는 사용자 유형: {}", userType);

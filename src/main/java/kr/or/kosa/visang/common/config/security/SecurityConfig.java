@@ -12,6 +12,7 @@ import org.springframework.security.web.authentication.AuthenticationFailureHand
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 
 /**
  * Spring Security 설정 클래스
@@ -30,6 +31,19 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * DaoAuthenticationProvider 빈 설정
+     * CustomUserDetailsService와 PasswordEncoder를 명시적으로 적용하여
+     * 비밀번호 검증 오류를 방지한다.
+     */
+    @Bean
+    public DaoAuthenticationProvider daoAuthenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
     }
 
     /**
@@ -132,7 +146,7 @@ public class SecurityConfig {
             .headers(headers -> headers
                 .frameOptions(frameOptions -> frameOptions.sameOrigin())
             )
-            .userDetailsService(userDetailsService);
+            .authenticationProvider(daoAuthenticationProvider());
 
         return http.build();
     }
