@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<style>
+.container {
+	max-width: 600px;
+	margin: auto;
+	font-family: sans-serif;
+}
+
+.header {
+	background: #0d6efd;
+	color: white;
+	padding: 20px;
+	text-align: center;
+}
+
+.content {
+	padding: 20px;
+}
+
+.btn {
+	display: inline-block;
+	padding: 10px 20px;
+	background: #0d6efd;
+	color: white;
+	text-decoration: none;
+	border-radius: 4px;
+}
+</style>
+</head>
+<body>
+	<div class="container">
+		<div class="header">
+			<h1>상담 초대 코드 안내</h1>
+		</div>
+		<div class="content">
+			<p th:text="${clientName} + '님,'"></p>
+			<p>
+				예약시간: <strong th:text="${reserveTime}"></strong>
+			</p>
+			<p>
+				초대코드: <strong th:text="${code}"></strong>
+			</p>
+			<p>
+				<a th:href="@{'https://your-domain.com/invite?code=' + ${code}}"
+					class="btn">초대 링크로 가기</a>
+			</p>
+			<p>감사합니다.</p>
+		</div>
+	</div>
+</body>
+</html>
