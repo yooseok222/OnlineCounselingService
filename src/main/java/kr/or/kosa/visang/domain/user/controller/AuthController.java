@@ -40,13 +40,32 @@ public class AuthController {
      * 로그인 페이지
      */
     @GetMapping("/login")
-    public String loginPage(@RequestParam(required = false) String error, @RequestParam(required = false) String email, Model model) {
+    public String loginPage(@RequestParam(required = false) String error, 
+                            @RequestParam(required = false) String email, 
+                            Model model) {
+        log.debug("로그인 페이지 접근: error={}, email={}", error, email);
+        
         if (error != null) {
-            model.addAttribute("error", "로그인 정보가 올바르지 않습니다.");
+            // 에러 코드에 따른 처리
+            if ("email-not-verified".equals(error)) {
+                model.addAttribute("errorType", "email-not-verified");
+                model.addAttribute("error", "이메일 인증이 완료되지 않았습니다. 이메일을 확인해주세요.");
+                log.debug("이메일 인증 미완료 오류 표시");
+            } else if ("invalid-credentials".equals(error)) {
+                model.addAttribute("errorType", "invalid-credentials");
+                model.addAttribute("error", "이메일 또는 비밀번호가 올바르지 않습니다.");
+                log.debug("잘못된 인증 정보 오류 표시");
+            } else {
+                model.addAttribute("errorType", "general-error");
+                model.addAttribute("error", "로그인 중 오류가 발생했습니다. 다시 시도해주세요.");
+                log.debug("일반 로그인 오류 표시");
+            }
         }
+        
         if (email != null && !email.isEmpty()) {
             model.addAttribute("email", email);
         }
+        
         return "auth/login";
     }
 

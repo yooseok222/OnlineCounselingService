@@ -24,35 +24,58 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
                                         AuthenticationException exception) throws IOException, ServletException {
         
-        String errorMessage;
+        log.debug("인증 실패: 예외 타입={}, 메시지={}", exception.getClass().getName(), exception.getMessage());
         
-        // 예외 유형에 따라 다른 메시지 설정
-        if (exception instanceof EmailNotVerifiedException || exception instanceof DisabledException ||
-            (exception instanceof InternalAuthenticationServiceException && exception.getCause() instanceof EmailNotVerifiedException)) {
+        String errorMessage;
+        String email = request.getParameter("email");
+        
+        // 이메일 인증 예외 처리 강화
+        if (exception instanceof EmailNotVerifiedException) {
+            log.info("이메일 인증 미완료 예외 발생: {}", email);
             errorMessage = "email-not-verified";
-            log.debug("이메일 인증 미완료: {}", exception.getMessage());
-        } else if (exception instanceof UsernameNotFoundException) {
+        } 
+        // 내부 예외가 EmailNotVerifiedException인 경우도 확인
+        else if (exception instanceof InternalAuthenticationServiceException && 
+                 exception.getCause() instanceof EmailNotVerifiedException) {
+            log.info("내부 예외로 인한 이메일 인증 미완료: {}", email);
+            errorMessage = "email-not-verified";
+        }
+        // DisabledException도 이메일 인증 미완료로 처리 (계정 비활성화)
+        else if (exception instanceof DisabledException) {
+            log.info("비활성화된 계정으로 인한 이메일 인증 미완료: {}", email);
+            errorMessage = "email-not-verified";
+        } 
+        // UsernameNotFoundException 메시지 확인
+        else if (exception instanceof UsernameNotFoundException) {
             String message = exception.getMessage();
             
-            // 이메일 인증 메시지 확인
             if (message != null && message.contains("이메일 인증이 완료되지 않은")) {
+                log.info("사용자 조회 실패 - 이메일 인증 미완료: {}", email);
                 errorMessage = "email-not-verified";
-                log.debug("이메일 인증이 완료되지 않은 사용자: {}", exception.getMessage());
             } else {
+                log.info("사용자 조회 실패: {}", email);
                 errorMessage = "invalid-credentials";
-                log.debug("사용자를 찾을 수 없음: {}", exception.getMessage());
             }
-        } else if (exception instanceof BadCredentialsException) {
+        } 
+        // 잘못된 인증 정보
+        else if (exception instanceof BadCredentialsException) {
+            log.info("잘못된 인증 정보: {}", email);
             errorMessage = "invalid-credentials";
-            log.debug("잘못된 인증 정보: {}", exception.getMessage());
-        } else {
+        } 
+        // 기타 인증 오류
+        else {
+            log.info("기타 로그인 실패: {}. 예외: {}", email, exception.getMessage());
             errorMessage = "login-error";
-            log.debug("로그인 실패: {}", exception.getMessage());
         }
         
-        String email = request.getParameter("email");
-        String emailParam = (email != null && !email.isEmpty()) ? ("&email=" + java.net.URLEncoder.encode(email, java.nio.charset.StandardCharsets.UTF_8)) : "";
-        setDefaultFailureUrl("/login?error=" + errorMessage + emailParam);
+        // 이메일 파라미터 추가하여 로그인 페이지로 리다이렉트
+        String emailParam = (email != null && !email.isEmpty()) ? 
+                            ("&email=" + java.net.URLEncoder.encode(email, java.nio.charset.StandardCharsets.UTF_8)) : "";
+        
+        String redirectUrl = "/login?error=" + errorMessage + emailParam;
+        log.debug("로그인 실패 리다이렉트: {}", redirectUrl);
+        
+        setDefaultFailureUrl(redirectUrl);
         super.onAuthenticationFailure(request, response, exception);
     }
 } 
