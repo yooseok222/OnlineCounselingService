@@ -14,6 +14,63 @@
             END AS user_type
     </select>
     
+    <!-- 이메일로 사용자 조회 -->
+    <select id="findByEmail" parameterType="string" resultMap="userResultMap">
+        SELECT
+            'CLIENT' AS user_type,
+            client_id AS id,
+            name,
+            email,
+            password,
+            phone_number,
+            address,
+            role,
+            email_verified,
+            created_at,
+            updated_at,
+            verification_code
+        FROM clients
+        WHERE email = #{email}
+        
+        UNION ALL
+        
+        SELECT
+            'AGENT' AS user_type,
+            agent_id AS id,
+            name,
+            email,
+            password,
+            phone_number,
+            address,
+            role,
+            email_verified,
+            created_at,
+            updated_at,
+            verification_code
+        FROM agents
+        WHERE email = #{email}
+        
+        UNION ALL
+        
+        SELECT
+            'ADMIN' AS user_type,
+            admin_id AS id,
+            name,
+            email,
+            password,
+            phone_number,
+            address,
+            role,
+            email_verified,
+            created_at,
+            updated_at,
+            verification_code
+        FROM admins
+        WHERE email = #{email}
+        
+        LIMIT 1
+    </select>
+    
     <!-- 이메일 중복 확인 -->
     <select id="countByEmail" resultType="int">
         SELECT
