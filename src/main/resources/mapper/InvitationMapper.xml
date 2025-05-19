@@ -44,7 +44,7 @@
 	</update>
 
 	<select id="findByCode"
-		resultType="kr.or.kosa.visang.domain.Invitation.model.Invitation">
+		resultType="kr.or.kosa.visang.domain.invitation.model.Invitation">
 		SELECT * FROM invitation WHERE invitation_code = #{code}
 	</select>
 

@@ -63,4 +63,3 @@
         WHERE admin_id = #{adminId}
     </update>
 </mapper>
-</mapper>

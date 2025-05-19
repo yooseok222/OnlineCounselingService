@@ -174,7 +174,7 @@
 	</select>
 
 	<select id="findById" parameterType="long"
-		resultType="kr.or.kosa.visang.domain.Contract.model.Contract">
+		resultType="kr.or.kosa.visang.domain.contract.model.Contract">
 		SELECT * FROM contract WHERE contract_id = #{contractId}
 	</select>
 

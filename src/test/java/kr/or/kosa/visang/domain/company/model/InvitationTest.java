@@ -21,7 +21,7 @@ public class InvitationTest {
         LocalDateTime expiredTime = now.plusDays(7);
         
         // when
-        Invitation invitation = Invitation.builder()
+        LegacyInvitation invitation = LegacyInvitation.builder()
                 .invitationId(invitationId)
                 .invitationCode(invitationCode)
                 .companyId(companyId)
@@ -50,7 +50,7 @@ public class InvitationTest {
         
         // when & then
         assertThrows(IllegalArgumentException.class, () -> {
-            Invitation.builder()
+            LegacyInvitation.builder()
                     .invitationId(1L)
                     .invitationCode(nullInvitationCode)
                     .companyId(100L)
@@ -70,7 +70,7 @@ public class InvitationTest {
         LocalDateTime pastTime = now.minusDays(1);
         
         // when
-        Invitation invitation = Invitation.builder()
+        LegacyInvitation invitation = LegacyInvitation.builder()
                 .invitationId(1L)
                 .invitationCode("INVITE123456")
                 .companyId(100L)
