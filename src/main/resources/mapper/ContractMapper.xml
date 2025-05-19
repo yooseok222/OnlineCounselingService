@@ -13,6 +13,19 @@
         <result column="memo" property="memo" jdbcType="CLOB"/>
     </resultMap>
 
+    <select id="selectContractByStatus" resultMap="ContractResultMap">
+        SELECT *
+        FROM contract
+        WHERE status = #{status} and company_id = #{companyId}
+        ORDER BY contract_time DESC
+    </select>
+
+    <select id="selectContractById" resultMap="ContractResultMap">
+        SELECT *
+        FROM contract
+        WHERE contract_id = #{id}
+    </select>
+
     <select id="selectMonthlyScheduleByAgentId" resultMap="ContractResultMap">
         SELECT *
         FROM contract

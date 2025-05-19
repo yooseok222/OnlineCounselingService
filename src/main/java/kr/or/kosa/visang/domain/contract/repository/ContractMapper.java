@@ -8,6 +8,11 @@ import java.util.List;
 
 @Mapper
 public interface ContractMapper {
+    List<Contract> selectContractByStatus(
+            @Param("companyId") Long companyId,
+            @Param("status")String status
+    );
+
     List<Contract> selectMonthlyScheduleByAgentId(
             @Param("id") Long agentId,
             @Param("year") String year,

@@ -20,52 +20,52 @@
         INSERT INTO clients (ssn, name, email, password, phone_number, address, role, created_at, profile_image_url, email_verified)
         VALUES (#{ssn}, #{name}, #{email}, #{password}, #{phoneNumber}, #{address}, #{role}, #{createdAt}, #{profileImageUrl}, #{emailVerified})
     </insert>
-    
+
     <select id="findById" resultMap="ClientResultMap">
         SELECT client_id, ssn, name, email, password, phone_number, address, role, created_at, profile_image_url, email_verified
         FROM clients
         WHERE client_id = #{clientId}
     </select>
-    
+
     <select id="findByEmail" resultMap="ClientResultMap">
         SELECT client_id, ssn, name, email, password, phone_number, address, role, created_at, profile_image_url, email_verified
         FROM clients
         WHERE email = #{email}
     </select>
-    
+
     <select id="isSsnExists" resultType="boolean">
         SELECT COUNT(*) > 0
         FROM clients
         WHERE REPLACE(ssn, '-', '') = REPLACE(#{ssn}, '-', '')
     </select>
-    
+
     <select id="isEmailExists" resultType="boolean">
         SELECT COUNT(*) > 0
         FROM clients
         WHERE email = #{email}
     </select>
-    
+
     <select id="isPhoneNumberExists" resultType="boolean">
         SELECT COUNT(*) > 0
         FROM clients
         WHERE REPLACE(phone_number, '-', '') = REPLACE(#{phoneNumber}, '-', '')
     </select>
-    
+
     <update id="updateEmailVerificationStatus">
         UPDATE clients
         SET email_verified = #{verified}
         WHERE email = #{email}
     </update>
-    
+
     <update id="updatePassword">
         UPDATE clients
         SET password = #{password}
         WHERE client_id = #{clientId}
     </update>
-    
+
     <update id="updateProfileImageUrl">
         UPDATE clients
         SET profile_image_url = #{profileImageUrl}
         WHERE client_id = #{clientId}
     </update>
-</mapper> 
+</mapper>

@@ -10,6 +10,5 @@ public class CounselorController {
 	@GetMapping("/counselor/dashboard")
 	public String dashboard(Model model) {
 		return "layout/main";
-
 	}
 }
