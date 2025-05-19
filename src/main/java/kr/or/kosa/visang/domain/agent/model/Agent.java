@@ -37,4 +37,18 @@ public class Agent extends User {
         
         return this;
     }
+
+    public Agent validateState() {
+        if (!"ACTIVE".equals(state) && !"INACTIVE".equals(state) && !"PENDING".equals(state)) {
+            throw new IllegalArgumentException("유효하지 않은 상태 코드입니다.");
+        }
+        return this;
+    }
+
+    public Agent validateCompanyId() {
+        if (companyId == null) {
+            throw new IllegalArgumentException("회사 ID는 필수 항목입니다.");
+        }
+        return this;
+    }
 }

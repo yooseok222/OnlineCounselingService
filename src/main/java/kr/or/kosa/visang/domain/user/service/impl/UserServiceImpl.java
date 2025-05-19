@@ -8,6 +8,8 @@ import kr.or.kosa.visang.domain.client.model.Client;
 import kr.or.kosa.visang.domain.client.repository.ClientMapper;
 import kr.or.kosa.visang.domain.company.model.Company;
 import kr.or.kosa.visang.domain.company.repository.CompanyMapper;
+import kr.or.kosa.visang.domain.company.dto.InvitationVerifyResponse;
+import kr.or.kosa.visang.domain.company.service.InvitationService;
 import kr.or.kosa.visang.domain.user.dto.UserRegistrationRequest;
 import kr.or.kosa.visang.domain.user.dto.UserResponse;
 import kr.or.kosa.visang.domain.user.repository.UserMapper;
@@ -48,6 +50,7 @@ public class UserServiceImpl implements UserService {
     private final RedisTemplate<String, String> redisTemplate;
     private final JavaMailSender mailSender;
     private final SpringTemplateEngine templateEngine;
+    private final InvitationService invitationService;
     
     // 이메일 인증 코드 저장을 위한 Redis 키 프리픽스
     private static final String EMAIL_VERIFICATION_PREFIX = "email:verification:";
@@ -163,6 +166,27 @@ public class UserServiceImpl implements UserService {
                 break;
                 
             case "AGENT":
+                // 초대코드 필수 체크
+                if (request.getInvitationCode() == null || request.getInvitationCode().isEmpty()) {
+                    throw new IllegalArgumentException("초대코드는 필수 입력 항목입니다.");
+                }
+                
+                // 초대코드 검증
+                InvitationVerifyResponse verifyResponse = invitationService.verifyInvitation(request.getInvitationCode());
+                if (!verifyResponse.isValid()) {
+                    throw new IllegalArgumentException(verifyResponse.getErrorMessage());
+                }
+                
+                // 회사 정보 설정
+                Long companyId = verifyResponse.getCompanyId();
+                request.setCompanyId(companyId);
+                
+                // 회사 정보 조회
+                Company agentCompany = companyMapper.findById(companyId);
+                if (agentCompany == null) {
+                    throw new IllegalArgumentException("유효하지 않은 회사 정보입니다.");
+                }
+                
                 // 상담원 저장
                 Agent agent = Agent.builder()
                         .name(request.getName())
@@ -171,7 +195,7 @@ public class UserServiceImpl implements UserService {
                         .phoneNumber(request.getPhoneNumber())
                         .address(request.getAddress())
                         .role("AGENT")
-                        .companyId(request.getCompanyId())
+                        .companyId(companyId)
                         .state("INACTIVE") // 초기 상태
                         .createdAt(now)
                         .emailVerified(false)
@@ -179,9 +203,6 @@ public class UserServiceImpl implements UserService {
                         .validate();
                 
                 agentMapper.save(agent);
-                
-                // 회사 정보 조회
-                Company agentCompany = companyMapper.findById(request.getCompanyId());
                 
                 response = UserResponse.builder()
                         .userId(agent.getAgentId())
@@ -192,7 +213,7 @@ public class UserServiceImpl implements UserService {
                         .role(agent.getRole())
                         .createdAt(agent.getCreatedAt())
                         .companyId(agent.getCompanyId())
-                        .companyName(agentCompany != null ? agentCompany.getCompanyName() : null)
+                        .companyName(agentCompany.getCompanyName())
                         .state(agent.getState())
                         .build();
                 break;

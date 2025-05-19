@@ -17,7 +17,7 @@ public class UserTest {
         
         // when
         User user = User.builder()
-                .userId(1L)
+                .id(1L)
                 .name("테스트사용자")
                 .email(validEmail)
                 .password("Password123!")
@@ -42,7 +42,7 @@ public class UserTest {
         // when & then
         assertThrows(IllegalArgumentException.class, () -> {
             User.builder()
-                    .userId(1L)
+                    .id(1L)
                     .name("테스트사용자")
                     .email(invalidEmail)
                     .password("Password123!")
@@ -64,7 +64,7 @@ public class UserTest {
         // when & then
         assertThrows(IllegalArgumentException.class, () -> {
             User.builder()
-                    .userId(1L)
+                    .id(1L)
                     .name("테스트사용자")
                     .email("test@example.com")
                     .password(weakPassword)
@@ -86,7 +86,7 @@ public class UserTest {
         // when & then
         assertThrows(IllegalArgumentException.class, () -> {
             User.builder()
-                    .userId(1L)
+                    .id(1L)
                     .name("테스트사용자")
                     .email("test@example.com")
                     .password("Password123!")

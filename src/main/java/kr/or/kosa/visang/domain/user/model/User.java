@@ -51,4 +51,37 @@ public class User {
         
         return this;
     }
+
+    /**
+     * 이메일 형식 유효성 검증
+     */
+    public User validateEmail() {
+        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
+        if (email == null || !email.matches(emailRegex)) {
+            throw new IllegalArgumentException("유효하지 않은 이메일 형식입니다.");
+        }
+        return this;
+    }
+
+    /**
+     * 비밀번호 형식 유효성 검증
+     */
+    public User validatePassword() {
+        String pwdRegex = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*])[A-Za-z\\d!@#$%^&*]{8,20}$";
+        if (password == null || !password.matches(pwdRegex)) {
+            throw new IllegalArgumentException("비밀번호는 8~20자의 영문 대소문자, 숫자, 특수문자(!@#$%^&*)를 포함해야 합니다.");
+        }
+        return this;
+    }
+
+    /**
+     * 전화번호 형식 유효성 검증
+     */
+    public User validatePhoneNumber() {
+        String phoneRegex = "^(01[016789]-?\\d{3,4}-?\\d{4})$";
+        if (phoneNumber == null || !phoneNumber.matches(phoneRegex)) {
+            throw new IllegalArgumentException("유효하지 않은 전화번호 형식입니다.");
+        }
+        return this;
+    }
 } 

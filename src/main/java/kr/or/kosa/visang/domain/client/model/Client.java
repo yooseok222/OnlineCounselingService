@@ -32,4 +32,12 @@ public class Client extends User {
         
         return this;
     }
+
+    public Client validateSsn() {
+        String ssnRegex = "^\\d{6}-?[1-4]\\d{6}$";
+        if (ssn == null || !ssn.matches(ssnRegex)) {
+            throw new IllegalArgumentException("유효하지 않은 주민등록번호 형식입니다.");
+        }
+        return this;
+    }
 }
