@@ -27,13 +27,8 @@ public class AdminController {
     private final AgentService agentService;
     private final ContractService contractService;
 
-    public AdminController(AgentService agentService, ContractService contractService) {
-        this.agentService = agentService;
-        this.contractService = contractService;
-    }
-
     @GetMapping("/list")
-    public String list(@RequestParam(required=false) boolean ajax, Model model) {
+    public String list(Model model) {
         model.addAttribute("agentList", agentService.getAgentList());
             // 공통 레이아웃으로 전체 페이지 렌더링
         model.addAttribute("contentFragment", "admin/adminAgentManagement :: content");
