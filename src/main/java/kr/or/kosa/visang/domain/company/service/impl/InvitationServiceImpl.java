@@ -80,40 +80,90 @@ public class InvitationServiceImpl implements InvitationService {
         // 관리자 ID 별로 초대코드 관리
         String adminKey = INV_PREFIX_BY_ADMIN + request.getAdminId();
         redisTemplate.opsForSet().add(adminKey, invitationCode);
+        // TTL 부여 (관리자별 목록 또한 동일 기간 후 삭제)
+        redisTemplate.expire(adminKey, expirationMillis, TimeUnit.MILLISECONDS);
         
         // 회사 ID 별로 초대코드 관리
         String companyKey = INV_PREFIX_BY_COMPANY + request.getCompanyId();
         redisTemplate.opsForSet().add(companyKey, invitationCode);
+        redisTemplate.expire(companyKey, expirationMillis, TimeUnit.MILLISECONDS);
         
         return invitationResponse;
     }
 
     @Override
     public InvitationVerifyResponse verifyInvitation(String invitationCode) {
-        // Redis에서 초대코드 정보 조회
-        String codeKey = INV_PREFIX_DETAIL + invitationCode;
-        InvitationResponse invitation = (InvitationResponse) redisTemplate.opsForValue().get(codeKey);
-        
-        if (invitation == null) {
-            return InvitationVerifyResponse.fail("유효하지 않은 초대코드입니다.");
+        // 1) 입력값 정규화 (공백 제거 및 대문자 변환)
+        if (invitationCode == null || invitationCode.trim().isEmpty()) {
+            return InvitationVerifyResponse.fail("초대코드를 입력해주세요.");
         }
-        
-        // 만료 여부 확인 (Redis TTL로 자동 관리되지만 추가 확인)
-        if (invitation.getExpiredTime().isBefore(LocalDateTime.now())) {
-            return InvitationVerifyResponse.fail("만료된 초대코드입니다.");
+
+        String normalizedCode = invitationCode.trim().toUpperCase();
+
+        // 2) Redis 키 조합 및 조회 (대문자 코드 사용)
+        String codeKeyWithPrefix = INV_PREFIX_DETAIL + normalizedCode;
+        Object redisValue = redisTemplate.opsForValue().get(codeKeyWithPrefix);
+
+        // prefix 없이 저장된 경우도 대비해서 추가 조회
+        if (redisValue == null) {
+            redisValue = redisTemplate.opsForValue().get(normalizedCode);
         }
-        
-        // 회사 정보 조회
-        Company company = companyMapper.findById(invitation.getCompanyId());
-        if (company == null) {
-            return InvitationVerifyResponse.fail("유효하지 않은 회사 정보입니다.");
+
+        InvitationResponse invitation = null;
+        Long companyId = null;
+        String companyName = null;
+        String adminName = null;
+
+        try {
+            if (redisValue instanceof InvitationResponse) {
+                // 애플리케이션에서 저장한 정식 객체
+                invitation = (InvitationResponse) redisValue;
+                companyId   = invitation.getCompanyId();
+                companyName = invitation.getCompanyName();
+                adminName   = invitation.getAdminName();
+
+                // 만료 여부 확인 (TTL 만료 전이라도 만료시간이 지났는지 추가 확인)
+                if (invitation.getExpiredTime() != null && invitation.getExpiredTime().isBefore(LocalDateTime.now())) {
+                    return InvitationVerifyResponse.fail("만료된 초대코드입니다.");
+                }
+            } else if (redisValue instanceof String strVal) {
+                // 3) 수동으로 삽입한 단순 문자열 형태 처리
+                //    형식 1) "<companyId>"  (ex: "1")
+                //    형식 2) "<companyId>|<companyName>|<adminName>"
+                String[] parts = strVal.split("\\|", 3);
+                try {
+                    companyId = Long.parseLong(parts[0]);
+                } catch (NumberFormatException nfe) {
+                    return InvitationVerifyResponse.fail("잘못된 초대코드 형식입니다.");
+                }
+                if (parts.length > 1) {
+                    companyName = parts[1];
+                }
+                if (parts.length > 2) {
+                    adminName = parts[2];
+                }
+            } else {
+                // redisValue 가 null 이거나 지원하지 않는 타입
+                return InvitationVerifyResponse.fail("유효하지 않은 초대코드입니다.");
+            }
+
+            // 4) 회사 정보 검증 및 보완
+            Company company = companyMapper.findById(companyId);
+            if (company == null) {
+                return InvitationVerifyResponse.fail("유효하지 않은 회사 정보입니다.");
+            }
+            if (companyName == null || companyName.isBlank()) {
+                companyName = company.getCompanyName();
+            }
+            if (adminName == null) {
+                adminName = "관리자";
+            }
+
+            return InvitationVerifyResponse.success(companyId, companyName, adminName);
+        } catch (Exception e) {
+            log.error("초대코드 검증 중 예외 발생 - code: {}, error: {}", normalizedCode, e.getMessage(), e);
+            return InvitationVerifyResponse.fail("초대코드 검증 중 오류가 발생했습니다.");
         }
-        
-        return InvitationVerifyResponse.success(
-                invitation.getCompanyId(),
-                company.getCompanyName(),
-                invitation.getAdminName()
-        );
     }
 
     @Override

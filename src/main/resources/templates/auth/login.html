@@ -26,9 +26,9 @@
                         </div>
                         
                         <!-- 이메일 인증 미완료 메시지 -->
-                        <div th:if="${param.error == 'email-not-verified'}" class="alert alert-warning alert-dismissible fade show" role="alert">
+                        <div th:if="${param.error == 'email-not-verified'} or ${errorType == 'email-not-verified'}" class="alert alert-warning alert-dismissible fade show" role="alert">
                             <i class="bi bi-envelope-exclamation-fill me-2"></i>
-                            이메일 인증이 완료되지 않았습니다. 이메일을 확인해주세요.
+                            <span th:text="${error != null ? error : '이메일 인증이 완료되지 않았습니다. 이메일을 확인해주세요.'}">이메일 인증이 완료되지 않았습니다. 이메일을 확인해주세요.</span>
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             
                             <!-- 이메일 인증 메일 재발송 폼 추가 -->
@@ -57,10 +57,10 @@
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                         
-                        <!-- 로그인 실패 메시지 -->
-                        <div th:if="${param.error != null && param.error != 'email-not-verified'}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <!-- 로그인 실패 메시지 (이메일 인증 미완료 제외) -->
+                        <div th:if="${param.error != null and param.error != 'email-not-verified' and errorType != 'email-not-verified'}" class="alert alert-danger alert-dismissible fade show" role="alert">
                             <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                            이메일 또는 비밀번호가 올바르지 않습니다.
+                            <span th:text="${error != null ? error : '이메일 또는 비밀번호가 올바르지 않습니다.'}">이메일 또는 비밀번호가 올바르지 않습니다.</span>
                             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                         
@@ -123,6 +123,17 @@
     <!-- 디버깅 스크립트 -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            console.log("로그인 페이지 로드됨");
+            
+            // URL 파라미터 확인 (디버깅 목적)
+            const urlParams = new URLSearchParams(window.location.search);
+            if(urlParams.has('error')) {
+                console.log("에러 파라미터:", urlParams.get('error'));
+            }
+            if(urlParams.has('email')) {
+                console.log("이메일 파라미터:", urlParams.get('email'));
+            }
+            
             const loginForm = document.getElementById('loginForm');
             if(loginForm) {
                 loginForm.addEventListener('submit', function(e) {

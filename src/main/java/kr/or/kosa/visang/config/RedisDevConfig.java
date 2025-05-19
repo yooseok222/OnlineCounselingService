@@ -25,6 +25,7 @@ public class RedisDevConfig {
      * 애플리케이션 시작 직후 Redis DB를 비운다.
      */
     @Bean
+    @org.springframework.core.annotation.Order(1)
     public ApplicationRunner redisFlushRunner() {
         return args -> {
             try (RedisConnection conn = connectionFactory.getConnection()) {
