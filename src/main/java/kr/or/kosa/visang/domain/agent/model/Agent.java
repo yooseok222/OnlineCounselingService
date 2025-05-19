@@ -18,6 +18,10 @@ public class Agent {
 
     private String createdAt;
     private String profileImageUrl; // 이미지 저장 경로
+    
+	private String password;
+	private String role;
+
 
 //    // 추가 필드
 //    private int totalCount; // 총 건수
