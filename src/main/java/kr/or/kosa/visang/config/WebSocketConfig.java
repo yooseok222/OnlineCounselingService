@@ -15,9 +15,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 				.setAllowedOriginPatterns("*").withSockJS(); // SockJS 사용
 	}
 
+
+
 	@Override
 	public void configureMessageBroker(MessageBrokerRegistry registry) {
 		registry.enableSimpleBroker("/topic");
 		registry.setApplicationDestinationPrefixes("/app");
 	}
+
 }

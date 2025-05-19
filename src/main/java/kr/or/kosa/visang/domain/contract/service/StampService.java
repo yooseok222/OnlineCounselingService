@@ -1,0 +1,83 @@
+package kr.or.kosa.visang.domain.contract.service;
+
+import kr.or.kosa.visang.domain.contract.model.StampDTO;
+import kr.or.kosa.visang.domain.contract.repository.StampMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+public class StampService {
+
+    private static final String UPLOAD_DIR = System.getProperty("user.dir") + "/uploads/stamps";
+
+    @Autowired
+    private StampMapper stampMapper;
+
+    // 도장 조회
+    public StampDTO getStampById(Long stampId) {
+        return stampMapper.selectStampById(stampId);
+    }
+
+    // 고객 ID로 도장 목록 조회
+    public List<StampDTO> getStampsByClientId(Long clientId) {
+        return stampMapper.selectStampsByClientId(clientId);
+    }
+
+    // 도장 이미지 업로드 및 저장
+    public StampDTO uploadStamp(MultipartFile file, Long clientId) throws IOException {
+        // 업로드 폴더 생성
+        File uploadDir = new File(UPLOAD_DIR);
+        if (!uploadDir.exists()) {
+            uploadDir.mkdirs();
+        }
+
+        // 고유한 파일명 생성
+        String originalFilename = file.getOriginalFilename();
+        String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
+
+        // 파일 저장 경로
+        Path filePath = Paths.get(UPLOAD_DIR, uniqueFilename);
+        file.transferTo(filePath.toFile());
+
+        // 도장 정보 DB에 저장
+        StampDTO stampDTO = new StampDTO();
+        stampDTO.setImagePath(uniqueFilename);
+        stampDTO.setCreatedAt(new Date());
+        stampDTO.setClientId(clientId);
+
+        stampMapper.insertStamp(stampDTO);
+
+        return stampDTO;
+    }
+
+    // 도장 정보 업데이트
+    public int updateStamp(StampDTO stamp) {
+        return stampMapper.updateStamp(stamp);
+    }
+
+    // 도장 삭제
+    public int deleteStamp(Long stampId) {
+        StampDTO stamp = getStampById(stampId);
+        if (stamp != null) {
+            // 파일 시스템에서 삭제
+            File file = new File(UPLOAD_DIR, stamp.getImagePath());
+            if (file.exists()) {
+                file.delete();
+            }
+
+            // DB에서 삭제
+            return stampMapper.deleteStamp(stampId);
+        }
+        return 0;
+    }
+} 

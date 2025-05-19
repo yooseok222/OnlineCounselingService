@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>PDF 전자서명 상담 시스템</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h2 {
+      color: #333;
+      text-align: center;
+    }
+    .entry-section {
+      margin-top: 30px;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    .button:hover {
+      background-color: #45a049;
+    }
+    .section-title {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .role-selection {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 40px;
+    }
+    .role-card {
+      width: 45%;
+      text-align: center;
+      padding: 30px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .role-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    .role-icon {
+      font-size: 48px;
+      margin-bottom: 15px;
+    }
+    .role-description {
+      color: #666;
+      margin: 15px 0;
+    }
+  </style>
+</head>
+<body>
+<h2>PDF 전자서명 상담 시스템</h2>
+
+<div class="role-selection">
+  <!-- 상담원 선택 -->
+  <div class="role-card">
+    <div class="role-icon">👨‍💼</div>
+    <div class="section-title">상담원</div>
+    <p class="role-description">상담 진행 및 문서 관리를 위한 상담원 인터페이스로 입장합니다.</p>
+    <button class="button" onclick="location.href='/agent-entry'">상담원으로 입장</button>
+  </div>
+
+  <!-- 고객 선택 -->
+  <div class="role-card">
+    <div class="role-icon">👨‍👩‍👧‍👦</div>
+    <div class="section-title">고객</div>
+    <p class="role-description">상담 참여 및 전자서명을 위한 고객 인터페이스로 입장합니다.</p>
+    <button class="button" onclick="location.href='/client-entry'">고객으로 입장</button>
+  </div>
+</div>
+
+</body>
+</html> 

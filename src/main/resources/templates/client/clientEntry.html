@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고객 입장 | 전자계약 원스톱 AI 서비스</title>
+    
+    <!-- 부트스트랩 5 CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 부트스트랩 아이콘 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- Google Fonts - Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8f9fa;
+            padding: 2rem 0;
+        }
+        
+        .main-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+        
+        .entry-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2rem;
+            overflow: hidden;
+            transition: transform 0.3s;
+        }
+        
+        .entry-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            background-color: #0064E1;
+            color: white;
+            padding: 1.2rem;
+            font-weight: 500;
+            border-bottom: none;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .btn-primary {
+            background-color: #0064E1;
+            border-color: #0064E1;
+            padding: 8px 20px;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0053b3;
+            border-color: #0053b3;
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+        
+        canvas {
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .page-header {
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+        }
+        
+        .icon-wrapper {
+            font-size: 40px;
+            margin-bottom: 1rem;
+            color: #0064E1;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="text-center page-header">
+            <h1 class="display-6"><i class="bi bi-person-check me-2"></i>고객 입장</h1>
+            <p class="text-muted">상담에 참여하기 위한 인증 방법을 선택해주세요</p>
+        </div>
+        
+        <div class="row">
+            <!-- 도장 등록 카드 -->
+            <div class="col-md-6 mb-4">
+                <div class="entry-card card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-stamp me-2"></i>도장으로 입장
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="icon-wrapper">
+                            <i class="bi bi-file-earmark-image"></i>
+                        </div>
+                        <p>도장 이미지를 업로드하고 상담에 참여합니다.</p>
+                        <div class="mb-3">
+                            <input class="form-control" type="file" id="stampUpload" accept="image/*">
+                        </div>
+                        <button class="btn btn-primary w-100" onclick="enterWithStamp()">
+                            <i class="bi bi-upload me-1"></i> 도장 업로드 후 입장
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 서명 등록 카드 -->
+            <div class="col-md-6 mb-4">
+                <div class="entry-card card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-pen me-2"></i>서명으로 입장
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="icon-wrapper">
+                            <i class="bi bi-pencil-square"></i>
+                        </div>
+                        <p>아래 영역에 서명을 작성하고 상담에 참여합니다.</p>
+                        <div class="d-flex justify-content-center mb-3">
+                            <canvas id="signCanvas" width="300" height="100"></canvas>
+                        </div>
+                        <div class="d-flex gap-2 mb-3">
+                            <button class="btn btn-secondary flex-grow-1" onclick="clearSignature()">
+                                <i class="bi bi-eraser me-1"></i> 서명 지우기
+                            </button>
+                            <button class="btn btn-primary flex-grow-1" onclick="enterWithSignature()">
+                                <i class="bi bi-box-arrow-in-right me-1"></i> 서명으로 입장
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-3">
+            <a href="/main-page" class="btn btn-outline-secondary">
+                <i class="bi bi-house me-1"></i> 메인 화면으로 돌아가기
+            </a>
+        </div>
+    </div>
+    
+    <!-- 부트스트랩 5 JS 번들 (Popper 포함) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function enterWithStamp() {
+            const fileInput = document.getElementById("stampUpload");
+            const file = fileInput.files[0];
+            if (!file) return alert("도장 이미지를 선택하세요.");
+
+            // 파일 크기 검증 추가
+            if (file.size <= 0) {
+                return alert("올바른 도장 이미지 파일을 선택하세요.");
+            }
+
+            // 이미지 타입 검증 추가
+            if (!file.type.startsWith('image/')) {
+                return alert("이미지 파일만 업로드 가능합니다.");
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                sessionStorage.setItem("role", "client");
+                sessionStorage.setItem("stampImage", e.target.result);
+                sessionStorage.setItem("entryType", "stamp");
+                
+                // 대기실로 이동
+                location.href = "/waiting-room";
+            };
+            reader.readAsDataURL(file);
+        }
+
+        const signCanvas = document.getElementById('signCanvas');
+        const signCtx = signCanvas.getContext('2d');
+        let isDrawing = false;
+        let hasSignature = false;
+
+        // 터치 장치 지원 추가
+        function setupCanvas() {
+            // 마우스 이벤트
+            signCanvas.addEventListener('mousedown', startDrawing);
+            signCanvas.addEventListener('mousemove', draw);
+            signCanvas.addEventListener('mouseup', stopDrawing);
+            signCanvas.addEventListener('mouseout', stopDrawing);
+            
+            // 터치 이벤트
+            signCanvas.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = signCanvas.getBoundingClientRect();
+                const mouseEvent = new MouseEvent('mousedown', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                signCanvas.dispatchEvent(mouseEvent);
+            });
+            
+            signCanvas.addEventListener('touchmove', function(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousemove', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                signCanvas.dispatchEvent(mouseEvent);
+            });
+            
+            signCanvas.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                const mouseEvent = new MouseEvent('mouseup');
+                signCanvas.dispatchEvent(mouseEvent);
+            });
+        }
+        
+        function startDrawing(e) {
+            isDrawing = true;
+            signCtx.beginPath();
+            const rect = signCanvas.getBoundingClientRect();
+            signCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            signCtx.lineWidth = 2;
+            signCtx.lineCap = "round";
+            signCtx.strokeStyle = "black";
+            
+            const rect = signCanvas.getBoundingClientRect();
+            signCtx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            signCtx.stroke();
+        }
+        
+        function stopDrawing() {
+            if (isDrawing) {
+                isDrawing = false;
+                hasSignature = true;
+                signCtx.closePath();
+            }
+        }
+
+        function clearSignature() {
+            signCtx.clearRect(0, 0, signCanvas.width, signCanvas.height);
+            hasSignature = false;
+        }
+
+        function enterWithSignature() {
+            if (!hasSignature) {
+                return alert("서명을 작성해주세요. 서명 없이는 입장할 수 없습니다.");
+            }
+            
+            // 추가 검증: 캔버스에 실제로 그려진 픽셀이 있는지 확인
+            const imageData = signCtx.getImageData(0, 0, signCanvas.width, signCanvas.height).data;
+            let hasDrawnPixels = false;
+            
+            // 이미지 데이터를 순회하면서 투명하지 않은 픽셀이 있는지 확인
+            for (let i = 3; i < imageData.length; i += 4) {
+                if (imageData[i] > 0) {  // 알파 채널 값이 0보다 크면 픽셀이 그려진 것
+                    hasDrawnPixels = true;
+                    break;
+                }
+            }
+            
+            if (!hasDrawnPixels) {
+                return alert("서명이 너무 작거나 없습니다. 다시 작성해주세요.");
+            }
+            
+            const signatureImage = signCanvas.toDataURL();
+            sessionStorage.setItem("role", "client");
+            sessionStorage.setItem("signatureImage", signatureImage);
+            sessionStorage.setItem("entryType", "signature");
+            
+            // 대기실로 이동
+            location.href = "/waiting-room";
+        }
+        
+        // 페이지 로드 시 캔버스 설정
+        window.onload = function() {
+            setupCanvas();
+        };
+    </script>
+</body>
+</html> 
