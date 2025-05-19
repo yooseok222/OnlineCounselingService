@@ -1,17 +1,24 @@
 package kr.or.kosa.visang.domain.admin.controller;
 
+import java.util.List;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
 import kr.or.kosa.visang.domain.agent.model.Agent;
 import kr.or.kosa.visang.domain.agent.model.UpdateAgentDto;
 import kr.or.kosa.visang.domain.agent.service.AgentService;
 import kr.or.kosa.visang.domain.contract.model.Contract;
 import kr.or.kosa.visang.domain.contract.service.ContractService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
-import java.util.List;
 
 @Controller
 @RequestMapping("/admin")
@@ -21,7 +28,7 @@ public class AdminController {
     private final ContractService contractService;
 
     @GetMapping("/list")
-    public String list(@RequestParam(required=false) boolean ajax, Model model) {
+    public String list(Model model) {
         model.addAttribute("agentList", agentService.getAgentList());
             // 공통 레이아웃으로 전체 페이지 렌더링
         model.addAttribute("contentFragment", "admin/adminAgentManagement :: content");

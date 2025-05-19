@@ -1,26 +1,37 @@
-//package kr.or.kosa.visang.config;
-//
-//import org.springframework.boot.CommandLineRunner;
-//import org.springframework.context.annotation.Bean;
-//import org.springframework.context.annotation.Configuration;
-//import org.jasypt.encryption.StringEncryptor;
-//
-//@Configuration
-//public class JasyptEncryptConfig {
-//
-//    // 애플리케이션 시작 시 한 번 실행해서 암호문 생성
-//    @Bean
-//    public CommandLineRunner encryptRunner(StringEncryptor encryptor) {
-//        return args -> {
-//            String Email = "";
-//            String pass = "";
-//            String cipher = encryptor.encrypt(Email);
-//            String cipher2 = encryptor.encrypt(pass);
-//            System.out.println("Encrypted ▶ " + cipher);
-//            // 필요하면 decrypt 도 확인
-//            System.out.println("Decrypted ▶ " + encryptor.decrypt(cipher));
-//            System.out.println("Encrypted ▶ " + cipher2);
-//            System.out.println("Decrypted ▶ " + encryptor.decrypt(cipher2));
-//        };
-//    }
-//}
+package kr.or.kosa.visang.config;
+
+import org.jasypt.encryption.StringEncryptor;
+import org.jasypt.encryption.pbe.PooledPBEStringEncryptor;
+import org.jasypt.encryption.pbe.config.SimpleStringPBEConfig;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * Jasypt 암호화 설정 클래스
+ */
+@Configuration
+public class JasyptEncryptConfig {
+
+    @Value("${jasypt.encryptor.password:visangisawesome}")
+    private String encryptorPassword;
+
+    /**
+     * Jasypt StringEncryptor 빈 설정
+     */
+    @Bean
+    public StringEncryptor jasyptStringEncryptor() {
+        PooledPBEStringEncryptor encryptor = new PooledPBEStringEncryptor();
+        SimpleStringPBEConfig config = new SimpleStringPBEConfig();
+        config.setPassword(encryptorPassword);
+        config.setAlgorithm("PBEWithMD5AndDES");
+        config.setKeyObtentionIterations(1000);
+        config.setPoolSize(1);
+        config.setProviderName("SunJCE");
+        config.setSaltGeneratorClassName("org.jasypt.salt.RandomSaltGenerator");
+        config.setIvGeneratorClassName("org.jasypt.iv.RandomIvGenerator");
+        config.setStringOutputType("base64");
+        encryptor.setConfig(config);
+        return encryptor;
+    }
+}

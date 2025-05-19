@@ -11,10 +11,17 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${file.upload-dir}")
     private String uploadDir;
 
+    @Value("${file.upload-dir.pdf}")
+    private String uploadDirPdf;
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // /images/profile/** → upload/profile 폴더 매핑
         registry.addResourceHandler("/images/profile/**")
                 .addResourceLocations("file:" + uploadDir + "/");
+
+        // PDF 파일 매핑
+        registry.addResourceHandler("/files/pdf/**")
+                .addResourceLocations("file:" + uploadDirPdf + "/");
     }
 }

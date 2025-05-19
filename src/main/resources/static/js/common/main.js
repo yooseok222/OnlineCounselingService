@@ -175,3 +175,233 @@ function loadTheme() {
     if (themeIconDark) themeIconDark.classList.add("d-none");
   }
 }
+
+// 회원가입 페이지 이벤트 리스너 초기화
+function initRegisterPageEvents() {
+  // 회원가입 관련 요소가 있는지 확인
+  if (!document.getElementById("registerForm")) {
+    return; // 회원가입 폼이 없으면 중단
+  }
+
+  console.log("회원가입 페이지 이벤트 리스너 초기화");
+
+  // 이메일 중복 확인
+  const checkEmailBtn = document.getElementById("checkEmailBtn");
+  if (checkEmailBtn) {
+    checkEmailBtn.addEventListener("click", function () {
+      checkEmail();
+    });
+  }
+
+  // 전화번호 중복 확인
+  const checkPhoneBtn = document.getElementById("checkPhoneBtn");
+  if (checkPhoneBtn) {
+    checkPhoneBtn.addEventListener("click", function () {
+      checkPhoneNumber();
+    });
+  }
+
+  // 주민번호 중복 확인
+  const checkSsnBtn = document.getElementById("checkSsnBtn");
+  if (checkSsnBtn) {
+    checkSsnBtn.addEventListener("click", function () {
+      checkSsn();
+    });
+  }
+}
+
+// 이메일 중복 확인 함수
+function checkEmail() {
+  const email = document.getElementById("email").value;
+  const emailInput = document.getElementById("email");
+  const feedbackElement = document.getElementById("emailFeedback");
+
+  if (!email) {
+    emailInput.classList.add("is-invalid");
+    setFeedback(feedbackElement, "이메일을 입력해주세요.", "error");
+    return;
+  }
+
+  // 이메일 형식 검증 (정규식은 등록 페이지에서 정의되어 있다고 가정)
+  if (typeof EMAIL_REGEX !== "undefined" && !EMAIL_REGEX.test(email)) {
+    emailInput.classList.add("is-invalid");
+    setFeedback(feedbackElement, "유효한 이메일 형식이 아닙니다.", "error");
+    return;
+  }
+
+  // API 호출
+  $.ajax({
+    url: "/api/email/check",
+    type: "GET",
+    data: { email: email },
+    success: function (response) {
+      console.log("이메일 중복 확인 결과:", response);
+
+      // response는 ApiResponse 객체 형식 {duplicated: boolean, message: string}
+      if (response.duplicated) {
+        emailInput.classList.add("is-invalid");
+        emailInput.classList.remove("is-valid");
+        setFeedback(feedbackElement, response.message, "error");
+        window.emailVerified = false;
+      } else {
+        emailInput.classList.remove("is-invalid");
+        emailInput.classList.add("is-valid");
+        setFeedback(feedbackElement, response.message, "success");
+        window.emailVerified = true;
+      }
+    },
+    error: function () {
+      emailInput.classList.add("is-invalid");
+      emailInput.classList.remove("is-valid");
+      setFeedback(
+        feedbackElement,
+        "이메일 확인 중 오류가 발생했습니다. 다시 시도해주세요.",
+        "error"
+      );
+      window.emailVerified = false;
+    },
+  });
+}
+
+// 전화번호 중복 확인 함수
+function checkPhoneNumber() {
+  const phoneNumber = document.getElementById("phoneNumber").value;
+  const phoneInput = document.getElementById("phoneNumber");
+  const feedbackElement = document.getElementById("phoneNumberFeedback");
+
+  if (!phoneNumber) {
+    window.phoneVerified = true; // 전화번호가 없으면 검증 통과로 처리
+    phoneInput.classList.remove("is-invalid");
+    phoneInput.classList.remove("is-valid");
+    setFeedback(feedbackElement, "", "");
+    return;
+  }
+
+  // 전화번호 형식 검증 (정규식은 등록 페이지에서 정의되어 있다고 가정)
+  if (typeof PHONE_REGEX !== "undefined" && !PHONE_REGEX.test(phoneNumber)) {
+    phoneInput.classList.add("is-invalid");
+    phoneInput.classList.remove("is-valid");
+    setFeedback(feedbackElement, "전화번호 형식이 올바르지 않습니다.", "error");
+    window.phoneVerified = false;
+    return;
+  }
+
+  // API 호출
+  $.ajax({
+    url: "/api/phone/check",
+    type: "GET",
+    data: { phoneNumber: phoneNumber },
+    success: function (response) {
+      console.log("전화번호 중복 확인 결과:", response);
+
+      // response는 ApiResponse 객체 형식 {duplicated: boolean, message: string}
+      if (response.duplicated) {
+        phoneInput.classList.add("is-invalid");
+        phoneInput.classList.remove("is-valid");
+        setFeedback(feedbackElement, response.message, "error");
+        window.phoneVerified = false;
+      } else {
+        phoneInput.classList.remove("is-invalid");
+        phoneInput.classList.add("is-valid");
+        setFeedback(feedbackElement, response.message, "success");
+        window.phoneVerified = true;
+      }
+    },
+    error: function () {
+      phoneInput.classList.add("is-invalid");
+      phoneInput.classList.remove("is-valid");
+      setFeedback(
+        feedbackElement,
+        "전화번호 확인 중 오류가 발생했습니다. 다시 시도해주세요.",
+        "error"
+      );
+      window.phoneVerified = false;
+    },
+  });
+}
+
+// 주민번호 중복 확인 함수
+function checkSsn() {
+  const ssn = document.getElementById("ssn").value;
+  const ssnInput = document.getElementById("ssn");
+  const feedbackElement = document.getElementById("ssnFeedback");
+
+  if (!ssn) {
+    ssnInput.classList.add("is-invalid");
+    ssnInput.classList.remove("is-valid");
+    setFeedback(
+      feedbackElement,
+      "주민등록번호는 필수 입력 항목입니다.",
+      "error"
+    );
+    window.ssnVerified = false;
+    return;
+  }
+
+  // 주민번호 형식 검증 (정규식은 등록 페이지에서 정의되어 있다고 가정)
+  if (typeof SSN_REGEX !== "undefined" && !SSN_REGEX.test(ssn)) {
+    ssnInput.classList.add("is-invalid");
+    ssnInput.classList.remove("is-valid");
+    setFeedback(
+      feedbackElement,
+      "주민등록번호 형식이 올바르지 않습니다.",
+      "error"
+    );
+    window.ssnVerified = false;
+    return;
+  }
+
+  // API 호출
+  $.ajax({
+    url: "/api/ssn/check",
+    type: "GET",
+    data: { ssn: ssn },
+    success: function (response) {
+      console.log("주민번호 중복 확인 결과:", response);
+
+      // response는 ApiResponse 객체 형식 {duplicated: boolean, message: string}
+      if (response.duplicated) {
+        ssnInput.classList.add("is-invalid");
+        ssnInput.classList.remove("is-valid");
+        setFeedback(feedbackElement, response.message, "error");
+        window.ssnVerified = false;
+      } else {
+        ssnInput.classList.remove("is-invalid");
+        ssnInput.classList.add("is-valid");
+        setFeedback(feedbackElement, response.message, "success");
+        window.ssnVerified = true;
+      }
+    },
+    error: function () {
+      ssnInput.classList.add("is-invalid");
+      ssnInput.classList.remove("is-valid");
+      setFeedback(
+        feedbackElement,
+        "주민등록번호 확인 중 오류가 발생했습니다. 다시 시도해주세요.",
+        "error"
+      );
+      window.ssnVerified = false;
+    },
+  });
+}
+
+// 피드백 메시지 설정 함수
+function setFeedback(element, message, type) {
+  if (!element) return;
+
+  // type: 'error', 'success', 'warning'
+  const iconMap = {
+    error: '<i class="bi bi-exclamation-triangle"></i>',
+    success: '<i class="bi bi-check-circle"></i>',
+    warning: '<i class="bi bi-info-circle"></i>',
+  };
+
+  // HTML 요소 직접 삽입 방식 사용
+  if (type && message) {
+    element.innerHTML = iconMap[type] + " " + message;
+    element.className = "feedback-message feedback-" + type;
+  } else {
+    element.innerHTML = "";
+    element.className = "feedback-message";
+  }
+}

@@ -1,0 +1,122 @@
+<!-- 계약 상태별 조회 페이지 (공통 템플릿) -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>계약 조회</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <link rel="stylesheet" th:href="@{/css/common/main.css}" />
+</head>
+<body>
+<div th:fragment="content">
+    <main class="container-fluid py-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 th:text="${pageTitle}">계약 조회</h3>
+            <form id="searchForm" class="row row-cols-auto gx-2 gy-2 align-items-center mb-3" th:action="@{/admin/contracts}" method="get">
+                <input type="hidden" name="status" th:value="${param.status}" />
+                <div class="col">
+                    <input type="text" name="contractId" class="form-control form-control-sm" placeholder="계약 ID" th:value="${param.contractId}"/>
+                </div>
+                <div class="col">
+                    <input type="month" name="contractMonth" class="form-control form-control-sm" id="contractMonth" th:value="${param.contractMonth}"/>
+                </div>
+                <div class="col">
+                    <input type="text" name="agentId" class="form-control form-control-sm" placeholder="상담사 ID" th:value="${param.agentId}"/>
+                </div>
+                <div class="col">
+                    <input type="text" name="clientId" class="form-control form-control-sm" placeholder="고객 ID" th:value="${param.clientId}"/>
+                </div>
+                <div class="col">
+                    <input type="text" name="templateId" class="form-control form-control-sm" placeholder="템플릿 ID" th:value="${param.templateId}"/>
+                </div>
+                <div class="col">
+                    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> 검색</button>
+                </div>
+                <div class="col">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="reset-button">초기화</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>계약 ID</th>
+                    <th>계약 시간</th>
+                    <th>상담사 ID</th>
+                    <th>고객 ID</th>
+                    <th>템플릿 ID</th>
+                </tr>
+                </thead>
+                <tbody id="contractTableBody">
+                <tr th:each="contract, iterStat : ${contractList}" th:onclick="|showDetail(${contract.contractId})|" style="cursor:pointer">
+                    <td th:text="${iterStat.count}">1</td>
+                    <td th:text="${contract.contractId}">101</td>
+                    <td th:text="${contract.contractTime}">2025-06-01 14:00</td>
+                    <td th:text="${contract.agentId}">A123</td>
+                    <td th:text="${contract.clientId}">C456</td>
+                    <td th:text="${contract.templateId}">T789</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="contractDetailArea"></div>
+    </main>
+
+    <script th:fragment="script">
+        document.addEventListener('DOMContentLoaded', () => {
+            const monthInput = document.getElementById('contractMonth');
+            if (!monthInput.value) {
+                monthInput.value = new Date().toISOString().slice(0,7);
+            }
+
+            document.getElementById('reset-button').addEventListener('click', () => {
+                document.getElementById('searchForm').reset();
+                document.getElementById('contractMonth').value = new Date().toISOString().slice(0,7);
+            });
+        });
+
+        async function showDetail(contractId) {
+            const res = await fetch(`/admin/contract/${contractId}`);
+            if (!res.ok) return alert("상세 조회 실패");
+            const data = await res.json();
+
+            const detailArea = document.getElementById("contractDetailArea");
+            detailArea.innerHTML = `
+      <div class="card p-4 mt-4">
+        <h5>계약 상세 정보</h5>
+        <hr/>
+        <p><strong>계약 ID:</strong> ${data.contract.contractId}</p>
+        <p><strong>상태:</strong> ${data.contract.status}</p>
+        <p><strong>계약 시간:</strong> ${data.contract.contractTime}</p>
+        <p><strong>메모:</strong> ${data.contract.memo}</p>
+
+        <div class="row mt-4">
+          <div class="col-md-6">
+            <h6>상담사 정보</h6>
+            <img src="${data.agent.profileImageUrl}" class="img-thumbnail mb-2" style="width: 100%; max-width: 180px; height: 220px; object-fit: cover"/>
+            <p><strong>이름:</strong> ${data.agent.name}</p>
+            <p><strong>이메일:</strong> ${data.agent.email}</p>
+            <p><strong>전화번호:</strong> ${data.agent.phoneNumber}</p>
+            <p><strong>주소:</strong> ${data.agent.address}</p>
+          </div>
+          <div class="col-md-6">
+            <h6>고객 정보</h6>
+            <p><strong>고객 ID:</strong> ${data.client.clientId}</p>
+            <p><strong>이름:</strong> ${data.client.name}</p>
+            <p><strong>이메일:</strong> ${data.client.email}</p>
+            <p><strong>전화번호:</strong> ${data.client.phoneNumber}</p>
+            <p><strong>주소:</strong> ${data.client.address}</p>
+          </div>
+        </div>
+      </div>`;
+        }
+    </script>
+</div>
+</body>
+</html>
