@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.kosa.visang.domain.contract.repository.StampMapper">
+    
+    <!-- 도장 기본 컬럼 -->
+    <sql id="baseColumns">
+        stamp_id, image_path, created_at, client_id
+    </sql>
+    
+    <!-- 도장 조회 -->
+    <select id="selectStampById" resultType="StampDTO">
+        SELECT <include refid="baseColumns" />
+        FROM stamp
+        WHERE stamp_id = #{stampId}
+    </select>
+    
+    <!-- 고객 ID로 도장 목록 조회 -->
+    <select id="selectStampsByClientId" resultType="StampDTO">
+        SELECT <include refid="baseColumns" />
+        FROM stamp
+        WHERE client_id = #{clientId}
+    </select>
+    
+    <!-- 도장 추가 - Oracle 시퀀스 사용 -->
+    <insert id="insertStamp" parameterType="StampDTO" useGeneratedKeys="true" keyProperty="stampId">
+        <selectKey keyProperty="stampId" resultType="long" order="BEFORE">
+            SELECT NVL(MAX(stamp_id), 0) + 1 FROM stamp
+        </selectKey>
+        INSERT INTO stamp (
+            stamp_id, image_path, created_at, client_id
+        ) VALUES (
+            #{stampId}, #{imagePath}, #{createdAt}, #{clientId}
+        )
+    </insert>
+    
+    <!-- 도장 정보 업데이트 -->
+    <update id="updateStamp" parameterType="StampDTO">
+        UPDATE stamp
+        SET 
+            image_path = #{imagePath}
+        WHERE stamp_id = #{stampId}
+    </update>
+    
+    <!-- 도장 삭제 -->
+    <delete id="deleteStamp">
+        DELETE FROM stamp
+        WHERE stamp_id = #{stampId}
+    </delete>
+    
+</mapper> 

@@ -1,0 +1,2550 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>상담방</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  body {
+    font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f8f9fa;
+    color: #333;
+  }
+  
+  .header {
+    background-color: #0064E1;
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  
+  .header h3 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+  }
+  
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .toolbar {
+    background-color: white;
+    border-radius: 8px;
+    padding: 10px 15px;
+    margin-bottom: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+  
+  .toolbar-group {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    border-right: 1px solid #eee;
+    padding-right: 10px;
+    margin-right: 5px;
+  }
+  
+  .toolbar-group:last-child {
+    border-right: none;
+  }
+  
+  .tool-btn {
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .tool-btn:hover {
+    background-color: #e9ecef;
+    border-color: #ced4da;
+  }
+  
+  .tool-btn.active {
+    background-color: #0064E1;
+    color: white;
+    border-color: #0064E1;
+  }
+  
+  .tool-btn i {
+    font-size: 16px;
+  }
+  
+  .file-upload {
+    position: relative;
+    overflow: hidden;
+    display: inline-block;
+  }
+  
+  .file-upload input[type=file] {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 100%;
+    min-height: 100%;
+    font-size: 100px;
+    text-align: right;
+    filter: alpha(opacity=0);
+    opacity: 0;
+    outline: none;
+    cursor: pointer;
+    display: block;
+  }
+  
+  .status-area {
+    background-color: #e3f0fd;
+    border-radius: 8px;
+    padding: 10px 15px;
+    margin-bottom: 15px;
+    font-weight: 500;
+    color: #0064E1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  #scrollWrapper {
+    background-color: white;
+    border-radius: 8px;
+    padding: 15px;
+    position: relative;
+    height: 700px;
+    overflow-y: scroll;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  }
+  
+  #pdfCanvas {
+    border: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  #drawingCanvas {
+    border: none;
+    position: absolute;
+    top: 15px;
+    left: 15px;
+  }
+  
+  #textPopup {
+    display: none;
+    position: fixed;
+    top: 30%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    z-index: 1000;
+    width: 300px;
+  }
+  
+  #textPopup input {
+    width: 100%;
+    padding: 8px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  
+  #textPopup button {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 5px;
+  }
+  
+  #textPopup button:first-of-type {
+    background-color: #0064E1;
+    color: white;
+  }
+  
+  #textPopup button:last-of-type {
+    background-color: #f1f3f5;
+    color: #495057;
+  }
+  
+  #completeModal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    z-index: 1000;
+    width: 400px;
+    text-align: center;
+  }
+  
+  #completeModal h3 {
+    margin-top: 0;
+    color: #0064E1;
+  }
+  
+  #completeModal button {
+    background-color: #0064E1;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: background-color 0.2s;
+  }
+  
+  #completeModal button:hover {
+    background-color: #0053b3;
+  }
+  
+  /* 토스트 메시지 스타일 */
+  #toastContainer {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+  }
+  
+  .toast {
+    background-color: #0064E1;
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-width: 300px;
+    max-width: 400px;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.3s ease-in-out;
+  }
+  
+  .toast.show {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  
+  .toast-icon {
+    font-size: 24px;
+    margin-right: 10px;
+  }
+  
+  .toast-content {
+    flex-grow: 1;
+  }
+  
+  .toast-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .toast-message {
+    font-size: 14px;
+  }
+  
+  .toast-close {
+    cursor: pointer;
+    font-size: 18px;
+    margin-left: 10px;
+  }
+  
+  .end-consult-btn {
+    background-color: #0064E1;
+    color: white;
+  }
+  
+  .end-consult-btn:hover {
+    background-color: #0053b3;
+    border-color: #0053b3;
+  }
+  
+  @media (max-width: 768px) {
+    .toolbar {
+      flex-direction: column;
+    }
+    
+    .toolbar-group {
+      border-right: none;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+    }
+    
+    #scrollWrapper {
+      height: 500px;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="header">
+  <h3><i class="fas fa-file-pdf"></i> PDF 상담방</h3>
+  <div class="user-info">
+    <span id="userRoleDisplay"></span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="toolbar">
+    <div class="toolbar-group">
+      <div class="file-upload tool-btn">
+        <i class="fas fa-upload"></i> PDF 업로드
+        <input type="file" id="pdfUpload" accept=".pdf" />
+      </div>
+    </div>
+    
+    <div class="toolbar-group">
+      <button class="tool-btn" onclick="prevPage()"><i class="fas fa-arrow-left"></i> 이전</button>
+      <button class="tool-btn" onclick="nextPage()"><i class="fas fa-arrow-right"></i> 다음</button>
+    </div>
+    
+    <div class="toolbar-group">
+      <button class="tool-btn" id="highlighterBtn" onclick="setHighlighter()"><i class="fas fa-highlighter"></i> 형광펜</button>
+      <button class="tool-btn" id="penBtn" onclick="setPen()"><i class="fas fa-pen"></i> 펜</button>
+      <button class="tool-btn" id="cursorBtn" onclick="setCursor()"><i class="fas fa-mouse-pointer"></i> 커서</button>
+      <button class="tool-btn" id="textBtn" onclick="openTextPopup()"><i class="fas fa-font"></i> 텍스트</button>
+      <button class="tool-btn" id="stampBtn" onclick="setStampMode()" style="display: none;"><i class="fas fa-stamp"></i> 도장</button>
+    </div>
+    
+    <div class="toolbar-group">
+      <button class="tool-btn end-consult-btn" onclick="endConsult()"><i class="fas fa-sign-out-alt"></i> 상담 종료</button>
+    </div>
+  </div>
+
+  <div class="status-area">
+    <i class="fas fa-info-circle"></i>
+    현재 모드: <span id="currentMode">커서</span>
+  </div>
+
+  <!-- 토스트 메시지 컨테이너 -->
+  <div id="toastContainer"></div>
+
+  <!-- 상담 완료 후 홈으로 이동 모달 -->
+  <div id="completeModal">
+    <i class="fas fa-check-circle" style="font-size: 48px; color: #0064E1; margin-bottom: 15px;"></i>
+    <h3>상담이 완료되었습니다</h3>
+    <div>상담이 종료되었습니다. 초기 화면으로 이동하시겠습니까?</div>
+    <button onclick="goToHomePage()"><i class="fas fa-home"></i> 초기 화면으로 이동</button>
+  </div>
+
+  <div id="scrollWrapper">
+    <canvas id="pdfCanvas"></canvas>
+    <canvas id="drawingCanvas"></canvas>
+  </div>
+
+  <div id="textPopup">
+    <h4><i class="fas fa-font"></i> 텍스트 삽입</h4>
+    <label>삽입할 텍스트:</label>
+    <input type="text" id="textInput" placeholder="텍스트를 입력하세요" />
+    <div style="text-align: right; margin-top: 15px;">
+      <button onclick="confirmText()">확인</button>
+      <button onclick="closeTextPopup()">취소</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let drawingDataPerPage = {};
+let stampDataPerPage = {};
+let textDataPerPage = {};
+let signatureDataPerPage = {};
+
+let pdfDoc = null;
+let currentPage = 1;
+let renderTask = null;
+let stompClient = null;
+let mode = null; // 'pen' | 'highlight' | null
+let drawing = false;
+let pendingText = null;
+let uploadedPdfUrl = null;
+let userRole = null; // 'agent' | 'client'
+let sessionId = null; // 상담 세션 ID 추가
+
+// 페이지 로드 시 사용자 역할 확인 및 UI 초기화
+window.onload = function() {
+  console.log("윈도우 로드됨 - 초기화 시작");
+  
+  // 새로고침 방지 이벤트 리스너 추가 - 최상위 우선순위로 설정
+  const preventRefreshHandler = function(e) {
+    // 브라우저마다 표시되는 메시지가 다를 수 있음
+    var confirmationMessage = '상담이 진행 중입니다. 페이지를 떠나면 상담이 종료됩니다. 정말 나가시겠습니까?';
+    
+    e.preventDefault(); // 기본 동작 방지 (일부 브라우저에서 효과)
+    e.returnValue = confirmationMessage;  // 표준
+    return confirmationMessage;           // 일부 브라우저용
+  };
+  
+  // 이벤트 리스너 등록 (캡처 단계에서 실행)
+  window.addEventListener('beforeunload', preventRefreshHandler, true);
+  
+  // 글로벌 초기화 플래그 설정 (최초 1회만 실행되는 로직 제어용)
+  window.isInitialLoad = true;
+  window.dataLoaded = false;
+  
+  // URL에서 역할 파라미터 확인
+  const urlParams = new URLSearchParams(window.location.search);
+  const roleParam = urlParams.get('role');
+  const sessionParam = urlParams.get('session'); // 세션 ID 파라미터 확인
+  
+  // URL 파라미터에 역할이 있으면 세션 스토리지에 저장
+  if (roleParam) {
+    sessionStorage.setItem("role", roleParam);
+  }
+  
+  // 세션 스토리지에서 역할 정보 가져오기
+  userRole = sessionStorage.getItem("role");
+  console.log("사용자 역할:", userRole);
+  
+  // 사용자 역할 표시
+  const userRoleDisplay = document.getElementById('userRoleDisplay');
+  if (userRoleDisplay) {
+    const roleName = userRole === 'agent' ? '상담원' : '고객';
+  const roleIcon = userRole === 'agent' ? '<i class="fas fa-headset"></i>' : '<i class="fas fa-user"></i>';
+    userRoleDisplay.innerHTML = `${roleIcon} ${roleName}`;
+  }
+
+  // 세션 ID 설정 (URL에서 가져오거나 새로 생성)
+  if (sessionParam) {
+    sessionId = sessionParam;
+    sessionStorage.setItem("sessionId", sessionId);
+    console.log("URL에서 세션 ID 로드:", sessionId);
+  } else if (sessionStorage.getItem("sessionId")) {
+    // 세션 스토리지에 저장된 세션 ID가 있으면 사용
+    sessionId = sessionStorage.getItem("sessionId");
+    console.log("세션 스토리지에서 세션 ID 로드:", sessionId);
+    
+    // URL 업데이트
+    const url = new URL(window.location.href);
+    url.searchParams.set('session', sessionId);
+    window.history.replaceState({}, '', url);
+  } else if (userRole === "agent") {
+    // 상담원인 경우에만 새 세션 ID 생성
+    sessionId = generateSessionId();
+    console.log("새 세션 ID 생성:", sessionId);
+    // URL에 세션 ID 추가 (페이지 이동 없이 URL 업데이트)
+    const url = new URL(window.location.href);
+    url.searchParams.set('session', sessionId);
+    window.history.replaceState({}, '', url);
+    // 세션 ID를 세션 스토리지에 저장
+    sessionStorage.setItem("sessionId", sessionId);
+  }
+  
+  // 세션 ID 확인
+  if (sessionId) {
+    console.log("세션 ID 설정됨:", sessionId);
+    
+    // 새로고침 시 이전 페이지 번호를 복원하기 위해 저장
+    if (sessionStorage.getItem("lastPage")) {
+      currentPage = parseInt(sessionStorage.getItem("lastPage")) || 1;
+      console.log("저장된 페이지 번호 복원:", currentPage);
+    }
+  } else {
+    // 고객이면서 세션 ID가 없는 경우 오류 처리
+    if (userRole === "client") {
+      alert("유효한 상담 세션이 아닙니다. 초기 화면으로 이동합니다.");
+      location.href = "/";
+      return;
+    }
+  }
+  
+  // 역할에 따라 UI 초기화
+  initializeUIByRole();
+  
+  // 상담원이 상담실에 입장하면 입장 상태를 자동으로 설정
+  if (userRole === "agent") {
+    // 상담원 입장 상태 변경
+    updateAgentStatus(true);
+    
+    // 토스트 메시지 표시
+    setTimeout(() => {
+      showToast("상담 시작", "고객이 상담실로 입장할 수 있습니다.", "info");
+    }, 1000); // 1초 후 표시
+  }
+  
+  // 고객인 경우에는 상담원 상태 확인 후 활성화되어 있지 않으면 대기실로 이동
+  if (userRole === "client") {
+    fetch('/api/contract/status')
+      .then(response => response.json())
+      .then(data => {
+        if (!data.present) {
+          // 상담원이 입장해 있지 않으면 대기실로 리다이렉트
+          console.warn("상담원이 아직 입장하지 않음. 대기실로 이동합니다.");
+          location.href = "/waiting-room";
+        } else {
+          console.log("상담원이 입장해 있습니다.");
+        }
+      })
+      .catch(error => {
+        console.error("상담원 상태 확인 오류:", error);
+      });
+  }
+  
+  // 세션 ID가 있으면 서버에서 데이터 로드
+  if (sessionId) {
+    console.log("세션 데이터 로드 시도:", sessionId);
+    
+    // 타임아웃 추가 (모든 것이 준비된 후 데이터 로드)
+    setTimeout(() => {
+      // 중요: 새로고침 복원 처리
+      console.log("세션 데이터 로드 시작 - 강제 복원 모드");
+      loadSessionData(true); // 강제 복원 모드
+    }, 500);
+  }
+  
+  // 처음에 커서 버튼을 활성화 상태로 설정
+  document.getElementById('cursorBtn').classList.add('active');
+  
+  // WebSocket 연결 상태 확인 및 재연결 메커니즘
+  checkAndReconnectWebSocket();
+};
+
+// 세션 ID 생성 함수
+function generateSessionId() {
+  return 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+}
+
+// 역할에 따른 UI 초기화
+function initializeUIByRole() {
+  if (userRole === "agent") {
+    // 상담원인 경우 도장 버튼 숨김
+    document.getElementById("stampBtn").style.display = "none";
+    
+    // 상담원용 UI 표시
+    document.querySelector('.file-upload').style.display = "inline-flex";
+    document.querySelector('.end-consult-btn').style.display = "inline-flex";
+  } else {
+    // 고객인 경우 UI 제한
+    document.querySelector('.file-upload').style.display = "none";
+    document.querySelector('.end-consult-btn').style.display = "none";
+    
+    // entryType 확인
+    const entryType = sessionStorage.getItem("entryType");
+    
+    // 고객이 도장으로 입장한 경우 도장 버튼 표시, 아니면 숨김
+    if (entryType === "stamp") {
+      document.getElementById("stampBtn").style.display = "inline-flex";
+    } else if (entryType === "signature") {
+      document.getElementById("stampBtn").style.display = "none";
+      
+      // 서명 버튼 추가
+      const signatureBtn = document.createElement("button");
+      signatureBtn.id = "signatureBtn";
+      signatureBtn.className = "tool-btn";
+      signatureBtn.innerHTML = '<i class="fas fa-signature"></i> 서명';
+      signatureBtn.onclick = setSignatureMode;
+      
+      // 텍스트 버튼 다음에 서명 버튼 추가
+      const textBtn = document.getElementById("textBtn");
+      const toolbarGroup = textBtn.parentNode;
+      toolbarGroup.insertBefore(signatureBtn, textBtn.nextSibling);
+    } else {
+      document.getElementById("stampBtn").style.display = "none";
+    }
+  }
+}
+
+// 상담원 입장 상태 설정
+function updateAgentStatus(present) {
+  fetch('/api/contract/status', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ 
+      present: present,
+      sessionId: sessionId
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      console.log("상담원 입장 상태 업데이트:", present);
+    }
+  })
+  .catch(error => {
+    console.error("상담원 상태 업데이트 오류:", error);
+  });
+}
+
+// 정기적으로 세션 데이터 저장
+function startAutoSave() {
+  console.log("자동 저장 시작...");
+  
+  // 초기 저장 수행 (1회)
+  saveSessionData();
+  
+  // 10초마다 세션 데이터 저장 (더 빈번하게 저장)
+  setInterval(saveSessionData, 10000);
+}
+
+// 서버에 세션 데이터 저장 함수
+function saveSessionData() {
+  if (!sessionId) return;
+  console.log("세션 데이터 저장 시도...");
+  
+  // 저장 전 현재 페이지 정보가 유효한지 확인
+  if (!currentPage || currentPage < 1) {
+    console.error("현재 페이지 정보가 유효하지 않음:", currentPage);
+    currentPage = 1; // 페이지 정보가 잘못된 경우 기본값으로 설정
+  }
+  
+  const sessionData = {
+    pdfUrl: uploadedPdfUrl,
+    drawingData: drawingDataPerPage,
+    stampData: stampDataPerPage,
+    signatureData: signatureDataPerPage,
+    textData: textDataPerPage,
+    currentPage: currentPage  // 현재 페이지 정보 추가
+  };
+  
+  fetch(`/api/contract-data/${sessionId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(sessionData)
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log("세션 데이터 저장 결과:", data);
+  })
+  .catch(error => {
+    console.error("세션 데이터 저장 오류:", error);
+  });
+}
+
+// 서버에서 세션 데이터 로드 함수 (강화된 버전)
+function loadSessionData(forceRestore = false) {
+  if (!sessionId) {
+    console.error("세션 ID가 없어 데이터를 로드할 수 없습니다.");
+    return;
+  }
+  
+  // 이미 데이터를 로드한 경우 중복 로드 방지 (강제 복원 옵션이 아닌 경우)
+  if (window.dataLoaded && !forceRestore) {
+    console.log("이미 데이터가 로드되어 있어 중복 로드를 방지합니다.");
+    return;
+  }
+  
+  console.log(`세션 데이터 로드 시작 (강제 복원: ${forceRestore})...`);
+  showToast("복원 중", "세션 데이터를 복원 중입니다...", "info");
+  
+  fetch(`/api/contract-data/${sessionId}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success === false) {
+        console.log("세션 데이터 없음:", data.message);
+        
+        // 고객인 경우 상담원에게 PDF 요청
+        if (userRole === "client") {
+          console.log("고객이 처음 입장: 상담원에게 PDF 요청");
+          requestPdfFromAgent();
+        }
+        return;
+      }
+      
+      console.log("세션 데이터 로드됨:", data);
+      window.dataLoaded = true;
+      
+      try {
+        // 저장된 페이지 정보 변수
+        let savedPageNumber = 1;
+        
+        // 먼저 데이터를 모두 설정 (페이지 렌더링 이전)
+        
+        // 그림 데이터 복원
+        if (data.drawingData && Object.keys(data.drawingData).length > 0) {
+          console.log("그림 데이터 설정:", Object.keys(data.drawingData).length + "개 페이지");
+          drawingDataPerPage = JSON.parse(JSON.stringify(data.drawingData));
+        }
+        
+        // 도장 데이터 복원
+        if (data.stampData && Object.keys(data.stampData).length > 0) {
+          console.log("도장 데이터 설정:", Object.keys(data.stampData).length + "개 페이지");
+          stampDataPerPage = JSON.parse(JSON.stringify(data.stampData));
+        }
+        
+        // 서명 데이터 복원
+        if (data.signatureData && Object.keys(data.signatureData).length > 0) {
+          console.log("서명 데이터 설정:", Object.keys(data.signatureData).length + "개 페이지");
+          signatureDataPerPage = JSON.parse(JSON.stringify(data.signatureData));
+        }
+        
+        // 텍스트 데이터 복원
+        if (data.textData && Object.keys(data.textData).length > 0) {
+          console.log("텍스트 데이터 설정:", Object.keys(data.textData).length + "개 페이지");
+          textDataPerPage = JSON.parse(JSON.stringify(data.textData));
+        }
+        
+        // 저장된 페이지 번호 확인
+        if (data.currentPage && data.currentPage > 0) {
+          savedPageNumber = data.currentPage;
+          // 현재 페이지 즉시 업데이트 (전역 변수)
+          currentPage = savedPageNumber;
+          // 세션 스토리지에도 저장 (새로고침 대비)
+          sessionStorage.setItem("lastPage", savedPageNumber);
+          console.log("저장된 페이지 번호로 복원:", savedPageNumber);
+        }
+        
+        // PDF URL 복원
+        if (data.pdfUrl) {
+          console.log("PDF URL 복원:", data.pdfUrl);
+          uploadedPdfUrl = data.pdfUrl;
+          
+          // PDF 로드 (모든 데이터가 설정된 후)
+          loadPdfFromUrl(data.pdfUrl, function() {
+            // PDF 로드 완료 후 저장된 페이지로 이동
+            if (savedPageNumber > 1 && savedPageNumber <= pdfDoc.numPages) {
+              console.log("저장된 페이지로 이동:", savedPageNumber);
+              setTimeout(() => {
+                // 명시적으로 지정된 페이지 렌더링
+                renderPage(savedPageNumber, function() {
+                  // WebSocket을 통해 페이지 동기화 (상담원만)
+                  if (userRole === "agent") {
+                    sendPageSync(savedPageNumber);
+                  }
+                  updateModeStatus(`페이지 ${savedPageNumber} 표시 중`);
+                  
+                  // 세션 데이터 복원 정보 저장
+                  showToast("세션 복원 완료", "PDF 문서와 페이지가 복원되었습니다.", "success");
+                });
+              }, 500);
+            } else {
+              renderPage(1, function() {
+                // 페이지 정보가 없거나, 범위 외인 경우 기본 토스트 메시지만 표시
+                showToast("PDF 로드 완료", "PDF 문서가 로드되었습니다.", "success");
+              });
+            }
+            
+            // 한 번 더 페이지 그리기 시도 (지연 시도)
+            setTimeout(() => {
+              if (drawingDataPerPage[currentPage] || 
+                  stampDataPerPage[currentPage] || 
+                  signatureDataPerPage[currentPage] || 
+                  textDataPerPage[currentPage]) {
+                console.log("지연 그리기 시도: 페이지", currentPage);
+                renderPage(currentPage);
+              }
+            }, 2000);
+          });
+        } else if (userRole === "client") {
+          // PDF URL이 없는 경우 (고객인 경우) 상담원에게 PDF 요청
+          console.log("세션에 PDF URL이 없음: 상담원에게 PDF 요청");
+          requestPdfFromAgent();
+        }
+      } catch (err) {
+        console.error("세션 데이터 처리 중 오류 발생:", err);
+        showToast("데이터 처리 오류", "세션 데이터를 처리하는 중 문제가 발생했습니다.", "error");
+        
+        // 오류 발생 시에도 PDF 요청 시도
+        if (userRole === "client") {
+          setTimeout(requestPdfFromAgent, 2000);
+        }
+      }
+    })
+    .catch(error => {
+      console.error("세션 데이터 로드 오류:", error);
+      showToast("복원 실패", "세션 데이터를 불러오는 데 실패했습니다.", "error");
+      
+      // 실패 시 PDF 요청 시도
+      if (userRole === "client") {
+        setTimeout(requestPdfFromAgent, 2000);
+      }
+    });
+}
+
+const canvas = document.getElementById("pdfCanvas");
+const ctx = canvas.getContext("2d");
+const drawingCanvas = document.getElementById("drawingCanvas");
+const drawCtx = drawingCanvas.getContext("2d");
+
+// 좌표 상태 (로컬)
+let localLastX = null;
+let localLastY = null;
+
+// 좌표 상태 (WebSocket)
+let wsLastX = null;
+let wsLastY = null;
+
+document.getElementById("pdfUpload").addEventListener("change", function (e) {
+  const file = e.target.files[0];
+  const formData = new FormData();
+  formData.append("file", file);
+
+  fetch("/upload", {
+    method: "POST",
+    body: formData
+  })
+          .then(res => res.text())
+          .then(url => {
+            uploadedPdfUrl = url;
+            loadPdfFromUrl(url);
+            sendPdfPathSync(url);
+          });
+});
+
+function loadPdfFromUrl(url, callback) {
+  if (!url) {
+    console.error("PDF URL이 없습니다.");
+    if (userRole === "client") {
+      console.log("고객 입장: PDF 자동 요청");
+      requestPdfFromAgent();
+    }
+    return;
+  }
+  
+  // 이미 로드된 동일한 PDF URL인 경우, 불필요한 로드 방지
+  if (pdfDoc && uploadedPdfUrl === url) {
+    console.log("이미 로드된 PDF URL입니다:", url);
+    return;
+  }
+  
+  console.log("PDF 로드 시작:", url);
+  // 한 번만 토스트 메시지 표시
+  if (!pdfDoc) {
+    showToast("PDF 로드 중", "PDF 문서를 불러오는 중입니다...", "info");
+  }
+  
+  // 명시적으로 URL 저장
+  uploadedPdfUrl = url;
+  
+  const loadingTask = pdfjsLib.getDocument(url);
+  loadingTask.promise.then(pdf => {
+    console.log("PDF 로드 성공:", pdf.numPages + "페이지");
+    
+    pdfDoc = pdf;
+    
+    // 세션 데이터 저장 (PDF 로드 성공 시)
+    if (sessionId) {
+      setTimeout(saveSessionData, 500);
+    }
+    
+    // 페이지 번호 체크
+    const hasHistory = sessionStorage.getItem("lastPage") !== null;
+    
+    // 세션에서 저장된 페이지 정보 가져오기
+    fetchSavedPageNumber(function(savedPage) {
+      if (hasHistory && savedPage > 0 && savedPage <= pdf.numPages) {
+        // 기존 세션이 있는 경우 (새로고침이나 일시적 연결 끊김 후 복귀)
+        currentPage = savedPage;
+      } else {
+        // 새로운 세션 시작 - 항상 1페이지로 시작
+        currentPage = 1;
+        // 세션 스토리지에 페이지 정보 저장
+        sessionStorage.setItem("lastPage", 1);
+      }
+      
+      // 페이지 렌더링
+      renderPage(currentPage, callback);
+      
+      // 최초 로드시에만 토스트 메시지 표시 (중복 방지)
+      if (!window.pdfInitiallyLoaded) {
+        showToast("PDF 로드 완료", "PDF 문서가 로드되었습니다.", "success");
+        window.pdfInitiallyLoaded = true;
+      }
+    });
+  }).catch(error => {
+    console.error("PDF 로드 오류:", error);
+    showToast("PDF 로드 실패", "PDF 파일을 불러오는데 실패했습니다. 다시 시도합니다.", "error");
+    
+    // PDF 로드 실패 시 고객은 다시 요청
+    if (userRole === "client") {
+      setTimeout(requestPdfFromAgent, 3000);
+    }
+  });
+}
+
+async function renderPage(pageNumber, callback) {
+  console.log(`페이지 ${pageNumber} 렌더링 시작...`);
+  
+  // 현재 페이지의 서명 데이터 확인
+  const signatures = signatureDataPerPage[pageNumber] || [];
+  console.log(`현재 페이지 ${pageNumber}의 서명 데이터: ${signatures.length}개`);
+  
+  if (renderTask) {
+    try {
+      console.log("이전 렌더링 작업 취소 중...");
+      await renderTask.cancel(); // 기다려주기
+    } catch (e) {
+      console.warn("Render task cancel error:", e);
+    }
+  }
+
+  // 모든 데이터를 백업 (깊은 복사로)
+  console.log("페이지 데이터 백업 중...");
+  try {
+    const backupDrawingData = JSON.stringify(drawingDataPerPage);
+    const backupStampData = JSON.stringify(stampDataPerPage);
+    const backupSignatureData = JSON.stringify(signatureDataPerPage);
+    const backupTextData = JSON.stringify(textDataPerPage);
+    
+    try {
+      const page = await pdfDoc.getPage(pageNumber);
+      const viewport = page.getViewport({ scale: 1.5 });
+
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+
+      const renderContext = {
+        canvasContext: ctx,
+        viewport: viewport
+      };
+
+      console.log("PDF 페이지 렌더링 시작...");
+      renderTask = page.render(renderContext);
+
+      await renderTask.promise;
+      console.log("PDF 페이지 렌더링 완료");
+      
+        renderTask = null;
+      console.log("캔버스 리사이징 및 초기화...");
+      
+        resizeDrawingCanvas();
+        resetWsDrawState();
+        scrollWrapper.scrollTop = 0;
+      
+      // drawingCanvas 초기화 (모든 그림 요소 제거)
+      drawCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+      
+      // 백업된 데이터 확인 및 복원 (필요한 경우)
+      try {
+        if (JSON.stringify(signatureDataPerPage) !== backupSignatureData) {
+          console.warn("서명 데이터가 변경되었습니다. 백업에서 복원합니다.");
+          signatureDataPerPage = JSON.parse(backupSignatureData);
+        }
+        
+        if (JSON.stringify(drawingDataPerPage) !== backupDrawingData) {
+          console.warn("그림 데이터가 변경되었습니다. 백업에서 복원합니다.");
+          drawingDataPerPage = JSON.parse(backupDrawingData);
+        }
+        
+        if (JSON.stringify(stampDataPerPage) !== backupStampData) {
+          console.warn("도장 데이터가 변경되었습니다. 백업에서 복원합니다.");
+          stampDataPerPage = JSON.parse(backupStampData);
+        }
+        
+        if (JSON.stringify(textDataPerPage) !== backupTextData) {
+          console.warn("텍스트 데이터가 변경되었습니다. 백업에서 복원합니다.");
+          textDataPerPage = JSON.parse(backupTextData);
+        }
+      } catch (backupErr) {
+        console.error("백업 데이터 복원 오류:", backupErr);
+      }
+      
+      console.log("저장된 데이터 복원 시작...");
+      // 순서대로 요소 복원 - 중요: 서명 데이터는 가장 마지막에 복원
+      console.log("1. 그림 데이터 복원...");
+      restoreDrawingFromSavedData(pageNumber, false); // 캔버스 초기화 방지
+      
+      console.log("2. 도장 데이터 복원...");
+        restoreStampsFromSavedData(pageNumber);
+      
+      console.log("3. 텍스트 데이터 복원...");
+        restoreTextsFromSavedData(pageNumber);
+      
+      // 서명 데이터 복원은 마지막에 수행 (레이어 순서 때문)
+      console.log("4. 서명 데이터 복원...");
+      await new Promise(resolve => {
+        // 약간의 지연을 주어 이전 작업들이 완료될 시간을 확보
+        setTimeout(() => {
+          restoreSignaturesFromSavedData(pageNumber);
+          resolve();
+        }, 50);
+    });
+      
+      console.log(`페이지 ${pageNumber} 렌더링 및 복원 완료`);
+
+      // 콜백 함수가 있으면 실행
+      if (typeof callback === 'function') {
+        callback();
+      }
+    } catch (error) {
+      console.error("페이지 렌더링 중 오류 발생:", error);
+      renderTask = null;
+    }
+  } catch (backupError) {
+    console.error("페이지 데이터 백업 중 오류 발생:", backupError);
+  }
+}
+
+function resizeDrawingCanvas() {
+  drawingCanvas.width = canvas.width;
+  drawingCanvas.height = canvas.height;
+}
+
+function resetWsDrawState() {
+  wsLastX = null;
+  wsLastY = null;
+}
+
+function sendPageSync(page) {
+  if (stompClient && stompClient.connected) {
+    stompClient.send("/app/sync/page", {}, JSON.stringify({ pageNumber: page }));
+  }
+}
+
+function sendPdfPathSync(url) {
+  if (!url) {
+    console.error("PDF URL이 없어 동기화할 수 없습니다.");
+    return;
+  }
+  
+  if (stompClient && stompClient.connected) {
+    console.log("PDF 경로 동기화 메시지 전송:", url);
+    stompClient.send("/app/sync/pdf", {}, JSON.stringify({ 
+      url: url,
+      sessionId: sessionId
+    }));
+  } else {
+    console.error("WebSocket 연결이 없어 PDF 경로를 동기화할 수 없습니다.");
+  }
+
+  // PDF URL이 설정되면 세션 데이터 저장 (상담원/고객 모두)
+  if (sessionId) {
+    console.log("PDF URL 설정 후 세션 데이터 저장");
+    setTimeout(saveSessionData, 1000);
+  }
+}
+
+function sendDrawPoint(x, y, type) {
+      // 펜이나 형광펜일 때만 push
+      if (!drawingDataPerPage[currentPage]) {
+        drawingDataPerPage[currentPage] = [];
+      }
+      drawingDataPerPage[currentPage].push({ x, y, type, mode });
+
+    // WebSocket 전송은 모든 모드에 대해 수행
+    if (stompClient && stompClient.connected && mode) {
+      stompClient.send("/app/sync/draw", {}, JSON.stringify({
+        type: type,
+        mode: mode,
+        x: x,
+        y: y,
+      pageNumber: currentPage
+      }));
+    }
+  
+  // 데이터가 변경되면 세션 데이터 저장 (상담원만)
+  if (userRole === "consultant" && type === "start") {
+    // 많은 저장 요청을 방지하기 위해 그리기 시작할 때만 지연 저장
+    setTimeout(saveSessionData, 2000);
+  }
+}
+
+  function sendScrollSync(scrollTop) {
+    if (stompClient && stompClient.connected) {
+      stompClient.send("/app/sync/scroll", {}, JSON.stringify({
+        pageNumber: currentPage,
+        scrollTop: scrollTop
+      }));
+    }
+  }
+
+  function restoreDrawingFromSavedData(pageNumber) {
+    drawCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+    const dataList = drawingDataPerPage[pageNumber];
+    if (!dataList || dataList.length === 0) return;
+
+    for (let i = 0; i < dataList.length; i++) {
+      const { x, y, type, mode } = dataList[i];
+
+      if (mode === 'pen') {
+        drawCtx.strokeStyle = "red";
+        drawCtx.lineWidth = 2;
+      } else if (mode === 'highlight') {
+        drawCtx.strokeStyle = "rgba(255, 255, 0, 0.2)";
+        drawCtx.lineWidth = 10;
+      }
+
+      if (type === 'start') {
+        drawCtx.beginPath();
+        drawCtx.moveTo(x, y);
+      } else if (type === 'move') {
+        drawCtx.lineTo(x, y);
+        drawCtx.stroke();
+      }
+    }
+  }
+
+  function connectWebSocket() {
+    const socket = new SockJS('/ws');
+    stompClient = Stomp.over(socket);
+    stompClient.connect({}, function () {
+      console.log("WebSocket 연결됨");
+
+      stompClient.subscribe('/topic/page', function (message) {
+        const data = JSON.parse(message.body);
+        if (pdfDoc) {
+          // 현재 페이지와 다른 경우에만 변경 (불필요한 렌더링 방지)
+          if (currentPage !== data.pageNumber) {
+            console.log(`페이지 동기화: ${currentPage} → ${data.pageNumber}`);
+            currentPage = data.pageNumber;
+            renderPage(currentPage, function() {
+              // 페이지 변경 알림
+              showToast("페이지 동기화", `${data.pageNumber}페이지로 이동했습니다.`, "info");
+            });
+            
+            // 페이지 동기화 이벤트로 페이지가 변경된 경우 세션 데이터 저장 (모든 사용자)
+            setTimeout(saveSessionData, 500);
+          } else {
+            console.log("이미 같은 페이지를 보고 있습니다:", currentPage);
+          }
+        } else {
+          // PDF가 로드되지 않았지만 페이지 정보가 오면 저장해두기
+          console.log("PDF가 로드되지 않았지만 페이지 정보 저장:", data.pageNumber);
+          sessionStorage.setItem("lastSyncedPage", data.pageNumber);
+        }
+      });
+
+    stompClient.subscribe('/topic/pdfPath', function (message) {
+      const data = JSON.parse(message.body);
+      console.log("PDF 경로 동기화 메시지 수신:", data.url);
+      uploadedPdfUrl = data.url;
+      loadPdfFromUrl(data.url);
+    });
+
+      stompClient.subscribe('/topic/draw', function (message) {
+        const data = JSON.parse(message.body);
+        if (!drawingDataPerPage[data.pageNumber]) {
+          drawingDataPerPage[data.pageNumber] = [];
+        }
+
+          drawingDataPerPage[data.pageNumber].push({
+            x: data.x,
+            y: data.y,
+            type: data.type,
+            mode: data.mode
+          });
+
+        if (data.pageNumber !== currentPage) return;
+
+        const x = data.x;
+        const y = data.y;
+
+        if (data.mode === 'pen') {
+          drawCtx.strokeStyle = "red";
+          drawCtx.lineWidth = 2;
+        } else if (data.mode === 'highlight') {
+          drawCtx.strokeStyle = "rgba(255, 255, 0, 0.2)";
+          drawCtx.lineWidth = 10;
+        }
+
+        if (data.type === 'start') {
+          drawCtx.beginPath();
+          drawCtx.moveTo(x, y);
+        } else if (data.type === 'move') {
+          drawCtx.lineTo(x, y);
+          drawCtx.stroke();
+        }
+      });
+
+      stompClient.subscribe('/topic/scroll', function (message) {
+        const data = JSON.parse(message.body);
+        if (data.pageNumber !== currentPage) return;
+
+        // 다른 클라이언트가 보낸 스크롤 이벤트를 반영
+        drawingCanvas.parentElement.scrollTop = data.scrollTop;
+      });
+
+      stompClient.subscribe('/topic/stamp', function (message) {
+        const data = JSON.parse(message.body);
+
+        // ✅ 스탬프 저장
+        if (!stampDataPerPage[data.pageNumber]) {
+          stampDataPerPage[data.pageNumber] = [];
+        }
+        stampDataPerPage[data.pageNumber].push({ x: data.x, y: data.y, image: data.image });
+
+        // ✅ 현재 페이지일 경우 그리기
+        if (data.pageNumber === currentPage) {
+          drawStamp(data.x, data.y, data.image);
+        }
+      });
+
+      stompClient.subscribe('/topic/text', function (message) {
+        const data = JSON.parse(message.body);
+        if (!textDataPerPage[data.pageNumber]) {
+          textDataPerPage[data.pageNumber] = [];
+        }
+        textDataPerPage[data.pageNumber].push(data);
+        if (data.pageNumber === currentPage) {
+          drawTextOnCanvas(data.x, data.y, data.text);
+        }
+      });
+
+      stompClient.subscribe('/topic/signature', function (message) {
+      console.log("서명 데이터 수신:", message.body.substring(0, 100) + "...");
+        const data = JSON.parse(message.body);
+
+      console.log(`서명 데이터 수신 완료: 페이지=${data.pageNumber}, x=${data.x}, y=${data.y}`);
+      
+      // 페이지별 서명 데이터 저장
+        if (!signatureDataPerPage[data.pageNumber]) {
+          signatureDataPerPage[data.pageNumber] = [];
+        }
+      
+      // 중복 데이터가 있는지 확인 (같은 위치에 같은 서명 방지)
+      const isDuplicate = signatureDataPerPage[data.pageNumber].some(
+        item => item.x === data.x && item.y === data.y
+      );
+      
+      if (!isDuplicate) {
+        // 새로운 서명 데이터 저장
+        signatureDataPerPage[data.pageNumber].push({
+          x: data.x,
+          y: data.y,
+          image: data.image
+        });
+
+        console.log(`페이지 ${data.pageNumber}에 서명 데이터 저장 완료, 총 ${signatureDataPerPage[data.pageNumber].length}개`);
+        
+        // 현재 페이지일 때만 화면에 그리기
+        if (data.pageNumber === currentPage) {
+          console.log("현재 페이지에 서명 그리기:", data.x, data.y);
+          drawSignature(data.x, data.y, data.image);
+        } else {
+          console.log("다른 페이지 서명 데이터만 저장:", data.pageNumber);
+        }
+      } else {
+        console.log("중복된 서명 데이터 무시");
+        }
+      });
+
+      stompClient.subscribe('/topic/pdfPath', function (message) {
+        const data = JSON.parse(message.body);
+        uploadedPdfUrl = data.url; // 🔥 추가
+        loadPdfFromUrl(data.url);
+      });
+
+    // 사용자 입장 메시지 구독
+    stompClient.subscribe('/topic/userJoin', function (message) {
+      const data = JSON.parse(message.body);
+      console.log("사용자 입장 메시지 수신:", data);
+      
+      // 자신이 보낸 메시지가 아닌 경우에만 알림 표시 (role 비교)
+      const myRole = sessionStorage.getItem("role");
+      if (myRole !== data.userType) {
+        let title, msg, type;
+        
+        if (data.userType === "client") {
+          title = "고객이 입장했습니다";
+          msg = data.entryType === "stamp" ? 
+                "고객이 도장을 이용하여 입장했습니다." : 
+                "고객이 서명을 이용하여 입장했습니다.";
+          type = "info";
+        } else {
+          title = "상담원이 입장했습니다";
+          msg = "상담원이 상담방에 입장했습니다.";
+          type = "success";
+        }
+        
+        showToast(title, msg, type);
+      }
+    });
+
+    // 상담 종료 메시지 구독
+    stompClient.subscribe('/topic/endConsult', function (message) {
+      console.log("상담 종료 메시지 수신");
+      
+      // 메시지 내용 파싱
+      const data = JSON.parse(message.body);
+      
+      // 모든 사용자에게 토스트 메시지 표시
+      showToast("상담이 종료되었습니다", data.message || "상담이 종료되어 계약 정보 화면으로 이동합니다.", "info");
+      
+      // 세션 스토리지에서 페이지 정보 삭제 (상담 종료 시 페이지 정보 초기화)
+      sessionStorage.removeItem("lastPage");
+      sessionStorage.removeItem("lastSyncedPage");
+      // 상담 종료 플래그 설정
+      sessionStorage.setItem("consultClosed", "true");
+      // 현재 페이지를 1로 설정
+      currentPage = 1;
+      
+      // 3초 후 리다이렉션 (redirectUrl이 있는 경우)
+      if (data.redirectUrl) {
+        setTimeout(() => {
+          console.log("계약 완료 화면으로 이동합니다:", data.redirectUrl);
+          window.location.href = data.redirectUrl;
+        }, 3000);
+      } else {
+        // 기존 처리 - 완료 모달 표시
+        showCompleteModal();
+      }
+    });
+    
+    // PDF 요청 메시지 구독 (상담원만 처리)
+    stompClient.subscribe('/topic/requestPdf', function (message) {
+      console.log("PDF 요청 메시지 수신");
+      
+      // 상담원만 처리
+      if (userRole === "consultant") {
+        const data = JSON.parse(message.body);
+        console.log("고객으로부터 PDF 요청 받음:", data);
+        
+        // 알림 표시
+        showToast("PDF 요청", "고객이 PDF 문서를 요청했습니다.", "info");
+        
+        // PDF 공유 함수 호출
+        setTimeout(() => sharePdfToClient(data.requesterId), 500);
+      }
+    });
+    
+    // 현재 페이지 정보 요청 구독 (상담원만 처리)
+    stompClient.subscribe('/topic/requestCurrentPage', function (message) {
+      console.log("현재 페이지 정보 요청 수신");
+      
+      // 상담원만 처리
+      if (userRole === "consultant") {
+        const data = JSON.parse(message.body);
+        console.log("고객으로부터 현재 페이지 정보 요청 받음:", data);
+        
+        // 페이지 정보가 있는 경우에만 전송
+        if (pdfDoc && currentPage) {
+          console.log("현재 페이지 정보 공유:", currentPage);
+          // 현재 페이지 정보 전송
+          sendPageSync(currentPage);
+        }
+      }
+    });
+    });
+  }
+
+  connectWebSocket();
+
+  function sendSignature(x, y, imageBase64) {
+  console.log("서명 전송:", x, y, currentPage);
+    if (stompClient && stompClient.connected) {
+    const message = {
+      x: x,
+      y: y,
+      image: imageBase64,
+      pageNumber: currentPage
+    };
+    console.log("서명 메시지:", JSON.stringify(message).substring(0, 100) + "...");
+    stompClient.send("/app/sync/signature", {}, JSON.stringify(message));
+    
+    // 서명 추가 후 세션 데이터 저장 (상담원/고객 모두 저장)
+    setTimeout(saveSessionData, 1000);
+  } else {
+    console.error("WebSocket 연결 상태:", stompClient ? "객체 있음" : "객체 없음", stompClient ? (stompClient.connected ? "연결됨" : "연결안됨") : "");
+    }
+  }
+
+  function prevPage() {
+    if (currentPage <= 1) return;
+  
+  console.log(`이전 페이지로 이동: ${currentPage} → ${currentPage-1}`);
+  const prevPageNum = currentPage - 1;
+  
+  // 이동하려는 페이지의 서명 데이터 미리 확인
+  const signatures = signatureDataPerPage[prevPageNum] || [];
+  console.log(`페이지 ${prevPageNum}의 서명 데이터: ${signatures.length}개`);
+  
+  // 페이지 이동 전에 현재 페이지의 서명 데이터가 있다면 명시적으로 백업
+  if (signatureDataPerPage[currentPage] && signatureDataPerPage[currentPage].length > 0) {
+    console.log(`현재 페이지 ${currentPage}의 서명 데이터 백업: ${signatureDataPerPage[currentPage].length}개`);
+  }
+  
+    currentPage--;
+    
+    // 페이지 번호를 세션 스토리지에 저장 (새로고침 대비)
+    sessionStorage.setItem("lastPage", currentPage);
+    
+  renderPage(currentPage, function() {
+    sendPageSync(currentPage);
+    updateModeStatus(`페이지 ${currentPage} 표시 중`);
+    
+    // 페이지 이동 후 세션 데이터 저장 (상담원/고객 모두)
+    setTimeout(saveSessionData, 500);
+  });
+  }
+
+  function nextPage() {
+    if (currentPage >= pdfDoc.numPages) return;
+  
+  console.log(`다음 페이지로 이동: ${currentPage} → ${currentPage+1}`);
+  const nextPageNum = currentPage + 1;
+  
+  // 이동하려는 페이지의 서명 데이터 미리 확인
+  const signatures = signatureDataPerPage[nextPageNum] || [];
+  console.log(`페이지 ${nextPageNum}의 서명 데이터: ${signatures.length}개`);
+  
+  // 페이지 이동 전에 현재 페이지의 서명 데이터가 있다면 명시적으로 백업
+  if (signatureDataPerPage[currentPage] && signatureDataPerPage[currentPage].length > 0) {
+    console.log(`현재 페이지 ${currentPage}의 서명 데이터 백업: ${signatureDataPerPage[currentPage].length}개`);
+  }
+  
+    currentPage++;
+    
+    // 페이지 번호를 세션 스토리지에 저장 (새로고침 대비)
+    sessionStorage.setItem("lastPage", currentPage);
+    
+  renderPage(currentPage, function() {
+    sendPageSync(currentPage);
+    updateModeStatus(`페이지 ${currentPage} 표시 중`);
+    
+    // 페이지 이동 후 세션 데이터 저장 (상담원/고객 모두)
+    setTimeout(saveSessionData, 500);
+  });
+}
+
+function setHighlighter() { 
+  mode = 'highlight'; 
+  updateModeStatus('형광펜');
+  highlightActiveButton('형광펜');
+}
+
+function setPen() { 
+  mode = 'pen'; 
+  updateModeStatus('펜');
+  highlightActiveButton('펜');
+}
+
+function setCursor() { 
+  mode = null; 
+  updateModeStatus('커서');
+  highlightActiveButton('커서');
+}
+
+function setStampMode() {
+  mode = 'stamp';
+  updateModeStatus('도장');
+  highlightActiveButton('도장');
+  alert("PDF 위에 클릭해서 도장을 삽입하세요.");
+}
+
+function setSignatureMode() {
+  mode = 'signature';
+  updateModeStatus('서명');
+  highlightActiveButton('서명');
+  alert("PDF를 클릭하면 서명이 삽입됩니다.");
+}
+
+function openTextPopup() {
+  document.getElementById('textPopup').style.display = 'block';
+  updateModeStatus('텍스트 입력');
+  highlightActiveButton('텍스트 입력');
+}
+
+// 현재 모드 상태 업데이트 함수
+function updateModeStatus(modeName) {
+  document.getElementById('currentMode').textContent = modeName;
+}
+
+// 활성화된 버튼 하이라이트 함수
+function highlightActiveButton(buttonName) {
+  // 모든 도구 버튼의 활성화 상태 제거
+  const buttons = document.querySelectorAll('.tool-btn');
+  buttons.forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  // 해당 버튼 활성화
+  let activeButton;
+  
+  if (buttonName === '형광펜') {
+    activeButton = document.getElementById('highlighterBtn');
+  } else if (buttonName === '펜') {
+    activeButton = document.getElementById('penBtn');
+  } else if (buttonName === '커서') {
+    activeButton = document.getElementById('cursorBtn');
+  } else if (buttonName === '텍스트 입력') {
+    activeButton = document.getElementById('textBtn');
+  } else if (buttonName === '도장') {
+    activeButton = document.getElementById('stampBtn');
+  }
+  
+  if (activeButton) {
+    activeButton.classList.add('active');
+  }
+}
+
+  drawingCanvas.addEventListener("mousedown", (e) => {
+    const x = e.offsetX;
+    const y = e.offsetY;
+
+    if (mode === 'text' || mode === null) return;
+
+    if (mode === 'signature') {
+    console.log("서명 모드에서 클릭 감지");
+      const image = sessionStorage.getItem("signatureImage");
+    if (!image) {
+      console.error("서명 이미지가 없습니다");
+      return;
+    }
+    console.log("서명 이미지 크기:", image.length);
+      drawSignature(x, y, image);
+    
+    // 서명 데이터 저장
+    if (!signatureDataPerPage[currentPage]) {
+      signatureDataPerPage[currentPage] = [];
+    }
+      signatureDataPerPage[currentPage].push({ x, y, image });
+    
+    // WebSocket으로 실시간 전송
+      sendSignature(x, y, image);
+    
+      mode = null;
+      return;
+    }
+
+    drawing = true;
+    drawCtx.beginPath();
+    drawCtx.moveTo(x, y);
+    drawCtx.lineTo(x, y);
+    drawCtx.stroke();
+    sendDrawPoint(x, y, "start");
+    });
+
+  drawingCanvas.addEventListener("mouseup", () => {
+    drawing = false;
+    localLastX = null;
+    localLastY = null;
+  });
+
+  scrollWrapper.addEventListener("scroll", () => {
+    sendScrollSync(scrollWrapper.scrollTop);
+  });
+
+  const role = sessionStorage.getItem("role");
+  const stampImageBase64 = sessionStorage.getItem("stampImage");
+
+    document.addEventListener("DOMContentLoaded", () => {
+      console.log("DOM 로드 완료 - 페이지 초기화 시작");
+      const role = sessionStorage.getItem("role");
+      const entryType = sessionStorage.getItem("entryType");
+      const sessionId = sessionStorage.getItem("sessionId");
+      console.log("역할:", role, "입장 타입:", entryType, "세션 ID:", sessionId);
+
+      // 초기 모드 상태 설정
+      updateModeStatus('커서');
+      
+      // 캔버스 관련 설정 최적화
+      if (drawingCanvas && drawingCanvas.getContext) {
+        drawCtx.imageSmoothingEnabled = true;
+        drawCtx.imageSmoothingQuality = 'high';
+      }
+      
+      // 페이지가 로드되기 전에 서명 이미지 미리 로드
+      const signatureImage = sessionStorage.getItem("signatureImage");
+      if (signatureImage && entryType === "signature") {
+        console.log("서명 이미지 미리 로드 중...");
+        const preloadImg = new Image();
+        preloadImg.onload = () => {
+          imageCache[signatureImage] = preloadImg;
+          console.log("서명 이미지 미리 로드 완료");
+        };
+        preloadImg.src = signatureImage;
+      }
+      
+      // 사용자 입장 메시지 전송 (WebSocket 연결 후)
+      setTimeout(() => {
+        if (stompClient && stompClient.connected) {
+          sendUserJoinMessage();
+          
+          // 세션 데이터 자동 저장 시작 (상담원만)
+          if (role === "agent") {
+            startAutoSave();
+          }
+        } else {
+          // WebSocket 연결이 아직 안되었으면 다시 시도
+          const checkInterval = setInterval(() => {
+            if (stompClient && stompClient.connected) {
+              sendUserJoinMessage();
+              
+              // 세션 데이터 자동 저장 시작 (상담원만)
+              if (role === "agent") {
+                startAutoSave();
+              }
+              
+              clearInterval(checkInterval);
+            }
+          }, 500);
+        }
+      }, 1000);
+      
+      // 역할에 따른 UI 조정
+      if (role === "client") {
+        // 클라이언트에게 숨길 버튼들
+        document.getElementById("pdfUpload").style.display = "none";
+        const prevButton = document.querySelector("button[onclick='prevPage()']");
+        const nextButton = document.querySelector("button[onclick='nextPage()']");
+        const endConsultButton = document.querySelector("button[onclick='endConsult()']");
+        
+        // 버튼 숨기기
+        if (prevButton) prevButton.style.display = "none";
+        if (nextButton) nextButton.style.display = "none";
+        if (endConsultButton) endConsultButton.style.display = "none";
+        
+        // 버튼 컨테이너
+        const buttonContainer = document.getElementById("buttonArea");
+
+        // 도장 또는 서명 버튼 표시
+        if (entryType === "stamp") {
+          document.getElementById("stampBtn").style.display = "inline-block";
+        } else if (entryType === "signature") {
+          const signBtn = document.createElement("button");
+          signBtn.innerText = "서명";
+          signBtn.onclick = setSignatureMode;
+          
+          // 텍스트 입력 버튼 다음에 서명 버튼 삽입하는 방식 변경
+          const stampBtn = document.getElementById("stampBtn");
+          // 도장 버튼 위치에 서명 버튼 삽입
+          if (stampBtn && stampBtn.parentNode) {
+            buttonContainer.insertBefore(signBtn, stampBtn);
+          } else {
+            // 도장 버튼이 없으면 마지막 버튼 앞에 삽입
+            const lastBtn = document.querySelector("button[onclick='endConsult()']");
+            if (lastBtn) {
+              buttonContainer.insertBefore(signBtn, lastBtn);
+            } else {
+              // 마지막 버튼도 없으면 컨테이너 마지막에 추가
+          buttonContainer.appendChild(signBtn);
+            }
+          }
+        } else {
+          alert("entryType이 설정되지 않았습니다. 다시 입장해주세요.");
+        }
+      } else {
+        // 상담원인 경우 모든 버튼 표시
+        // 상담원만 '상담종료' 버튼이 보이도록 함
+        const endConsultButton = document.querySelector("button[onclick='endConsult()']");
+        if (endConsultButton) endConsultButton.style.display = "inline-block";
+      }
+    });
+
+  function drawStamp(x, y, imageSrc) {
+    const img = new Image();
+    img.onload = () => {
+      const size = 50; // 도장 크기
+      drawCtx.drawImage(img, x - size / 2, y - size / 2, size, size);
+    };
+    img.src = imageSrc;
+  }
+
+  function sendStamp(x, y, imageBase64) {
+    // ✅ 스탬프 좌표 저장
+    if (!stampDataPerPage[currentPage]) {
+      stampDataPerPage[currentPage] = [];
+    }
+    stampDataPerPage[currentPage].push({ x, y, image: imageBase64 });
+
+    // ✅ WebSocket 전송
+    if (stompClient && stompClient.connected) {
+      stompClient.send("/app/sync/stamp", {}, JSON.stringify({
+        x: x,
+        y: y,
+        image: imageBase64,
+        pageNumber: currentPage
+      }));
+    }
+  
+  // 도장 추가 후 세션 데이터 저장 (상담원/고객 모두)
+  setTimeout(saveSessionData, 1000);
+}
+
+// 이미지 캐시 객체 추가
+const imageCache = {};
+
+  function drawSignature(x, y, imageSrc) {
+  console.log(`서명 그리기: x=${x}, y=${y}, 이미지 길이=${imageSrc ? imageSrc.length : 0}`);
+  
+  if (!imageSrc) {
+    console.error("서명 이미지가 없습니다");
+    return;
+  }
+  
+  try {
+    // 이미지가 캐시에 있는지 확인
+    if (imageCache[imageSrc]) {
+      console.log("캐시된 이미지 사용");
+      try {
+        // 캐시된 이미지가 유효한지 확인
+        if (imageCache[imageSrc].complete) {
+          drawCtx.drawImage(imageCache[imageSrc], x - 30, y - 15, 100, 50);
+        } else {
+          // 이미지가 아직 로드 중인 경우 로드 완료 이벤트 추가
+          imageCache[imageSrc].onload = () => {
+            try {
+              drawCtx.drawImage(imageCache[imageSrc], x - 30, y - 15, 100, 50);
+              console.log("캐시된 이미지 지연 그리기 완료");
+            } catch (e) {
+              console.error("캐시된 이미지 지연 그리기 오류:", e);
+            }
+          };
+        }
+      } catch (e) {
+        console.error("캐시된 이미지 그리기 오류:", e);
+        // 오류 발생 시 이미지 다시 로드 시도
+        delete imageCache[imageSrc];
+        setTimeout(() => drawSignature(x, y, imageSrc), 100);
+      }
+      return;
+    }
+    
+    const img = new Image();
+    
+    // 이미지 로드 완료 시 호출되는 콜백
+    img.onload = () => {
+      // 이미지를 캐시에 저장
+      imageCache[imageSrc] = img;
+      
+      // 서명 그리기
+      try {
+        drawCtx.drawImage(img, x - 30, y - 15, 100, 50);
+        console.log("서명 이미지 그리기 완료");
+      } catch (e) {
+        console.error("서명 이미지 그리기 오류:", e);
+      }
+    };
+    
+    img.onerror = (e) => {
+      console.error("서명 이미지 로드 오류:", e);
+      delete imageCache[imageSrc]; // 오류 발생 시 캐시에서 제거
+    };
+    
+    // 이미지 소스 설정 (이 시점에서 이미지 로드 시작)
+    img.src = imageSrc;
+    
+    // 5초 후에도 로드가 안 되면 타임아웃 처리
+    setTimeout(() => {
+      if (!img.complete) {
+        console.warn(`서명 이미지 로드 타임아웃 (x=${x}, y=${y})`);
+        delete imageCache[imageSrc];
+      }
+    }, 5000);
+  } catch (e) {
+    console.error("서명 그리기 중 예외 발생:", e);
+    }
+}
+
+  function endConsult() {
+  if (!uploadedPdfUrl) {
+    alert("PDF 파일이 없습니다. PDF를 먼저 업로드하거나 공유받은 후 다시 시도해 주세요.");
+    return;
+  }
+
+  // 세션 스토리지에서 페이지 정보 삭제 (상담 종료 시 페이지 정보 초기화)
+  sessionStorage.removeItem("lastPage");
+  sessionStorage.removeItem("lastSyncedPage");
+  // 상담 종료 플래그 설정
+  sessionStorage.setItem("consultClosed", "true");
+  // 현재 페이지를 1로 설정
+  currentPage = 1;
+
+  // 상담원과 고객에 따라 다른 처리
+  if (userRole === "agent") {
+    // 1. 계약 정보 생성
+    const contractData = {
+      status: "완료", // 문자열 타입의 상태값(숫자 아님)
+      clientId: sessionStorage.getItem("clientId") || "1", // String으로 유지
+      agentId: sessionStorage.getItem("agentId") || "1",   // String으로 유지 
+      memo: "상담 완료: " + new Date().toLocaleString()  // 메모에 현재 시간 기록
+    };
+    
+    console.log("계약 데이터 전송:", JSON.stringify(contractData));
+    
+    // 2. 계약 정보 DB에 저장
+    fetch('/api/contract', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(contractData)
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        console.log("계약 정보 저장 성공:", data);
+        
+        // 3. 상담원인 경우: 고객에게 상담 종료 메시지 전송
+        if (stompClient && stompClient.connected) {
+          stompClient.send("/app/sync/endConsult", {}, JSON.stringify({
+            message: "상담이 종료되었습니다. 계약 정보 화면으로 이동합니다.",
+            contractId: data.contractId,
+            redirectUrl: "/contract/complete"
+          }));
+        }
+        
+        // 성공 메시지 표시
+        showToast("상담 종료", "상담이 종료되고 계약 정보가 저장되었습니다.", "success");
+      } else {
+        console.error("계약 저장 실패:", data);
+        showToast("저장 실패", "계약 정보 저장에 실패했습니다.", "error");
+      }
+      
+      // 상담원 상태 변경
+      updateAgentStatus(false);
+      
+      // 완료 모달 표시
+      showCompleteModal();
+    })
+    .catch(error => {
+      console.error("계약 저장 오류:", error);
+      showToast("저장 오류", "계약 정보를 저장하는 중 오류가 발생했습니다.", "error");
+      
+      // 오류가 발생해도 상담은 종료
+      updateAgentStatus(false);
+      showCompleteModal();
+    });
+  } else {
+    // 고객인 경우: 바로 완료 모달 표시
+    showCompleteModal();
+  }
+}
+
+// 페이지를 떠날 때 상담원 상태 변경 (원래 있던 리스너에 추가)
+const additionalUnloadHandler = function(e) {
+  console.log("페이지 이탈 감지 - 정리 작업 수행");
+  
+  if (userRole === "agent") {
+    // 상담원이 페이지를 떠날 때 퇴장 상태로 변경
+    updateAgentStatus(false);
+  }
+  
+  // 세션 데이터 마지막으로 저장 시도
+  if (sessionId) {
+    saveSessionData();
+    }
+};
+
+// 기존 이벤트 리스너에 추가로 등록
+window.addEventListener('beforeunload', additionalUnloadHandler);
+
+  function restoreStampsFromSavedData(pageNumber) {
+    const stampList = stampDataPerPage[pageNumber];
+    if (!stampList) return;
+
+    stampList.forEach(({ x, y, image }) => {
+      drawStamp(x, y, image);
+    });
+  }
+
+  function closeTextPopup() {
+    document.getElementById('textPopup').style.display = 'none';
+    //pendingText = null;
+  }
+
+  function confirmText() {
+    const text = document.getElementById('textInput').value.trim();
+    if (!text) return alert("텍스트를 입력하세요.");
+    pendingText = text;
+    mode = 'text'; // 텍스트 삽입 모드
+    closeTextPopup();
+    alert("PDF를 클릭하여 텍스트를 삽입하세요.");
+  }
+
+  drawingCanvas.addEventListener("click", (e) => {
+    console.log("Canvas 클릭됨", mode, pendingText);
+    const x = e.offsetX;
+    const y = e.offsetY;
+
+    if (mode === 'text' && pendingText) {
+      drawTextOnCanvas(x, y, pendingText);
+      sendText(x, y, pendingText);
+      textDataPerPage[currentPage] = textDataPerPage[currentPage] || [];
+      textDataPerPage[currentPage].push({ x, y, text: pendingText });
+      pendingText = null;
+      mode = null;
+      
+      // 텍스트 추가 후 명시적 저장
+      setTimeout(saveSessionData, 500);
+      return;
+    }
+
+    if (mode === 'stamp') {
+    const image = stampImageBase64 || localStorage.getItem("stampImage") || sessionStorage.getItem("stampImage");
+      if (!image) return;
+      drawStamp(x, y, image);
+      sendStamp(x, y, image);
+      mode = null;
+      
+      // 도장 추가 후 명시적 저장
+      setTimeout(saveSessionData, 500);
+    return;
+  }
+  
+  if (mode === 'signature') {
+    const image = sessionStorage.getItem("signatureImage");
+    if (!image) return;
+    drawSignature(x, y, image);
+    
+    // 서명 데이터 저장
+    if (!signatureDataPerPage[currentPage]) {
+      signatureDataPerPage[currentPage] = [];
+    }
+    signatureDataPerPage[currentPage].push({ x, y, image });
+    
+    // WebSocket으로 실시간 전송
+    sendSignature(x, y, image);
+    
+    mode = null;
+    
+    // 서명 추가 후 명시적 저장
+    setTimeout(saveSessionData, 500);
+    return;
+    }
+  });
+
+  function drawTextOnCanvas(x, y, text) {
+    console.log("텍스트 삽입:", text, x, y);
+    drawCtx.font = "16px Arial";
+    drawCtx.fillStyle = "blue";
+    drawCtx.fillText(text, x, y);
+  }
+  function sendText(x, y, text) {
+    console.log("텍스트 전송:", text, x, y);
+    if (!stompClient || !stompClient.connected) return;
+    stompClient.send("/app/sync/text", {}, JSON.stringify({
+      x: x,
+      y: y,
+      text: text,
+      pageNumber: currentPage
+    }));
+  
+  // 텍스트 추가 후 세션 데이터 저장 (상담원/고객 모두)
+  setTimeout(saveSessionData, 1000);
+  }
+
+  function restoreTextsFromSavedData(pageNumber) {
+    const list = textDataPerPage[pageNumber];
+    if (!list) return;
+    list.forEach(({ x, y, text }) => drawTextOnCanvas(x, y, text));
+  }
+
+// 서명 데이터를 복원하는 함수 추가 (개선된 버전)
+function restoreSignaturesFromSavedData(pageNumber) {
+  const signatureList = signatureDataPerPage[pageNumber];
+  if (!signatureList || signatureList.length === 0) {
+    console.log(`페이지 ${pageNumber}에 복원할 서명 데이터가 없습니다.`);
+    return;
+  }
+  
+  console.log(`페이지 ${pageNumber}의 서명 데이터 복원: ${signatureList.length}개`);
+
+  // 백그라운드에서 모든 이미지 로드 시작
+  signatureList.forEach(({ image, x, y }, index) => {
+    if (!image) {
+      console.warn(`서명 데이터 #${index+1}에 이미지가 없습니다.`);
+      return;
+    }
+    
+    // 이미 캐시에 있는 이미지는 바로 그리기
+    if (imageCache[image] && imageCache[image].complete) {
+      console.log(`캐시된 이미지 #${index+1} 사용`);
+      if (currentPage === pageNumber) {
+        try {
+          drawSignature(x, y, image);
+        } catch (e) {
+          console.error(`캐시된 이미지 그리기 오류:`, e);
+        }
+      }
+      return;
+    }
+    
+    // 이미지 새로 로드
+    const img = new Image();
+    
+    // 로드 완료 시 캐시에 저장하고 그리기
+    img.onload = () => {
+      imageCache[image] = img;
+      console.log(`서명 이미지 #${index+1} 로드 완료`);
+      
+      // 현재 보고 있는 페이지에만 그리기
+      if (currentPage === pageNumber) {
+        try {
+          drawSignature(x, y, image);
+        } catch (e) {
+          console.error(`새 이미지 그리기 오류:`, e);
+        }
+      }
+    };
+    
+    img.onerror = (err) => {
+      console.error(`서명 이미지 #${index+1} 로드 실패:`, err);
+      
+      // 로드 실패 시 재시도 (1회)
+      setTimeout(() => {
+        console.log(`서명 이미지 #${index+1} 로드 재시도...`);
+        const retryImg = new Image();
+        retryImg.onload = () => {
+          imageCache[image] = retryImg;
+          if (currentPage === pageNumber) {
+            drawSignature(x, y, image);
+          }
+        };
+        retryImg.src = image;
+      }, 1000);
+    };
+    
+    // 이미지 로드 시작
+    img.src = image;
+  });
+  
+  // 페이지 로드 후 3초 뒤 정렬된 그리기 재시도 (마지막 안전 장치)
+  setTimeout(() => {
+    if (currentPage === pageNumber) {
+      console.log(`페이지 ${pageNumber}의 서명 데이터 최종 확인 및 복원`);
+      signatureList.forEach(({ x, y, image }) => {
+        if (image && imageCache[image] && imageCache[image].complete) {
+          try {
+            drawSignature(x, y, image);
+          } catch (e) {
+            console.error("최종 서명 복구 시도 실패:", e);
+          }
+        }
+      });
+    }
+  }, 3000);
+}
+
+  drawingCanvas.addEventListener("mousemove", (e) => {
+    if (!drawing || !mode) return;
+
+    const x = e.offsetX;
+    const y = e.offsetY;
+
+    if (mode === 'pen') {
+      drawCtx.strokeStyle = "red";
+      drawCtx.lineWidth = 2;
+    } else if (mode === 'highlight') {
+      drawCtx.strokeStyle = "rgba(255, 255, 0, 0.2)";
+      drawCtx.lineWidth = 10;
+    }
+
+    drawCtx.lineTo(x, y);
+    drawCtx.stroke();
+
+    sendDrawPoint(x, y, "move");
+    localLastX = x;
+    localLastY = y;
+  });
+
+async function savePdfWithStampAndSignature(forEmail = false) {
+  try {
+    const PDFDocument = window.PDFLib.PDFDocument;
+
+    if (!uploadedPdfUrl) {
+      throw new Error("PDF 파일 경로를 찾을 수 없습니다.");
+    }
+
+    // 로딩 메시지 표시
+    if (!forEmail) {
+      alert("PDF 저장 중입니다. 잠시만 기다려주세요...");
+    } else {
+      showToast("PDF 생성 중", "PDF 문서를 생성하고 있습니다...", "info");
+    }
+
+    // 원본 PDF 가져오기
+    const existingPdfBytes = await fetch(uploadedPdfUrl).then(res => res.arrayBuffer());
+    const pdfDocLib = await PDFDocument.load(existingPdfBytes);
+    const pages = pdfDocLib.getPages();
+
+    // 페이지별로 도장과 서명 데이터 처리
+    for (let i = 0; i < pages.length; i++) {
+      const pageNumber = i + 1;
+      const page = pages[i];
+      const { width, height } = page.getSize();
+
+      // 이 페이지에 있는 도장 목록
+      const stampItems = stampDataPerPage[pageNumber] || [];
+      console.log(`페이지 ${pageNumber}의 도장 개수: ${stampItems.length}`);
+
+      // 이 페이지에 있는 서명 목록
+      const signatureItems = signatureDataPerPage[pageNumber] || [];
+      console.log(`페이지 ${pageNumber}의 서명 개수: ${signatureItems.length}`);
+
+      // 도장 추가
+      for (const { x, y, image } of stampItems) {
+        // 이미지를 PDF에 임베드
+        const stampImage = await pdfDocLib.embedPng(image);
+        
+        // 좌표 변환 (PDF 좌표계는 왼쪽 하단이 원점)
+        const scale = 1.5; // PDF.js의 renderPage에서 사용된 스케일과 맞춤
+        const pdfX = (x / scale);
+        const pdfY = height - (y / scale);
+        
+        // 도장 크기
+        const stampSize = 50;
+        
+        // 도장 추가
+        page.drawImage(stampImage, {
+          x: pdfX - stampSize/2,
+          y: pdfY - stampSize/2,
+          width: stampSize,
+          height: stampSize
+        });
+      }
+
+      // 서명 추가
+      for (const { x, y, image } of signatureItems) {
+        // 이미지를 PDF에 임베드
+        const signImage = await pdfDocLib.embedPng(image);
+        
+        // 좌표 변환
+        const scale = 1.5;
+        const pdfX = (x / scale);
+        const pdfY = height - (y / scale);
+        
+        // 서명 크기
+        const signWidth = 100;
+        const signHeight = 50;
+        
+        // 서명 추가
+        page.drawImage(signImage, {
+          x: pdfX - signWidth/2,
+          y: pdfY - signHeight/2,
+          width: signWidth,
+          height: signHeight
+        });
+      }
+    }
+
+    // PDF 저장
+    const pdfBytes = await pdfDocLib.save();
+    const blob = new Blob([pdfBytes], { type: "application/pdf" });
+    
+    // 현재 날짜와 시간을 파일명에 추가
+    const now = new Date();
+    const timestamp = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
+    const fileName = `상담문서_${timestamp}.pdf`;
+    
+    // 로컬 다운로드 (이메일 전송이 아닌 경우)
+    if (!forEmail) {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      link.click();
+      console.log("PDF 저장 완료");
+      return null;
+    } else {
+      // 이메일 전송을 위해 Base64 인코딩된 데이터 반환
+      console.log("이메일 전송용 PDF 생성 완료");
+      return await blobToBase64(blob);
+    }
+  } catch (error) {
+    console.error("PDF 저장 오류:", error);
+    if (!forEmail) {
+      alert("PDF 저장 중 오류가 발생했습니다: " + error.message);
+    } else {
+      showToast("PDF 생성 실패", "PDF 저장 중 오류가 발생했습니다: " + error.message, "error");
+  }
+    throw error;
+  }
+}
+
+// 토스트 메시지 함수
+// 토스트 메시지 중복 방지 객체
+const toastTracker = {
+  active: {}, // 현재 표시 중인 토스트 추적
+  lastShown: {}, // 각 유형별 마지막 표시 시간
+  
+  // 동일한 토스트가 이미 표시 중인지 확인
+  isDuplicate: function(type, title) {
+    const key = `${type}_${title}`;
+    return !!this.active[key];
+  },
+  
+  // 토스트 등록
+  register: function(type, title, toastElement) {
+    const key = `${type}_${title}`;
+    this.active[key] = toastElement;
+    this.lastShown[key] = Date.now();
+  },
+  
+  // 토스트 삭제
+  remove: function(type, title) {
+    const key = `${type}_${title}`;
+    delete this.active[key];
+  },
+  
+  // 너무 짧은 시간 내에 같은 메시지가 반복되는지 확인
+  isTooFrequent: function(type, title) {
+    const key = `${type}_${title}`;
+    const lastTime = this.lastShown[key];
+    return lastTime && (Date.now() - lastTime < 3000); // 3초 이내 동일 메시지 방지
+  }
+};
+
+function showToast(title, message, type = 'success') {
+  // 중복 메시지 방지
+  if (toastTracker.isDuplicate(type, title) || toastTracker.isTooFrequent(type, title)) {
+    console.log(`중복 토스트 방지: [${type}] ${title}`);
+    return;
+  }
+
+  const toastContainer = document.getElementById('toastContainer');
+  
+  // 토스트 요소 생성
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  
+  // 배경색 설정
+  if (type === 'success') {
+    toast.style.backgroundColor = '#4CAF50';
+  } else if (type === 'info') {
+    toast.style.backgroundColor = '#2196F3';
+  } else if (type === 'warning') {
+    toast.style.backgroundColor = '#ff9800';
+  } else if (type === 'error') {
+    toast.style.backgroundColor = '#f44336';
+  }
+  
+  // 토스트 내용 구성
+  const icon = document.createElement('div');
+  icon.className = 'toast-icon';
+  icon.innerHTML = type === 'success' ? '✅' : 
+                  type === 'info' ? 'ℹ️' :
+                  type === 'warning' ? '⚠️' : '❌';
+
+  const content = document.createElement('div');
+  content.className = 'toast-content';
+  
+  const titleEl = document.createElement('div');
+  titleEl.className = 'toast-title';
+  titleEl.textContent = title;
+  
+  const messageEl = document.createElement('div');
+  messageEl.className = 'toast-message';
+  messageEl.textContent = message;
+  
+  content.appendChild(titleEl);
+  content.appendChild(messageEl);
+  
+  const closeBtn = document.createElement('div');
+  closeBtn.className = 'toast-close';
+  closeBtn.innerHTML = '&times;';
+  closeBtn.onclick = function() {
+    toast.remove();
+    toastTracker.remove(type, title);
+  };
+  
+  toast.appendChild(icon);
+  toast.appendChild(content);
+  toast.appendChild(closeBtn);
+  
+  // 토스트 컨테이너에 추가
+  toastContainer.appendChild(toast);
+  
+  // 토스트 추적에 등록
+  toastTracker.register(type, title, toast);
+  
+  // 애니메이션 표시
+  setTimeout(() => {
+    toast.classList.add('show');
+  }, 10);
+  
+  // 5초 후 사라짐
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => {
+      toast.remove();
+      toastTracker.remove(type, title);
+    }, 300);
+  }, 5000);
+}
+
+// 사용자 입장 메시지 전송 함수
+function sendUserJoinMessage() {
+  // 세션에서 필요한 정보 가져오기
+  const role = sessionStorage.getItem("role");
+  const entryType = sessionStorage.getItem("entryType") || "default";
+  
+  // WebSocket이 연결된 상태인지 확인
+  if (stompClient && stompClient.connected) {
+    stompClient.send("/app/sync/userJoin", {}, JSON.stringify({
+      userType: role,
+      entryType: entryType,
+      sessionId: sessionId
+    }));
+    
+    // 고객이 입장한 경우, 상담원에게 현재 페이지 정보 요청
+    if (role === "client") {
+      console.log("고객 입장: 상담원에게 현재 페이지 정보 요청");
+      requestCurrentPageFromConsultant();
+    }
+  } else {
+    // WebSocket이 아직 연결되지 않았다면, 연결 후 메시지 전송을 위한 콜백 설정
+    console.log("WebSocket 연결 대기 중, 연결 후 사용자 입장 메시지를 전송합니다.");
+    
+    // 1초 후 다시 시도
+    setTimeout(() => {
+      if (stompClient && stompClient.connected) {
+        stompClient.send("/app/sync/userJoin", {}, JSON.stringify({
+          userType: role,
+          entryType: entryType,
+          sessionId: sessionId
+        }));
+        
+        // 고객이 입장한 경우, 상담원에게 현재 페이지 정보 요청
+        if (role === "client") {
+          requestCurrentPageFromConsultant();
+        }
+      }
+    }, 1000);
+  }
+}
+
+// 상담원에게 현재 페이지 정보 요청
+function requestCurrentPageFromConsultant() {
+  if (stompClient && stompClient.connected) {
+    stompClient.send("/app/sync/requestCurrentPage", {}, JSON.stringify({
+      sessionId: sessionId,
+      requesterId: "client_" + Date.now()
+    }));
+    console.log("상담원에게 현재 페이지 정보 요청 전송");
+  }
+}
+
+// 상담 완료 모달 표시/숨김 함수
+function showCompleteModal() {
+  document.getElementById('completeModal').style.display = 'block';
+}
+
+function closeCompleteModal() {
+  document.getElementById('completeModal').style.display = 'none';
+}
+
+// 초기 화면으로 이동 함수
+function goToHomePage() {
+  // 세션 스토리지에서 페이지 정보 삭제
+  sessionStorage.removeItem("lastPage");
+  sessionStorage.removeItem("lastSyncedPage");
+  // 상담 종료 플래그 설정
+  sessionStorage.setItem("consultClosed", "true");
+  
+  // 현재 페이지 초기화
+  currentPage = 1;
+  
+  // 초기 화면으로 이동
+  location.href = "/main-page";
+}
+
+// Blob을 Base64 문자열로 변환하는 유틸리티 함수
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      // data:application/pdf;base64, 부분을 제거하고 Base64 문자열만 반환
+      const base64String = reader.result.split(',')[1];
+      resolve(base64String);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+// PDF 공유 관련 함수들
+function requestPdfFromAgent() {
+  if (stompClient && stompClient.connected) {
+    console.log("상담원에게 PDF 요청 메시지 전송");
+    stompClient.send("/app/sync/requestPdf", {}, JSON.stringify({
+      sessionId: sessionId,
+      requesterId: "client_" + Date.now()
+    }));
+    
+    // 사용자에게 알림
+    showToast("PDF 요청", "상담원에게 PDF 문서를 요청했습니다.", "info");
+  } else {
+    console.error("WebSocket 연결이 되어 있지 않아 PDF 요청을 보낼 수 없습니다.");
+    
+    // 5초 후에 다시 시도
+    setTimeout(() => {
+      if (stompClient && stompClient.connected) {
+        requestPdfFromAgent();
+      }
+    }, 5000);
+  }
+}
+
+// 상담원이 PDF 요청을 받았을 때 PDF 공유 함수
+function sharePdfToClient(requesterId) {
+  if (!uploadedPdfUrl) {
+    console.log("공유할 PDF가 없습니다.");
+    return;
+  }
+  
+  if (stompClient && stompClient.connected) {
+    console.log("고객에게 PDF 공유:", uploadedPdfUrl);
+    // 현재 PDF 파일 다시 공유
+    sendPdfPathSync(uploadedPdfUrl);
+    
+    // 현재 페이지 정보도 공유
+    sendPageSync(currentPage);
+  }
+}
+
+// 페이지 로딩 완료 후 5초 간격으로 PDF 존재 확인 및 자동 요청
+window.addEventListener('load', function() {
+  if (userRole === "client") {
+    // 5초마다 PDF가 로드되었는지 확인
+    const pdfCheckInterval = setInterval(() => {
+      if (!pdfDoc && stompClient && stompClient.connected) {
+        console.log("PDF가 아직 로드되지 않음, 요청 시도");
+        requestPdfFromAgent();
+      } else if (pdfDoc) {
+        // PDF가 로드되면 인터벌 중지
+        clearInterval(pdfCheckInterval);
+        console.log("PDF가 로드되어 자동 요청을 중지합니다.");
+      }
+    }, 5000);
+  }
+  
+  // 고객과 상담원 모두 자동 저장 시작
+  setTimeout(() => {
+    if (stompClient && stompClient.connected) {
+      startAutoSave();
+    }
+  }, 2000);
+});
+
+// 저장된 페이지 번호 가져오기
+function fetchSavedPageNumber(callback) {
+  if (!sessionId) {
+    callback(1);
+    return;
+  }
+  
+  // 상담이 새로 시작된 경우 항상 1페이지로 시작
+  const isConsultClosed = sessionStorage.getItem("consultClosed");
+  if (isConsultClosed === "true") {
+    console.log("상담이 종료된 후 새로 시작되어 1페이지로 설정");
+    sessionStorage.removeItem("consultClosed");
+    callback(1);
+    return;
+  }
+  
+  fetch(`/api/contract-data/${sessionId}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success === false || !data.currentPage) {
+        callback(1);
+        return;
+      }
+      
+      console.log("저장된 페이지 번호 가져옴:", data.currentPage);
+      callback(data.currentPage);
+    })
+    .catch(error => {
+      console.error("페이지 정보 가져오기 실패:", error);
+      callback(1);
+    });
+}
+
+// WebSocket 연결 상태 확인 및 재연결
+function checkAndReconnectWebSocket() {
+  console.log("WebSocket 연결 상태 확인");
+  
+  if (!stompClient || !stompClient.connected) {
+    console.log("WebSocket이 연결되어 있지 않음, 재연결 시도");
+    
+    // 연결 시도
+    connectWebSocket();
+    
+    // 2초 후 연결 상태 다시 확인
+    setTimeout(() => {
+      if (stompClient && stompClient.connected) {
+        console.log("WebSocket 재연결 성공");
+        
+        // 재연결 후 세션 데이터 로드
+        if (sessionId && !window.dataLoaded) {
+          console.log("재연결 후 세션 데이터 로드 시도");
+          loadSessionData(true);
+        }
+        
+        // 사용자 입장 메시지 재전송
+        sendUserJoinMessage();
+      } else {
+        console.error("WebSocket 재연결 실패, 3초 후 재시도");
+        setTimeout(checkAndReconnectWebSocket, 3000);
+      }
+    }, 2000);
+  } else {
+    console.log("WebSocket이 이미 연결되어 있음");
+  }
+}
+
+function exitRoom() {
+  if (confirm("상담방에서 나가시겠습니까? 저장하지 않은 내용은 모두 사라집니다.")) {
+    // 소켓 연결 종료
+    disconnectWebSocket();
+    
+    // 메인 페이지로 이동
+    location.href = "/main-page";
+  }
+}
+
+function handleOnlineStatusChange(isOnline) {
+  if (isOnline) {
+    // 상담원이 참여 중인 경우
+    if (isAgent) {
+      showToast("고객이 입장했습니다.");
+      document.getElementById("statusArea").textContent = "고객이 참여하고 있습니다. 상담을 진행해주세요.";
+    } else {
+      showToast("상담원이 입장했습니다.");
+      document.getElementById("statusArea").textContent = "상담원이 참여하고 있습니다. 상담을 시작합니다.";
+    }
+  } else {
+    // 상대방이 나간 경우
+    if (isAgent) {
+      alert("고객이 상담방을 나갔습니다. 메인 페이지로 이동합니다.");
+      disconnectWebSocket();
+      location.href = "/main-page";
+    } else {
+      alert("상담원이 상담방을 나갔습니다. 대기실로 이동합니다.");
+      disconnectWebSocket();
+      location.href = "/waiting-room";
+    }
+  }
+}
+
+// 완료 버튼 클릭 처리
+function completeConsultation() {
+  if (confirm("상담을 완료하시겠습니까?")) {
+    // 완료 메시지 전송
+    sendWebSocketMessage("완료", "COMPLETE");
+    
+    // 모달 표시 (필요시)
+    document.getElementById("completeModal").style.display = "block";
+  }
+}
+
+// 확인 버튼 클릭 처리
+function confirmComplete() {
+  document.getElementById("completeModal").style.display = "none";
+  disconnectWebSocket();
+  location.href = "/main-page";
+}
+</script>
+
+</body>
+</html>
+
