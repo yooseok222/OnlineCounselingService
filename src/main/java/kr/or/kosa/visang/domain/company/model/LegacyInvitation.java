@@ -7,10 +7,15 @@ import lombok.ToString;
 
 import java.time.LocalDateTime;
 
+/**
+ * 초대코드 모델 클래스
+ * 더 이상 사용되지 않으나 의존성 문제로 유지
+ * 이름 충돌 문제로 Legacy 접두사 추가
+ */
 @Getter
 @ToString
 @NoArgsConstructor
-public class Invitation {
+public class LegacyInvitation {
     private Long invitationId;
     private String invitationCode;
     private Long companyId;
@@ -19,7 +24,7 @@ public class Invitation {
     private LocalDateTime createdAt;
 
     @Builder
-    public Invitation(Long invitationId, String invitationCode, Long companyId, 
+    public LegacyInvitation(Long invitationId, String invitationCode, Long companyId, 
                       String adminName, LocalDateTime expiredTime, LocalDateTime createdAt) {
         this.invitationId = invitationId;
         this.invitationCode = invitationCode;
@@ -31,10 +36,10 @@ public class Invitation {
 
     /**
      * 초대코드 유효성 검증
-     * @return 검증된 Invitation 객체
+     * @return 검증된 LegacyInvitation 객체
      * @throws IllegalArgumentException 초대코드가 null이거나 빈 문자열인 경우
      */
-    public Invitation validateInvitationCode() {
+    public LegacyInvitation validateInvitationCode() {
         if (invitationCode == null || invitationCode.isEmpty()) {
             throw new IllegalArgumentException("초대코드는 필수 항목입니다.");
         }
@@ -43,10 +48,10 @@ public class Invitation {
 
     /**
      * 회사 ID 유효성 검증
-     * @return 검증된 Invitation 객체
+     * @return 검증된 LegacyInvitation 객체
      * @throws IllegalArgumentException 회사 ID가 null인 경우
      */
-    public Invitation validateCompanyId() {
+    public LegacyInvitation validateCompanyId() {
         if (companyId == null) {
             throw new IllegalArgumentException("회사 ID는 필수 항목입니다.");
         }
@@ -55,10 +60,10 @@ public class Invitation {
 
     /**
      * 관리자명 유효성 검증
-     * @return 검증된 Invitation 객체
+     * @return 검증된 LegacyInvitation 객체
      * @throws IllegalArgumentException 관리자명이 null이거나 빈 문자열인 경우
      */
-    public Invitation validateAdminName() {
+    public LegacyInvitation validateAdminName() {
         if (adminName == null || adminName.isEmpty()) {
             throw new IllegalArgumentException("관리자명은 필수 항목입니다.");
         }
@@ -76,9 +81,9 @@ public class Invitation {
 
     /**
      * 모든 필드의 유효성 검증
-     * @return 검증된 Invitation 객체
+     * @return 검증된 LegacyInvitation 객체
      */
-    public Invitation validate() {
+    public LegacyInvitation validate() {
         return validateInvitationCode().validateCompanyId().validateAdminName();
     }
 } 
