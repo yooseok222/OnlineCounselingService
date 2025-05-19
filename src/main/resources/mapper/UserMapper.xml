@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.kosa.visang.domain.user.repository.UserMapper">
+    
+    <!-- 이메일로 사용자 유형 확인 -->
+    <select id="findUserTypeByEmail" resultType="string">
+        SELECT 
+            CASE
+                WHEN EXISTS (SELECT 1 FROM clients WHERE email = #{email}) THEN 'CLIENT'
+                WHEN EXISTS (SELECT 1 FROM agents WHERE email = #{email}) THEN 'AGENT'
+                WHEN EXISTS (SELECT 1 FROM admins WHERE email = #{email}) THEN 'ADMIN'
+                ELSE NULL
+            END AS user_type
+    </select>
+    
+    <!-- 이메일 중복 확인 -->
+    <select id="countByEmail" resultType="int">
+        SELECT
+            (SELECT COUNT(*) FROM clients WHERE email = #{email}) +
+            (SELECT COUNT(*) FROM agents WHERE email = #{email}) +
+            (SELECT COUNT(*) FROM admins WHERE email = #{email})
+        AS count
+    </select>
+    
+    <!-- 전화번호 중복 확인 -->
+    <select id="countByPhoneNumber" resultType="int">
+        SELECT
+            (SELECT COUNT(*) FROM clients WHERE phone_number = #{phoneNumber}) +
+            (SELECT COUNT(*) FROM agents WHERE phone_number = #{phoneNumber}) +
+            (SELECT COUNT(*) FROM admins WHERE phone_number = #{phoneNumber})
+        AS count
+    </select>
+    
+    <!-- 인증 코드로 사용자 조회 -->
+    <select id="findByVerificationCode" resultMap="userResultMap">
+        SELECT
+            u.id,
+            u.name,
+            u.email,
+            u.password,
+            u.phone_number,
+            u.address,
+            u.role,
+            u.email_verified,
+            u.created_at,
+            u.updated_at,
+            u.verification_code
+        FROM (
+            SELECT * FROM clients WHERE verification_code = #{verificationCode}
+            UNION ALL
+            SELECT * FROM agents WHERE verification_code = #{verificationCode}
+            UNION ALL
+            SELECT * FROM admins WHERE verification_code = #{verificationCode}
+        ) AS u
+        LIMIT 1
+    </select>
+    
+    <!-- 사용자 이메일 인증 상태 업데이트 -->
+    <update id="updateEmailVerificationStatus">
+        UPDATE ${tableName}
+        SET email_verified = #{verified},
+            verification_code = NULL,
+            updated_at = NOW()
+        WHERE id = #{userId}
+    </update>
+    
+    <!-- 사용자 기본 결과 매핑 -->
+    <resultMap id="userResultMap" type="kr.or.kosa.visang.domain.user.model.User">
+        <id property="id" column="id" />
+        <result property="name" column="name" />
+        <result property="email" column="email" />
+        <result property="password" column="password" />
+        <result property="phoneNumber" column="phone_number" />
+        <result property="address" column="address" />
+        <result property="role" column="role" />
+        <result property="emailVerified" column="email_verified" />
+        <result property="createdAt" column="created_at" />
+        <result property="updatedAt" column="updated_at" />
+    </resultMap>
+</mapper> 
