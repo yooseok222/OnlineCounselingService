@@ -32,4 +32,11 @@ public class Admin extends User {
         
         return this;
     }
+
+    public Admin validateCompanyId() {
+        if (companyId == null) {
+            throw new IllegalArgumentException("회사 ID는 필수 항목입니다.");
+        }
+        return this;
+    }
 }
