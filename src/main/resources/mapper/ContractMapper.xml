@@ -185,12 +185,6 @@
         ORDER BY contract_time DESC
     </select>
 
-    <select id="selectContractById" resultMap="ContractResultMap">
-        SELECT *
-        FROM contract
-        WHERE contract_id = #{id}
-    </select>
-
     <!-- 모든 계약 조회 -->
     <select id="selectAllContracts" resultMap="ContractResultMap">
         SELECT <include refid="baseColumns" />,
