@@ -7,7 +7,7 @@
 	namespace="kr.or.kosa.visang.domain.chat.repository.ChatMapper">
 
 	<resultMap id="clientResultMap"
-		type="kr.or.kosa.visang.domain.Client.model.Client">
+		type="kr.or.kosa.visang.domain.client.model.Client">
 		<result column="chat_id" property="chatId" />
 		<result column="contract_id" property="contractId" />
 		<result column="sender_id" property="senderId" />
