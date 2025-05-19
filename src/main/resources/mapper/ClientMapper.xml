@@ -1,7 +1,19 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="kr.or.kosa.visang.domain.client.repository.ClientMapper">
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper
+	namespace="kr.or.kosa.visang.domain.client.repository.ClientMapper">
+
+	<resultMap id="clientResultMap"
+		type="kr.or.kosa.visang.domain.client.model.Client">
+		<result column="client_id" property="clientId" />
+		<result column="email" property="email" />
+		<result column="phone_number" property="phoneNumber" />
+		<result column="name" property="name" />
+	</resultMap>
+
     <resultMap id="ClientResultMap" type="kr.or.kosa.visang.domain.client.model.Client">
         <id column="client_id" property="clientId" jdbcType="BIGINT"/>
         <result column="ssn" property="ssn" jdbcType="VARCHAR"/>
@@ -15,6 +27,21 @@
         <result column="profile_image_url" property="profileImageUrl" jdbcType="VARCHAR"/>
         <result column="email_verified" property="emailVerified" jdbcType="BOOLEAN"/>
     </resultMap>
+
+	<select id="findByEmail" parameterType="string"
+		resultMap="clientResultMap">
+		SELECT *
+		FROM client
+		WHERE email = #{email}
+	</select>
+
+	<select id="findById" parameterType="long"
+		resultType="kr.or.kosa.visang.domain.Client.model.Client">
+		SELECT * FROM client WHERE client_id = #{clientId}
+	</select>
+
+
+
 
     <insert id="save" parameterType="kr.or.kosa.visang.domain.client.model.Client">
         INSERT INTO clients (ssn, name, email, password, phone_number, address, role, created_at, profile_image_url, email_verified)

@@ -1,17 +1,169 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="kr.or.kosa.visang.domain.contract.repository.ContractMapper">
-    <resultMap id="ContractResultMap" type="kr.or.kosa.visang.domain.contract.model.Contract">
-        <id column="contract_id" property="contractId" jdbcType="BIGINT"/>
-        <result column="status" property="status" jdbcType="VARCHAR"/>
-        <result column="created_at" property="createdAt" jdbcType="VARCHAR"/>
-        <result column="contract_time" property="contractTime" jdbcType="TIMESTAMP"/>
-        <result column="agent_id" property="agentId" jdbcType="VARCHAR"/>
-        <result column="client_id" property="clientId" jdbcType="VARCHAR"/>
-        <result column="contract_template_id" property="templateId" jdbcType="TIMESTAMP"/>
-        <result column="memo" property="memo" jdbcType="CLOB"/>
-    </resultMap>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper
+	namespace="kr.or.kosa.visang.domain.contract.repository.ContractMapper">
+
+	<resultMap id="contractResultMap"
+		type="kr.or.kosa.visang.domain.contract.model.Contract">
+		<result column="contract_id" property="contractId" />
+		<result column="status" property="status" />
+		<result column="created_at" property="createdAt" />
+		<result column="contract_time" property="contractTime" />
+		<result column="client_id" property="clientId" />
+		<result column="agent_id" property="agentId" />
+		<result column="contract_template_id"
+			property="contractTemplateId" />
+		<result column="memo" property="memo" />
+	</resultMap>
+
+	<resultMap id="scheduleResultMap"
+		type="kr.or.kosa.visang.domain.contract.model.Schedule">
+		<result column="contract_id" property="contractId" />
+		<result column="created_at" property="createdAt" />
+		<result column="status" property="status" />
+		<result column="contract_time" property="contractTime" />
+		<result column="client_id" property="clientId" />
+		<result column="agent_id" property="agentId" />
+		<result column="memo" property="memo" />
+		<result column="email" property="email" />
+		<result column="name" property="clientName" />
+		<result column="phone_number" property="phoneNumber" />
+
+		<result column="time" property="time" />
+		<result column="invitation_code" property="invitationCode" />
+	</resultMap>
+
+	<insert id="insertSchedule"
+		parameterType="kr.or.kosa.visang.domain.contract.model.Contract">
+		<selectKey keyProperty="contractId" order="BEFORE"
+			resultType="long">
+			SELECT contract_seq.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO contract
+		(contract_id,
+		status,
+		created_at,
+		contract_time,
+		client_id,
+		agent_id,
+		memo)
+		VALUES
+		(
+		#{contractId, jdbcType=NUMERIC},
+		#{status, jdbcType=VARCHAR},
+		#{createdAt, jdbcType=TIMESTAMP},
+		#{contractTime, jdbcType=TIMESTAMP},
+		#{clientId, jdbcType=NUMERIC},
+		#{agentId, jdbcType=NUMERIC},
+		#{memo, jdbcType=CLOB}
+		)
+	</insert>
+
+	<select id="selectSchedulesByAgent" parameterType="long"
+		resultMap="scheduleResultMap">
+		SELECT
+		c.contract_id,
+		c.created_at,
+		c.status,
+		c.contract_time,
+		c.client_id,
+		c.agent_id,
+		c.memo,
+		cl.email,
+		cl.name,
+		cl.phone_number
+		FROM
+		contract c
+		JOIN client cl ON c.client_id = cl.client_id
+		WHERE c.agent_id
+		= #{agentId}
+		ORDER BY c.contract_time
+	</select>
+
+	<select id="countByClientAndTime" parameterType="map"
+		resultType="int">
+		SELECT COUNT(*)
+		FROM contract
+		WHERE client_id = #{clientId}
+		AND contract_time = #{contractTime}
+	</select>
+
+	<select id="countByAgentAndTime" resultType="int"
+		parameterType="map">
+		SELECT COUNT(*)
+		FROM contract
+		WHERE agent_id = #{agentId}
+		AND contract_time = #{contractTime}
+	</select>
+
+
+	<select id="countByClientAndTimeExcept" resultType="int">
+		SELECT
+		COUNT(*)
+		FROM contract
+		WHERE client_id = #{clientId}
+		AND contract_time =
+		#{contractTime}
+		AND contract_id != #{excludeContractId}
+	</select>
+
+	<select id="countByAgentAndTimeExcept" resultType="int">
+		SELECT
+		COUNT(*)
+		FROM contract
+		WHERE agent_id = #{agentId}
+		AND contract_time =
+		#{contractTime}
+		AND contract_id != #{excludeContractId}
+	</select>
+
+	<update id="updateSchedule">
+		UPDATE contract
+		SET contract_time = #{contractTime},
+		memo = #{memo}
+		WHERE contract_id = #{contractId}
+	</update>
+
+	<delete id="deleteSchedule" parameterType="long">
+		DELETE FROM contract
+		WHERE contract_id = #{contractId}
+	</delete>
+
+
+	<select id="findTodayContracts" parameterType="map"
+		resultMap="scheduleResultMap">
+		SELECT
+		c.contract_id,
+		c.created_at,
+		c.status,
+		c.contract_time,
+		TO_CHAR(c.contract_time, 'HH24:MI') AS time,
+		i.invitation_code,
+		cl.client_id,
+		cl.name,
+		cl.email,
+		cl.phone_number
+		FROM contract c
+		JOIN
+		client cl ON c.client_id = cl.client_id
+		LEFT JOIN invitation i ON
+		i.contract_id = c.contract_id
+		WHERE
+		TRUNC(c.contract_time) =
+		TO_DATE(#{date}, 'YYYY-MM-DD')
+		AND c.agent_id =
+		#{agentId}
+		ORDER BY
+		c.contract_time
+	</select>
+
+	<select id="findById" parameterType="long"
+		resultType="kr.or.kosa.visang.domain.Contract.model.Contract">
+		SELECT * FROM contract WHERE contract_id = #{contractId}
+	</select>
 
     <select id="selectContractByStatus" resultMap="ContractResultMap">
         SELECT *
