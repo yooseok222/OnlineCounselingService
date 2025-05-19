@@ -16,6 +16,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import kr.or.kosa.visang.common.config.security.exception.EmailNotVerifiedException;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -69,7 +70,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         // 이메일 인증 확인
         if (!client.isEmailVerified()) {
             log.error("이메일 인증이 완료되지 않은 고객입니다: {}", email);
-            throw new UsernameNotFoundException("이메일 인증이 완료되지 않은 사용자입니다. 이메일을 확인해주세요.");
+            throw new EmailNotVerifiedException("이메일 인증이 완료되지 않은 사용자입니다. 이메일을 확인해주세요.");
         }
         
         // 권한 설정
@@ -103,7 +104,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         // 이메일 인증 확인
         if (!admin.isEmailVerified()) {
             log.error("이메일 인증이 완료되지 않은 관리자입니다: {}", email);
-            throw new UsernameNotFoundException("이메일 인증이 완료되지 않은 사용자입니다. 이메일을 확인해주세요.");
+            throw new EmailNotVerifiedException("이메일 인증이 완료되지 않은 사용자입니다. 이메일을 확인해주세요.");
         }
         
         // 권한 설정
@@ -137,7 +138,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         // 이메일 인증 확인
         if (!agent.isEmailVerified()) {
             log.error("이메일 인증이 완료되지 않은 상담원입니다: {}", email);
-            throw new UsernameNotFoundException("이메일 인증이 완료되지 않은 사용자입니다. 이메일을 확인해주세요.");
+            throw new EmailNotVerifiedException("이메일 인증이 완료되지 않은 사용자입니다. 이메일을 확인해주세요.");
         }
         
         // 상담원 계정 활성화 상태 확인

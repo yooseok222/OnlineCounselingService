@@ -131,7 +131,7 @@
                     <div class="card-body p-5">
                         <div class="text-center mb-5">
                             <h1 class="h3 fw-bold mb-3">회원가입</h1>
-                            <p class="text-muted">전자계약 원스톱 AI 서비스 비상(Visang)에 오신 것을 환영합니다</p>
+                            <p class="text-muted">전자계약 원스톱 서비스 비상(Visang)에 오신 것을 환영합니다</p>
                         </div>
                         
                         <!-- 단계 표시 -->
@@ -1157,6 +1157,86 @@
                     e.preventDefault();
                     e.stopPropagation();
                     checkEmail();
+                }
+            });
+
+            /* -------------------- 비밀번호 즉시 검증 -------------------- */
+            function validatePasswordInstant() {
+                const pwdEl = document.getElementById('password');
+                const feedbackEl = document.getElementById('passwordFeedback');
+                if(!pwdEl.value){
+                    setFeedback(feedbackEl, '비밀번호를 입력해주세요.', 'error');
+                    pwdEl.classList.add('is-invalid');
+                    pwdEl.classList.remove('is-valid');
+                    return false;
+                }
+                if(PASSWORD_REGEX.test(pwdEl.value)){
+                    setFeedback(feedbackEl, '안전한 비밀번호입니다.', 'success');
+                    pwdEl.classList.remove('is-invalid');
+                    pwdEl.classList.add('is-valid');
+                    return true;
+                } else {
+                    setFeedback(feedbackEl, ERROR_MESSAGES.password, 'error');
+                    pwdEl.classList.add('is-invalid');
+                    pwdEl.classList.remove('is-valid');
+                    return false;
+                }
+            }
+
+            function validatePasswordConfirmInstant() {
+                const pwdEl = document.getElementById('password');
+                const confirmEl = document.getElementById('passwordConfirm');
+                const feedbackEl = document.getElementById('passwordConfirmFeedback');
+
+                if(!confirmEl.value){
+                    setFeedback(feedbackEl, '비밀번호 확인을 입력해주세요.', 'error');
+                    confirmEl.classList.add('is-invalid');
+                    confirmEl.classList.remove('is-valid');
+                    return false;
+                }
+                if(confirmEl.value !== pwdEl.value){
+                    setFeedback(feedbackEl, ERROR_MESSAGES.passwordMismatch, 'error');
+                    confirmEl.classList.add('is-invalid');
+                    confirmEl.classList.remove('is-valid');
+                    return false;
+                }
+                if(PASSWORD_REGEX.test(pwdEl.value)){
+                    setFeedback(feedbackEl, '비밀번호가 일치합니다.', 'success');
+                    confirmEl.classList.remove('is-invalid');
+                    confirmEl.classList.add('is-valid');
+                    return true;
+                } else {
+                    setFeedback(feedbackEl, ERROR_MESSAGES.password, 'warning');
+                    confirmEl.classList.remove('is-valid');
+                    confirmEl.classList.add('is-invalid');
+                    return false;
+                }
+            }
+
+            // Enter 키로 비밀번호 정규식 검증
+            document.getElementById('password').addEventListener('keydown', function(e){
+                if(e.key === 'Enter'){
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if(validatePasswordInstant()){
+                        document.getElementById('passwordConfirm').focus();
+                    }
+                }
+            });
+
+            // Enter 키로 비밀번호 확인 검증
+            document.getElementById('passwordConfirm').addEventListener('keydown', function(e){
+                if(e.key === 'Enter'){
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const isOk = validatePasswordConfirmInstant();
+                    if(isOk){
+                        // 다음 입력 필드(전화번호)로 포커스 이동
+                        const nextEl = document.getElementById('phoneNumber');
+                        if(nextEl){
+                            nextEl.focus();
+                        }
+                    }
                 }
             });
             

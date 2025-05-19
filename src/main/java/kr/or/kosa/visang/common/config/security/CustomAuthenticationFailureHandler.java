@@ -8,6 +8,9 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
+import kr.or.kosa.visang.common.config.security.exception.EmailNotVerifiedException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 
 import java.io.IOException;
 
@@ -24,7 +27,11 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
         String errorMessage;
         
         // 예외 유형에 따라 다른 메시지 설정
-        if (exception instanceof UsernameNotFoundException) {
+        if (exception instanceof EmailNotVerifiedException || exception instanceof DisabledException ||
+            (exception instanceof InternalAuthenticationServiceException && exception.getCause() instanceof EmailNotVerifiedException)) {
+            errorMessage = "email-not-verified";
+            log.debug("이메일 인증 미완료: {}", exception.getMessage());
+        } else if (exception instanceof UsernameNotFoundException) {
             String message = exception.getMessage();
             
             // 이메일 인증 메시지 확인
@@ -43,8 +50,9 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
             log.debug("로그인 실패: {}", exception.getMessage());
         }
         
-        // 설정된 실패 URL로 리다이렉트 (매개변수로 오류 코드 전달)
-        setDefaultFailureUrl("/login?error=" + errorMessage);
+        String email = request.getParameter("email");
+        String emailParam = (email != null && !email.isEmpty()) ? ("&email=" + java.net.URLEncoder.encode(email, java.nio.charset.StandardCharsets.UTF_8)) : "";
+        setDefaultFailureUrl("/login?error=" + errorMessage + emailParam);
         super.onAuthenticationFailure(request, response, exception);
     }
 } 

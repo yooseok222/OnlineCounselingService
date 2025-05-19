@@ -40,9 +40,12 @@ public class AuthController {
      * 로그인 페이지
      */
     @GetMapping("/login")
-    public String loginPage(@RequestParam(required = false) String error, Model model) {
+    public String loginPage(@RequestParam(required = false) String error, @RequestParam(required = false) String email, Model model) {
         if (error != null) {
             model.addAttribute("error", "로그인 정보가 올바르지 않습니다.");
+        }
+        if (email != null && !email.isEmpty()) {
+            model.addAttribute("email", email);
         }
         return "auth/login";
     }
