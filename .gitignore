@@ -270,4 +270,10 @@ $RECYCLE.BIN/
 
 ## env
 *.env
+
+.idea/*
+
+.gradle/*
+
+build/*
 /.gradle/
