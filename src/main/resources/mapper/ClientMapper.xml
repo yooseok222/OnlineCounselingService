@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.kosa.visang.domain.client.repository.ClientMapper">
+    <resultMap id="ClientResultMap" type="kr.or.kosa.visang.domain.client.model.Client">
+        <id column="client_id" property="clientId" jdbcType="BIGINT"/>
+        <result column="ssn" property="ssn" jdbcType="VARCHAR"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="email" property="email" jdbcType="VARCHAR"/>
+        <result column="password" property="password" jdbcType="VARCHAR"/>
+        <result column="phone_number" property="phoneNumber" jdbcType="VARCHAR"/>
+        <result column="address" property="address" jdbcType="VARCHAR"/>
+        <result column="role" property="role" jdbcType="VARCHAR"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="profile_image_url" property="profileImageUrl" jdbcType="VARCHAR"/>
+        <result column="email_verified" property="emailVerified" jdbcType="BOOLEAN"/>
+    </resultMap>
+
+    <insert id="save" parameterType="kr.or.kosa.visang.domain.client.model.Client">
+        INSERT INTO clients (ssn, name, email, password, phone_number, address, role, created_at, profile_image_url, email_verified)
+        VALUES (#{ssn}, #{name}, #{email}, #{password}, #{phoneNumber}, #{address}, #{role}, #{createdAt}, #{profileImageUrl}, #{emailVerified})
+    </insert>
+    
+    <select id="findById" resultMap="ClientResultMap">
+        SELECT client_id, ssn, name, email, password, phone_number, address, role, created_at, profile_image_url, email_verified
+        FROM clients
+        WHERE client_id = #{clientId}
+    </select>
+    
+    <select id="findByEmail" resultMap="ClientResultMap">
+        SELECT client_id, ssn, name, email, password, phone_number, address, role, created_at, profile_image_url, email_verified
+        FROM clients
+        WHERE email = #{email}
+    </select>
+    
+    <select id="isSsnExists" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM clients
+        WHERE REPLACE(ssn, '-', '') = REPLACE(#{ssn}, '-', '')
+    </select>
+    
+    <select id="isEmailExists" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM clients
+        WHERE email = #{email}
+    </select>
+    
+    <select id="isPhoneNumberExists" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM clients
+        WHERE REPLACE(phone_number, '-', '') = REPLACE(#{phoneNumber}, '-', '')
+    </select>
+    
+    <update id="updateEmailVerificationStatus">
+        UPDATE clients
+        SET email_verified = #{verified}
+        WHERE email = #{email}
+    </update>
+    
+    <update id="updatePassword">
+        UPDATE clients
+        SET password = #{password}
+        WHERE client_id = #{clientId}
+    </update>
+    
+    <update id="updateProfileImageUrl">
+        UPDATE clients
+        SET profile_image_url = #{profileImageUrl}
+        WHERE client_id = #{clientId}
+    </update>
+</mapper> 

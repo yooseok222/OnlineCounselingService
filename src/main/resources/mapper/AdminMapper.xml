@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.kosa.visang.domain.admin.repository.AdminMapper">
+    <resultMap id="AdminResultMap" type="kr.or.kosa.visang.domain.admin.model.Admin">
+        <id column="admin_id" property="adminId" jdbcType="BIGINT"/>
+        <result column="company_id" property="companyId" jdbcType="BIGINT"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="email" property="email" jdbcType="VARCHAR"/>
+        <result column="password" property="password" jdbcType="VARCHAR"/>
+        <result column="phone_number" property="phoneNumber" jdbcType="VARCHAR"/>
+        <result column="address" property="address" jdbcType="VARCHAR"/>
+        <result column="role" property="role" jdbcType="VARCHAR"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="email_verified" property="emailVerified" jdbcType="BOOLEAN"/>
+    </resultMap>
+
+    <insert id="save" parameterType="kr.or.kosa.visang.domain.admin.model.Admin">
+        INSERT INTO admins (company_id, name, email, password, phone_number, address, role, created_at, email_verified)
+        VALUES (#{companyId}, #{name}, #{email}, #{password}, #{phoneNumber}, #{address}, #{role}, #{createdAt}, #{emailVerified})
+    </insert>
+    
+    <select id="findById" resultMap="AdminResultMap">
+        SELECT admin_id, company_id, name, email, password, phone_number, address, role, created_at, email_verified
+        FROM admins
+        WHERE admin_id = #{adminId}
+    </select>
+    
+    <select id="findByEmail" resultMap="AdminResultMap">
+        SELECT admin_id, company_id, name, email, password, phone_number, address, role, created_at, email_verified
+        FROM admins
+        WHERE email = #{email}
+    </select>
+    
+    <select id="findByCompanyId" resultMap="AdminResultMap">
+        SELECT admin_id, company_id, name, email, password, phone_number, address, role, created_at, email_verified
+        FROM admins
+        WHERE company_id = #{companyId}
+    </select>
+    
+    <select id="isEmailExists" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM admins
+        WHERE email = #{email}
+    </select>
+    
+    <select id="isPhoneNumberExists" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM admins
+        WHERE REPLACE(phone_number, '-', '') = REPLACE(#{phoneNumber}, '-', '')
+    </select>
+    
+    <update id="updateEmailVerificationStatus">
+        UPDATE admins
+        SET email_verified = #{verified}
+        WHERE email = #{email}
+    </update>
+    
+    <update id="updatePassword">
+        UPDATE admins
+        SET password = #{password}
+        WHERE admin_id = #{adminId}
+    </update>
+</mapper> 
