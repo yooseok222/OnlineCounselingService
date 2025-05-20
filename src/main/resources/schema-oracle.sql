@@ -1,0 +1,242 @@
+-- 기존 테이블 Drop
+BEGIN
+  EXECUTE IMMEDIATE 'DROP TABLE agent CASCADE CONSTRAINTS';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -942 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'DROP TABLE admin CASCADE CONSTRAINTS';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -942 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'DROP TABLE client CASCADE CONSTRAINTS';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -942 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'DROP TABLE company CASCADE CONSTRAINTS';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -942 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'DROP TABLE users CASCADE CONSTRAINTS';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -942 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- 시퀀스 Drop
+BEGIN
+  EXECUTE IMMEDIATE 'DROP SEQUENCE company_seq';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2289 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'DROP SEQUENCE client_seq';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2289 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'DROP SEQUENCE admin_seq';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2289 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'DROP SEQUENCE agent_seq';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2289 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- 시퀀스 생성
+CREATE SEQUENCE company_seq START WITH 2 INCREMENT BY 1
+/
+CREATE SEQUENCE client_seq START WITH 2 INCREMENT BY 1
+/
+CREATE SEQUENCE admin_seq START WITH 2 INCREMENT BY 1
+/
+CREATE SEQUENCE agent_seq START WITH 2 INCREMENT BY 1
+/
+
+-- 회사 테이블
+BEGIN
+  EXECUTE IMMEDIATE '
+  CREATE TABLE company (
+      company_id NUMBER(19) PRIMARY KEY,
+      company_name VARCHAR2(100) NOT NULL,
+      created_at TIMESTAMP NOT NULL
+  )';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- 고객 테이블
+BEGIN
+  EXECUTE IMMEDIATE '
+  CREATE TABLE client (
+      client_id NUMBER(19) PRIMARY KEY,
+      ssn VARCHAR2(20) NOT NULL,
+      name VARCHAR2(50) NOT NULL,
+      email VARCHAR2(100) NOT NULL,
+      password VARCHAR2(100) NOT NULL,
+      phone_number VARCHAR2(20),
+      address VARCHAR2(255),
+      role VARCHAR2(20) DEFAULT ''USER'' NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      profile_image_url VARCHAR2(255),
+      email_verified NUMBER(1) DEFAULT 0
+  )';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'ALTER TABLE client ADD CONSTRAINT client_email_uk UNIQUE (email)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2261 AND SQLCODE != -2275 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- 관리자 테이블
+BEGIN
+  EXECUTE IMMEDIATE '
+  CREATE TABLE admin (
+      admin_id NUMBER(19) PRIMARY KEY,
+      company_id NUMBER(19) NOT NULL,
+      name VARCHAR2(50) NOT NULL,
+      email VARCHAR2(100) NOT NULL,
+      password VARCHAR2(100) NOT NULL,
+      phone_number VARCHAR2(20),
+      address VARCHAR2(255),
+      role VARCHAR2(20) DEFAULT ''ADMIN'' NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      email_verified NUMBER(1) DEFAULT 0,
+      CONSTRAINT admin_company_id_fk FOREIGN KEY (company_id) REFERENCES company(company_id)
+  )';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'ALTER TABLE admin ADD CONSTRAINT admin_email_uk UNIQUE (email)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2261 AND SQLCODE != -2275 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- 상담원 테이블
+BEGIN
+  EXECUTE IMMEDIATE '
+  CREATE TABLE agent (
+      agent_id NUMBER(19) PRIMARY KEY,
+      company_id NUMBER(19) NOT NULL,
+      name VARCHAR2(50) NOT NULL,
+      email VARCHAR2(100) NOT NULL,
+      password VARCHAR2(100) NOT NULL,
+      phone_number VARCHAR2(20),
+      address VARCHAR2(255),
+      role VARCHAR2(20) DEFAULT ''AGENT'' NOT NULL,
+      state VARCHAR2(20) DEFAULT ''INACTIVE'' NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      profile_image_url VARCHAR2(255),
+      email_verified NUMBER(1) DEFAULT 0,
+      CONSTRAINT agent_company_id_fk FOREIGN KEY (company_id) REFERENCES company(company_id)
+  )';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'ALTER TABLE agent ADD CONSTRAINT agent_email_uk UNIQUE (email)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2261 AND SQLCODE != -2275 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- 인덱스 생성
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE INDEX idx_admin_company_id ON admin(company_id)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE INDEX idx_agent_company_id ON agent(company_id)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/ 

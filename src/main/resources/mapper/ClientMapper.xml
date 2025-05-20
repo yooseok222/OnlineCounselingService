@@ -31,54 +31,57 @@
 	<select id="findByEmail" parameterType="string"
 		resultMap="ClientResultMap">
 		SELECT client_id, ssn, name, email, password, phone_number, address, role, created_at, profile_image_url, email_verified
-		FROM clients
+		FROM client
 		WHERE email = #{email}
 	</select>
 
 	<select id="findById" parameterType="long"
 		resultMap="ClientResultMap">
 		SELECT client_id, ssn, name, email, password, phone_number, address, role, created_at, profile_image_url, email_verified
-		FROM clients
+		FROM client
 		WHERE client_id = #{clientId}
 	</select>
 
     <insert id="save" parameterType="kr.or.kosa.visang.domain.client.model.Client">
-        INSERT INTO clients (ssn, name, email, password, phone_number, address, role, created_at, profile_image_url, email_verified)
-        VALUES (#{ssn}, #{name}, #{email}, #{password}, #{phoneNumber}, #{address}, #{role}, #{createdAt}, #{profileImageUrl}, #{emailVerified})
+        <selectKey keyProperty="clientId" resultType="long" order="BEFORE">
+            SELECT client_seq.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO client (client_id, ssn, name, email, password, phone_number, address, role, created_at, profile_image_url, email_verified)
+        VALUES (#{clientId}, #{ssn}, #{name}, #{email}, #{password}, #{phoneNumber}, #{address, jdbcType=VARCHAR}, #{role}, #{createdAt}, #{profileImageUrl, jdbcType=VARCHAR}, #{emailVerified})
     </insert>
 
-    <select id="isSsnExists" resultType="boolean">
-        SELECT COUNT(*) > 0
-        FROM clients
+    <select id="isSsnExists" resultType="int">
+        SELECT COUNT(*)
+        FROM client
         WHERE REPLACE(ssn, '-', '') = REPLACE(#{ssn}, '-', '')
     </select>
 
-    <select id="isEmailExists" resultType="boolean">
-        SELECT COUNT(*) > 0
-        FROM clients
+    <select id="isEmailExists" resultType="int">
+        SELECT COUNT(*)
+        FROM client
         WHERE email = #{email}
     </select>
 
-    <select id="isPhoneNumberExists" resultType="boolean">
-        SELECT COUNT(*) > 0
-        FROM clients
+    <select id="isPhoneNumberExists" resultType="int">
+        SELECT COUNT(*)
+        FROM client
         WHERE REPLACE(phone_number, '-', '') = REPLACE(#{phoneNumber}, '-', '')
     </select>
 
     <update id="updateEmailVerificationStatus">
-        UPDATE clients
+        UPDATE client
         SET email_verified = #{verified}
         WHERE email = #{email}
     </update>
 
     <update id="updatePassword">
-        UPDATE clients
+        UPDATE client
         SET password = #{password}
         WHERE client_id = #{clientId}
     </update>
 
     <update id="updateProfileImageUrl">
-        UPDATE clients
+        UPDATE client
         SET profile_image_url = #{profileImageUrl}
         WHERE client_id = #{clientId}
     </update>
