@@ -7,85 +7,82 @@
     <select id="findUserTypeByEmail" resultType="string">
         SELECT 
             CASE
-                WHEN EXISTS (SELECT 1 FROM clients WHERE email = #{email}) THEN 'CLIENT'
-                WHEN EXISTS (SELECT 1 FROM agents WHERE email = #{email}) THEN 'AGENT'
-                WHEN EXISTS (SELECT 1 FROM admins WHERE email = #{email}) THEN 'ADMIN'
+                WHEN EXISTS (SELECT 1 FROM client WHERE email = #{email}) THEN 'CLIENT'
+                WHEN EXISTS (SELECT 1 FROM agent WHERE email = #{email}) THEN 'AGENT'
+                WHEN EXISTS (SELECT 1 FROM admin WHERE email = #{email}) THEN 'ADMIN'
                 ELSE NULL
             END AS user_type
+        FROM DUAL
     </select>
     
     <!-- 이메일로 사용자 조회 -->
     <select id="findByEmail" parameterType="string" resultMap="userResultMap">
-        SELECT
-            'CLIENT' AS user_type,
-            client_id AS id,
-            name,
-            email,
-            password,
-            phone_number,
-            address,
-            role,
-            email_verified,
-            created_at,
-            updated_at,
-            verification_code
-        FROM clients
-        WHERE email = #{email}
-        
-        UNION ALL
-        
-        SELECT
-            'AGENT' AS user_type,
-            agent_id AS id,
-            name,
-            email,
-            password,
-            phone_number,
-            address,
-            role,
-            email_verified,
-            created_at,
-            updated_at,
-            verification_code
-        FROM agents
-        WHERE email = #{email}
-        
-        UNION ALL
-        
-        SELECT
-            'ADMIN' AS user_type,
-            admin_id AS id,
-            name,
-            email,
-            password,
-            phone_number,
-            address,
-            role,
-            email_verified,
-            created_at,
-            updated_at,
-            verification_code
-        FROM admins
-        WHERE email = #{email}
-        
-        LIMIT 1
+        SELECT * FROM (
+            SELECT
+                'CLIENT' AS user_type,
+                client_id AS id,
+                name,
+                email,
+                password,
+                phone_number,
+                address,
+                role,
+                email_verified,
+                created_at,
+                updated_at,
+                verification_code
+            FROM client
+            WHERE email = #{email}
+            UNION ALL
+            SELECT
+                'AGENT' AS user_type,
+                agent_id AS id,
+                name,
+                email,
+                password,
+                phone_number,
+                address,
+                role,
+                email_verified,
+                created_at,
+                updated_at,
+                verification_code
+            FROM agent
+            WHERE email = #{email}
+            UNION ALL
+            SELECT
+                'ADMIN' AS user_type,
+                admin_id AS id,
+                name,
+                email,
+                password,
+                phone_number,
+                address,
+                role,
+                email_verified,
+                created_at,
+                updated_at,
+                verification_code
+            FROM admin
+            WHERE email = #{email}
+        ) WHERE ROWNUM = 1
     </select>
     
     <!-- 이메일 중복 확인 -->
     <select id="countByEmail" resultType="int">
         SELECT
-            (SELECT COUNT(*) FROM clients WHERE email = #{email}) +
-            (SELECT COUNT(*) FROM agents WHERE email = #{email}) +
-            (SELECT COUNT(*) FROM admins WHERE email = #{email})
+            (SELECT COUNT(*) FROM client WHERE email = #{email}) +
+            (SELECT COUNT(*) FROM agent WHERE email = #{email}) +
+            (SELECT COUNT(*) FROM admin WHERE email = #{email})
         AS count
     </select>
     
     <!-- 전화번호 중복 확인 -->
     <select id="countByPhoneNumber" resultType="int">
         SELECT
-            (SELECT COUNT(*) FROM clients WHERE phone_number = #{phoneNumber}) +
-            (SELECT COUNT(*) FROM agents WHERE phone_number = #{phoneNumber}) +
-            (SELECT COUNT(*) FROM admins WHERE phone_number = #{phoneNumber})
+            (SELECT COUNT(*) FROM client WHERE phone_number = #{phoneNumber}) +
+            (SELECT COUNT(*) FROM agent WHERE phone_number = #{phoneNumber}) +
+            (SELECT COUNT(*) FROM admin WHERE phone_number = #{phoneNumber})
         AS count
     </select>
     
@@ -104,13 +101,13 @@
             u.updated_at,
             u.verification_code
         FROM (
-            SELECT * FROM clients WHERE verification_code = #{verificationCode}
+            SELECT * FROM client WHERE verification_code = #{verificationCode}
             UNION ALL
-            SELECT * FROM agents WHERE verification_code = #{verificationCode}
+            SELECT * FROM agent WHERE verification_code = #{verificationCode}
             UNION ALL
-            SELECT * FROM admins WHERE verification_code = #{verificationCode}
-        ) AS u
-        LIMIT 1
+            SELECT * FROM admin WHERE verification_code = #{verificationCode}
+        ) u
+        WHERE ROWNUM = 1
     </select>
     
     <!-- 사용자 이메일 인증 상태 업데이트 -->
@@ -118,7 +115,7 @@
         UPDATE ${tableName}
         SET email_verified = #{verified},
             verification_code = NULL,
-            updated_at = NOW()
+            updated_at = CURRENT_TIMESTAMP
         WHERE id = #{userId}
     </update>
     
