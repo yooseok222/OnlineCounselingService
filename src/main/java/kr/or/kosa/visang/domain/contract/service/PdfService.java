@@ -48,6 +48,11 @@ public class PdfService {
     
     // PDF 파일 리소스 조회 (파일 시스템에서 읽거나 메모리 캐시에서 읽음)
     public ResponseEntity<Resource> getPdfResource(String fileName) {
+        // 쿼리 파라미터 제거(타임스탬프 제거)
+        if (fileName.contains("?")) {
+            fileName = fileName.substring(0, fileName.indexOf("?"));
+        }
+        
         // 메모리 캐시에서 먼저 확인
         if (pdfMemoryCache.containsKey(fileName)) {
             byte[] pdfData = pdfMemoryCache.get(fileName);
@@ -55,6 +60,9 @@ public class PdfService {
             
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "inline;filename=" + fileName)
+                    .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+                    .header(HttpHeaders.PRAGMA, "no-cache")
+                    .header(HttpHeaders.EXPIRES, "0")
                     .contentType(MediaType.APPLICATION_PDF)
                     .contentLength(pdfData.length)
                     .body(resource);
@@ -74,6 +82,9 @@ public class PdfService {
             ByteArrayResource resource = new ByteArrayResource(pdfData);
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "inline;filename=" + fileName)
+                    .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+                    .header(HttpHeaders.PRAGMA, "no-cache")
+                    .header(HttpHeaders.EXPIRES, "0")
                     .contentType(MediaType.APPLICATION_PDF)
                     .contentLength(pdfData.length)
                     .body(resource);
@@ -82,6 +93,9 @@ public class PdfService {
             FileSystemResource resource = new FileSystemResource(file);
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "inline;filename=" + fileName)
+                    .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+                    .header(HttpHeaders.PRAGMA, "no-cache")
+                    .header(HttpHeaders.EXPIRES, "0")
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(resource);
         }
@@ -89,6 +103,17 @@ public class PdfService {
     
     // PDF 업로드 및 저장 (메모리 사용)
     public PdfDTO uploadPdf(MultipartFile file, Long contractId) throws IOException {
+        // 기존 PDF 파일 삭제 (contractId에 해당하는 모든 PDF)
+        List<PdfDTO> existingPdfs = getPdfsByContractId(contractId);
+        if (existingPdfs != null && !existingPdfs.isEmpty()) {
+            for (PdfDTO existingPdf : existingPdfs) {
+                // 기존 파일을 메모리 캐시에서 삭제
+                pdfMemoryCache.remove(existingPdf.getFilePath());
+                // DB에서 삭제
+                pdfMapper.deletePdf(existingPdf.getPdfId());
+            }
+        }
+        
         // 고유한 파일명 생성
         String originalFilename = file.getOriginalFilename();
         String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));

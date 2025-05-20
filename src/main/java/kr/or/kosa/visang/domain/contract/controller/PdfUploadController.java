@@ -38,14 +38,28 @@ public class PdfUploadController {
             // 계약 ID가 있으면 DB에 저장
             if (contractId != null) {
                 PdfDTO pdfDTO = pdfService.uploadPdf(file, contractId);
-                return ResponseEntity.ok("/pdf/" + pdfDTO.getFilePath());
+                // 캐시를 방지하기 위해 타임스탬프 추가
+                String fileUrl = "/pdf/" + pdfDTO.getFilePath() + "?t=" + System.currentTimeMillis();
+                return ResponseEntity.ok()
+                        // 캐시 방지 헤더 추가
+                        .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+                        .header(HttpHeaders.PRAGMA, "no-cache")
+                        .header(HttpHeaders.EXPIRES, "0")
+                        .body(fileUrl);
             } else {
                 // 메모리에 저장 (임시 업로드)
                 String fileId = "pdf_" + UUID.randomUUID().toString();
                 byte[] fileBytes = file.getBytes();
                 inMemoryPdfStorage.put(fileId, fileBytes);
                 
-                return ResponseEntity.ok("/pdf/" + fileId);
+                // 캐시를 방지하기 위해 타임스탬프 추가
+                String fileUrl = "/pdf/" + fileId + "?t=" + System.currentTimeMillis();
+                return ResponseEntity.ok()
+                        // 캐시 방지 헤더 추가
+                        .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+                        .header(HttpHeaders.PRAGMA, "no-cache")
+                        .header(HttpHeaders.EXPIRES, "0")
+                        .body(fileUrl);
             }
         } catch (IOException e) {
             return ResponseEntity.badRequest().body("업로드 실패: " + e.getMessage());
@@ -55,6 +69,11 @@ public class PdfUploadController {
     @GetMapping("/pdf/{fileId}")
     @ResponseBody
     public ResponseEntity<Resource> servePdf(@PathVariable String fileId) {
+        // 쿼리 파라미터 제거(타임스탬프 제거)
+        if (fileId.contains("?")) {
+            fileId = fileId.substring(0, fileId.indexOf("?"));
+        }
+        
         // DB에 저장된 파일인지 확인 (fileId가 UUID 형식이 아닌 경우)
         if (!fileId.startsWith("pdf_")) {
             return pdfService.getPdfResource(fileId);
@@ -69,6 +88,9 @@ public class PdfUploadController {
         ByteArrayResource resource = new ByteArrayResource(pdfData);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline;filename=" + fileId)
+                .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .header(HttpHeaders.EXPIRES, "0")
                 .contentType(MediaType.APPLICATION_PDF)
                 .contentLength(pdfData.length)
                 .body(resource);
