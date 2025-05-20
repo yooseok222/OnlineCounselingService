@@ -71,8 +71,8 @@ public class PdfSyncController {
             contractService.updateContractStatus(message.getContractId(), "5"); // 5는 완료 상태
         }
         
-        // 클라이언트에게 계약 완료 화면으로 리다이렉션하라는 메시지를 보냄
-        message.setRedirectUrl("/contract/complete");
+        // 클라이언트에게 메인 페이지로 리다이렉션하라는 메시지를 보냄
+        message.setRedirectUrl("/main-page");
         return message;
     }
 
@@ -84,8 +84,8 @@ public class PdfSyncController {
             contractService.updateContractStatus(message.getContractId(), "5"); // 5는 완료 상태
         }
         
-        // 클라이언트에게 계약 완료 화면으로 리다이렉션하라는 메시지를 보냄
-        message.setRedirectUrl("/contract/complete");
+        // 클라이언트에게 메인 페이지로 리다이렉션하라는 메시지를 보냄
+        message.setRedirectUrl("/main-page");
         return message;
     }
     

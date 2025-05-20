@@ -198,10 +198,11 @@
     background: white;
     padding: 25px;
     border-radius: 10px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-    z-index: 1000;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    z-index: 10000;
     width: 400px;
     text-align: center;
+    border: 3px solid #0064E1;
   }
   
   #completeModal h3 {
@@ -354,8 +355,8 @@
   <div id="completeModal">
     <i class="fas fa-check-circle" style="font-size: 48px; color: #0064E1; margin-bottom: 15px;"></i>
     <h3>상담이 완료되었습니다</h3>
-    <div>상담이 종료되었습니다. 초기 화면으로 이동하시겠습니까?</div>
-    <button onclick="goToHomePage()"><i class="fas fa-home"></i> 초기 화면으로 이동</button>
+    <div>상담이 종료되었습니다. 아래 버튼을 클릭하여 초기 화면으로 이동하세요.</div>
+    <button onclick="goToHomePage()" style="margin-top: 20px; font-size: 16px; padding: 10px 20px;"><i class="fas fa-home"></i> 초기 화면으로 이동</button>
   </div>
 
   <div id="scrollWrapper">
@@ -1286,31 +1287,56 @@ function sendDrawPoint(x, y, type) {
 
     // 상담 종료 메시지 구독
     stompClient.subscribe('/topic/endConsult', function (message) {
-      console.log("상담 종료 메시지 수신");
+      console.log("상담 종료 메시지 수신:", message.body);
       
-      // 메시지 내용 파싱
-      const data = JSON.parse(message.body);
-      
-      // 모든 사용자에게 토스트 메시지 표시
-      showToast("상담이 종료되었습니다", data.message || "상담이 종료되어 계약 정보 화면으로 이동합니다.", "info");
-      
-      // 세션 스토리지에서 페이지 정보 삭제 (상담 종료 시 페이지 정보 초기화)
-      sessionStorage.removeItem("lastPage");
-      sessionStorage.removeItem("lastSyncedPage");
-      // 상담 종료 플래그 설정
-      sessionStorage.setItem("consultClosed", "true");
-      // 현재 페이지를 1로 설정
-      currentPage = 1;
-      
-      // 3초 후 리다이렉션 (redirectUrl이 있는 경우)
-      if (data.redirectUrl) {
-        setTimeout(() => {
-          console.log("계약 완료 화면으로 이동합니다:", data.redirectUrl);
-          window.location.href = data.redirectUrl;
-        }, 3000);
-      } else {
-        // 기존 처리 - 완료 모달 표시
-        showCompleteModal();
+      try {
+        // 메시지 내용 파싱
+        const data = JSON.parse(message.body);
+        
+        // 로그 추가
+        console.log("파싱된 상담 종료 데이터:", data);
+        
+        // 현재 세션 ID와 메시지의 세션 ID 비교
+        const currentSessionId = sessionStorage.getItem("sessionId");
+        
+        // 세션 ID가 일치하거나 메시지에 세션 ID가 없는 경우에만 처리 (하위 호환성 유지)
+        if (!data.sessionId || data.sessionId === currentSessionId) {
+          console.log("현재 세션에 해당하는 상담 종료 메시지입니다.");
+          
+          // 모든 사용자에게 토스트 메시지 표시
+          showToast("상담이 종료되었습니다", data.message || "상담이 종료되어 초기 화면으로 이동합니다.", "info");
+          
+          // 세션 스토리지에서 페이지 정보 삭제 (상담 종료 시 페이지 정보 초기화)
+          sessionStorage.removeItem("lastPage");
+          sessionStorage.removeItem("lastSyncedPage");
+          // 상담 종료 플래그 설정
+          sessionStorage.setItem("consultClosed", "true");
+          // 현재 페이지를 1로 설정
+          currentPage = 1;
+          
+          // 항상 모달 표시하고 자동 리다이렉트하지 않음
+          console.log("상담 완료 모달 표시 예정");
+          
+          // 모달 표시 (리다이렉트 URL은 모달의 버튼에 설정)
+          setTimeout(() => {
+            console.log("상담 완료 모달 표시 실행");
+            
+            // 리다이렉트 URL이 있는 경우 버튼에 설정
+            if (data.redirectUrl) {
+              console.log("리다이렉트 URL을 버튼에 설정:", data.redirectUrl);
+              // 리다이렉트 URL을 goToHomePage 함수가 사용할 수 있도록 세션에 저장
+              sessionStorage.setItem("redirectUrl", data.redirectUrl);
+            }
+            
+            showCompleteModal();
+          }, 500);
+        } else {
+          console.log("다른 세션의 상담 종료 메시지이므로 무시합니다.");
+        }
+      } catch (error) {
+        console.error("상담 종료 메시지 처리 중 오류 발생:", error);
+        // 오류가 발생해도 모달은 표시
+        setTimeout(() => showCompleteModal(), 500);
       }
     });
     
@@ -1776,6 +1802,18 @@ const imageCache = {};
 
   // 상담원과 고객에 따라 다른 처리
   if (userRole === "agent") {
+    // 먼저 WebSocket으로 상담 종료 메시지를 전송
+    if (stompClient && stompClient.connected) {
+      stompClient.send("/app/sync/endConsult", {}, JSON.stringify({
+        message: "상담이 종료되었습니다. 초기 화면으로 이동합니다.",
+        sessionId: sessionId,
+        redirectUrl: "/main-page"  // 리다이렉트 경로를 main-page로 설정
+      }));
+      console.log("상담 종료 메시지 전송 완료");
+    } else {
+      console.error("WebSocket 연결이 끊어져 상담 종료 메시지를 전송할 수 없습니다.");
+    }
+    
     // 1. 계약 정보 생성
     const contractData = {
       status: "완료", // 문자열 타입의 상태값(숫자 아님)
@@ -1798,17 +1836,6 @@ const imageCache = {};
     .then(data => {
       if (data.success) {
         console.log("계약 정보 저장 성공:", data);
-        
-        // 3. 상담원인 경우: 고객에게 상담 종료 메시지 전송
-        if (stompClient && stompClient.connected) {
-          stompClient.send("/app/sync/endConsult", {}, JSON.stringify({
-            message: "상담이 종료되었습니다. 계약 정보 화면으로 이동합니다.",
-            contractId: data.contractId,
-            redirectUrl: "/contract/complete"
-          }));
-        }
-        
-        // 성공 메시지 표시
         showToast("상담 종료", "상담이 종료되고 계약 정보가 저장되었습니다.", "success");
       } else {
         console.error("계약 저장 실패:", data);
@@ -2340,7 +2367,70 @@ function requestCurrentPageFromConsultant() {
 
 // 상담 완료 모달 표시/숨김 함수
 function showCompleteModal() {
-  document.getElementById('completeModal').style.display = 'block';
+  console.log("상담 완료 모달 표시 함수 호출됨");
+  const completeModal = document.getElementById('completeModal');
+  
+  if (!completeModal) {
+    console.error("completeModal 요소를 찾을 수 없습니다!");
+    return;
+  }
+  
+  // 모달 스타일 확인 및 수정
+  completeModal.style.display = 'block';
+  completeModal.style.zIndex = '9999'; // 최상위 레이어로 설정
+  
+  // 배경을 어둡게 하는 오버레이 추가
+  let overlay = document.getElementById('modalOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'modalOverlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    overlay.style.zIndex = '9998';
+    document.body.appendChild(overlay);
+  } else {
+    overlay.style.display = 'block';
+  }
+  
+  // 애니메이션 효과 추가
+  completeModal.style.opacity = '0';
+  setTimeout(() => {
+    completeModal.style.transition = 'opacity 0.3s ease-in-out';
+    completeModal.style.opacity = '1';
+  }, 50);
+  
+  // 확인 로그
+  console.log("상담 완료 모달이 표시되었습니다.");
+  
+  // 모달 외부 클릭 방지
+  overlay.onclick = (e) => {
+    e.stopPropagation();
+    // 외부 클릭해도 모달은 닫히지 않음
+  };
+  
+  // 뒤로가기 방지
+  window.history.pushState(null, "", window.location.href);
+  window.onpopstate = function() {
+    window.history.pushState(null, "", window.location.href);
+  };
+  
+  // 모달이 안 보이는 경우를 대비해 3초 후 다시 한번 표시 시도
+  setTimeout(() => {
+    if (completeModal.style.display !== 'block' || parseFloat(completeModal.style.opacity) < 1) {
+      console.log("모달 재표시 시도");
+      completeModal.style.display = 'block';
+      completeModal.style.opacity = '1';
+      completeModal.style.zIndex = '9999';
+      
+      if (overlay) {
+        overlay.style.display = 'block';
+      }
+    }
+  }, 3000);
 }
 
 function closeCompleteModal() {
@@ -2358,8 +2448,15 @@ function goToHomePage() {
   // 현재 페이지 초기화
   currentPage = 1;
   
-  // 초기 화면으로 이동
-  location.href = "/main-page";
+  // 세션에 저장된 리다이렉트 URL이 있으면 그 URL로, 없으면 기본 URL로 이동
+  const redirectUrl = sessionStorage.getItem("redirectUrl") || "/main-page";
+  console.log("초기 화면으로 이동합니다:", redirectUrl);
+  
+  // 사용 후 리다이렉트 URL 삭제
+  sessionStorage.removeItem("redirectUrl");
+  
+  // 지정된 페이지로 이동
+  location.href = redirectUrl;
 }
 
 // Blob을 Base64 문자열로 변환하는 유틸리티 함수
