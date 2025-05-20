@@ -8,6 +8,9 @@
   <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
   <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- CSRF 토큰을 위한 메타 태그 추가 -->
+  <meta name="_csrf" th:content="${_csrf.token}"/>
+  <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
 <style>
   body {
     font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
@@ -303,7 +306,7 @@
     }
   }
 </style>
-</head>
+  </head>
 <body>
 <div class="header">
   <h3><i class="fas fa-file-pdf"></i> PDF 상담방</h3>
@@ -799,15 +802,26 @@ document.getElementById("pdfUpload").addEventListener("change", function (e) {
   const formData = new FormData();
   formData.append("file", file);
 
+  // CSRF 토큰 가져오기
+  const token = document.querySelector("meta[name='_csrf']").getAttribute("content");
+  const header = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
+
   fetch("/upload", {
     method: "POST",
-    body: formData
+    body: formData,
+    headers: {
+      [header]: token
+    }
   })
           .then(res => res.text())
           .then(url => {
             uploadedPdfUrl = url;
             loadPdfFromUrl(url);
             sendPdfPathSync(url);
+          })
+          .catch(error => {
+            console.error("PDF 업로드 오류:", error);
+            showToast("업로드 실패", "PDF 업로드 중 오류가 발생했습니다.", "error");
           });
 });
 
