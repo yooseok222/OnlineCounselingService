@@ -1,3 +1,21 @@
+  let stompClient = null;
+  let contractId = '11';
+  let senderType = 'AGENT';
+  let senderName = '홍길동';
+
+  function connectChat() {
+  	const socket = new SockJS('/ws');
+  	stompClient = Stomp.over(socket);
+  	stompClient.connect({}, () => {
+  		console.log('✅ 채팅 서버 연결됨!');
+  		stompClient.subscribe(`/topic/chat/${contractId}`, msg => {
+  			const body = JSON.parse(msg.body);
+  			showChatMessage(body);
+  		});
+  	});
+  }
+
+
 document.addEventListener('DOMContentLoaded', function() {
 	const calendarEl = document.getElementById('calendar');
 	const weeklyTimetable = document.getElementById('weeklyTimetable');
@@ -5,7 +23,11 @@ document.addEventListener('DOMContentLoaded', function() {
 	const dateRangeEl = document.getElementById('dateRange');
 	const scheduleForm = document.getElementById('scheduleForm');
 	const saveBtn = document.getElementById('saveBtn');
+	connectChat();
+
 	let selectedEvent = null;
+
+
 
 	// 랜덤 파스텔 컬러 생성
 	function getRandomColor() {
@@ -264,6 +286,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	renderContractsDate();
 	loadTodayContracts();
 	// ====오늘의 계약====
+	loadRecentCompletedContracts();
 
 	// 전체 스케줄 로드
 	async function loadSchedules() {
@@ -333,15 +356,11 @@ document.addEventListener('DOMContentLoaded', function() {
 	          <small class="text-muted ms-2">(${c.email})</small>
 	          <span class="badge bg-secondary ms-3">${c.invitationCode || '–'}</span>
 	        </div>
-			<button class="btn btn-sm btn-primary start-webrtc-btn" data-contract-id="${c.contractId}">
-			      통화 시작
-			</button>
+	        <button class="btn btn-sm btn-primary start-webrtc-btn" data-contract-id="${c.contractId}">
+	          통화 시작
+	        </button>
 	      `;
 				ul.appendChild(li);
-
-				li.querySelector('.start-webrtc-btn').addEventListener('click', () => {
-					joinRoom(c.contractId, c.clientName);
-				});
 			});
 		} catch (err) {
 			console.error(err);
@@ -389,7 +408,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			fb.textContent = '고객 정보를 불러왔습니다.';
 			fb.style.color = 'green';
 
-			// 중복 예약 체크 
+			// 중복 예약 체크
 			const date = scheduleForm.date.value;
 			const time = scheduleForm.time.value;
 
@@ -625,61 +644,79 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 	});
 
-	let stompClient = null;
-	let currentRoomId = null;
+    // 최근 완료된 계약
+    async function loadRecentCompletedContracts() {
+    	const agentId = Number(document.querySelector('input[name="agentId"]').value);
+    	console.log('[로그] 상담사 ID:', agentId);
 
-	function joinRoom(contractId, roomName) {
-		currentRoomId = contractId;
-		document.getElementById('chatRoomTitle').textContent = roomName;
-		document.getElementById('chatContainer').style.display = '';
+    	const res = await fetch(`/agent/recent-completed?agentId=${agentId}`);
+    	console.log('[로그] fetch 상태:', res.status);
 
-		// 과거 채팅 내역 불러오기 (선택사항)
-		fetch(`/api/chat/rooms/${contractId}/messages`)
-			.then(r => r.json())
-			.then(history => {
-				const box = document.getElementById('chatMessages');
-				box.innerHTML = '';
-				history.forEach(msg => showChatMessage(msg));
-			});
+    	if (!res.ok) {
+    		console.error('최근 완료된 계약 로드 실패');
+    		return;
+    	}
 
-		if (!stompClient) {
-			const socket = new SockJS('/ws'); // 웹소켓 엔드포인트
-			stompClient = Stomp.over(socket);
-			stompClient.connect({}, frame => {
-				console.log('STOMP CONNECTED:', frame);
-				stompClient.subscribe(`/topic/chat/${contractId}`, message => {
-					showChatMessage(JSON.parse(message.body));
-				});
-			});
-		} else {
-			// 방 재입장 시 재구독
-			stompClient.subscribe(`/topic/chat/${contractId}`, message => {
-				showChatMessage(JSON.parse(message.body));
-			});
-		}
-	}
+    	const list = await res.json();
+    	console.log('[로그] 받아온 계약 리스트:', list);
 
-	function showChatMessage(msg) {
-		const box = document.getElementById('chatMessages');
-		const div = document.createElement('div');
-		div.className = 'chat-message mb-1';
-		div.innerHTML = `<strong>${msg.sender}</strong>: ${msg.content}`;
-		box.appendChild(div);
-		box.scrollTop = box.scrollHeight;
-	}
+    	const ul = document.getElementById('recentCompletedList');
 
-	document.getElementById('chatSendBtn').addEventListener('click', () => {
-		const input = document.getElementById('chatInput');
-		const content = input.value.trim();
-		if (!content || !stompClient || !currentRoomId) return;
+        if (!ul) {
+            console.warn('[경고] recentCompletedList UL 못 찾음');
+            return;
+        }
 
-		const msg = {
-			sender: '상담사A',  // 필요 시 사용자명 바꾸기
-			content: content,
-			timestamp: new Date().toISOString()
-		};
-		stompClient.send(`/app/chat.send/${currentRoomId}`, {}, JSON.stringify(msg));
-		input.value = '';
-	});
+        ul.innerHTML = '';
+
+    	if (list.length === 0) {
+    	    console.log('[로그] 완료된 계약 없음');
+    		ul.innerHTML =
+    			'<li class="list-group-item text-center text-muted py-4">완료된 계약이 없습니다.</li>';
+    		return;
+    	}
+
+    	list.forEach(c => {
+    	    console.log('[로그] 계약 항목:', c);
+    		const li = document.createElement('li');
+    		li.className =
+    			'list-group-item d-flex justify-content-between align-items-center';
+    		li.innerHTML = `
+    			<div>
+    				<strong>${new Date(c.contractTime).toLocaleString()}</strong>
+    				<span class="ms-2">${c.clientName}</span>
+    				<small class="text-muted ms-2">(${c.email})</small>
+    			</div>
+    		`;
+    		ul.appendChild(li);
+    	});
+    }
+
+    /* 채팅 구현 */
+  function sendChatMessage() {
+  	const input = document.getElementById('chatInput');
+  	const msg = input.value.trim();
+  	if (!msg || !stompClient || !stompClient.connected) {
+  		alert('채팅 서버에 연결되어 있지 않습니다.');
+  		return;
+  	}
+
+  	stompClient.send(`/app/chat/${contractId}`, {}, JSON.stringify({
+  		content: msg,
+  		senderType,
+  		senderName
+  	}));
+
+  	input.value = '';
+  }
+
+  document.getElementById('sendChatBtn')?.addEventListener('click', sendChatMessage);
+
+  function showChatMessage({ senderType, senderName, content, sentTime }) {
+  	const div = document.createElement('div');
+  	div.innerHTML = `<strong>${senderType} [${senderName}]</strong>: ${content} <small>${sentTime}</small>`;
+  	document.getElementById('chatMessages').appendChild(div);
+  }
+
 
 });

@@ -104,4 +104,15 @@
         SET email_verified = #{verified}
         WHERE email = #{email}
     </update>
+
+    <select id="findRecentCompletedContracts" parameterType="long" resultMap="AgentResultMap">
+        SELECT c.*, cl.name AS client_name, cl.email
+        FROM contract c
+        JOIN client cl ON c.client_id = cl.client_id
+        WHERE c.agent_id = #{agentId}
+        AND c.status = '완료'
+        ORDER BY c.contract_time DESC
+        FETCH FIRST 5 ROWS ONLY
+    </select>
+
 </mapper>

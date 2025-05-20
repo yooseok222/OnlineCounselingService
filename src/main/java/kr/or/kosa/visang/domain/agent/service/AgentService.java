@@ -12,6 +12,10 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.context.annotation.RequestScope;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.ISpringTemplateEngine;
 
@@ -230,6 +234,13 @@ public class AgentService {
 		params.put("agentId", agentId);
 		params.put("date", date);
 		return contractMapper.findTodayContracts(params);
+	}
+
+	// 최근 완료된 계약
+	@GetMapping("/recent-completed")
+	@ResponseBody
+	public List<Contract> getRecentCompleted(@RequestParam Long agentId) {
+		return agentMapper.getRecentCompletedContracts(agentId);
 	}
 
 }
