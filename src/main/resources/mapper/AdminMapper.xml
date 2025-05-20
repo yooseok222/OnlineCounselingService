@@ -9,7 +9,6 @@
         <result column="email" property="email" jdbcType="VARCHAR"/>
         <result column="password" property="password" jdbcType="VARCHAR"/>
         <result column="phone_number" property="phoneNumber" jdbcType="VARCHAR"/>
-        <result column="email" property="email" jdbcType="VARCHAR"/>
         <result column="address" property="address" jdbcType="VARCHAR"/>
         <result column="role" property="role" jdbcType="VARCHAR"/>
         <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
@@ -17,48 +16,51 @@
     </resultMap>
 
     <insert id="save" parameterType="kr.or.kosa.visang.domain.admin.model.Admin">
-        INSERT INTO admins (company_id, name, email, password, phone_number, address, role, created_at, email_verified)
-        VALUES (#{companyId}, #{name}, #{email}, #{password}, #{phoneNumber}, #{address}, #{role}, #{createdAt}, #{emailVerified})
+        <selectKey keyProperty="adminId" resultType="long" order="BEFORE">
+            SELECT admin_seq.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO admin (admin_id, company_id, name, email, password, phone_number, address, role, created_at, email_verified)
+        VALUES (#{adminId}, #{companyId}, #{name}, #{email}, #{password}, #{phoneNumber}, #{address, jdbcType=VARCHAR}, #{role}, #{createdAt}, #{emailVerified})
     </insert>
 
     <select id="findById" resultMap="AdminResultMap">
         SELECT admin_id, company_id, name, email, password, phone_number, address, role, created_at, email_verified
-        FROM admins
+        FROM admin
         WHERE admin_id = #{adminId}
     </select>
 
     <select id="findByEmail" resultMap="AdminResultMap">
         SELECT admin_id, company_id, name, email, password, phone_number, address, role, created_at, email_verified
-        FROM admins
+        FROM admin
         WHERE email = #{email}
     </select>
 
     <select id="findByCompanyId" resultMap="AdminResultMap">
         SELECT admin_id, company_id, name, email, password, phone_number, address, role, created_at, email_verified
-        FROM admins
+        FROM admin
         WHERE company_id = #{companyId}
     </select>
 
-    <select id="isEmailExists" resultType="boolean">
-        SELECT COUNT(*) > 0
-        FROM admins
+    <select id="isEmailExists" resultType="int">
+        SELECT COUNT(*)
+        FROM admin
         WHERE email = #{email}
     </select>
 
-    <select id="isPhoneNumberExists" resultType="boolean">
-        SELECT COUNT(*) > 0
-        FROM admins
+    <select id="isPhoneNumberExists" resultType="int">
+        SELECT COUNT(*)
+        FROM admin
         WHERE REPLACE(phone_number, '-', '') = REPLACE(#{phoneNumber}, '-', '')
     </select>
 
     <update id="updateEmailVerificationStatus">
-        UPDATE admins
+        UPDATE admin
         SET email_verified = #{verified}
         WHERE email = #{email}
     </update>
 
     <update id="updatePassword">
-        UPDATE admins
+        UPDATE admin
         SET password = #{password}
         WHERE admin_id = #{adminId}
     </update>
