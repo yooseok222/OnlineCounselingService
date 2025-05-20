@@ -31,19 +31,19 @@ public interface ClientMapper {
     /**
      * 전화번호 중복 확인
      */
-    boolean isPhoneNumberExists(String phoneNumber);
+    int isPhoneNumberExists(String phoneNumber);
 
     /**
      * 주민등록번호 중복 확인
      */
-    boolean isSsnExists(String ssn);
+    int isSsnExists(String ssn);
 
     /**
      * 이메일 중복 확인
      * @param email 이메일
      * @return 존재 여부
      */
-    boolean isEmailExists(String email);
+    int isEmailExists(String email);
 
     /**
      * 이메일 인증 상태 업데이트

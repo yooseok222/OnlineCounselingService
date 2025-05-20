@@ -28,24 +28,24 @@
 
     <select id="selectAllAgents" resultMap="AgentResultMap">
         SELECT agent_id, company_id, name, phone_number, state, email, address, role, created_at, profile_image_url, email_verified
-        FROM agents
+        FROM agent
     </select>
 
     <select id="selectAgentById" resultMap="AgentResultMap">
         SELECT agent_id, company_id, name, phone_number, state, email, address, role, created_at, profile_image_url, email_verified
-        FROM agents
+        FROM agent
         WHERE agent_id = #{id}
     </select>
     
     <select id="findByEmail" resultMap="AgentResultMap">
         SELECT agent_id, company_id, name, email, password, phone_number, address, role, state, created_at, profile_image_url, email_verified
-        FROM agents
+        FROM agent
         WHERE email = #{email}
     </select>
 
     <select id="selectAgentByCondition" resultMap="AgentResultMap">
         SELECT agent_id, company_id, name, phone_number, state, email, address, role, created_at, profile_image_url, email_verified
-        FROM agents
+        FROM agent
         <where>
             <if test="name != null and name != ''">
                 AND name = #{name}
@@ -60,47 +60,50 @@
     </select>
     
     <insert id="save" parameterType="kr.or.kosa.visang.domain.agent.model.Agent">
-        INSERT INTO agents (company_id, name, email, password, phone_number, address, role, state, created_at, profile_image_url, email_verified)
-        VALUES (#{companyId}, #{name}, #{email}, #{password}, #{phoneNumber}, #{address}, #{role}, #{state}, #{createdAt}, #{profileImageUrl}, #{emailVerified})
+        <selectKey keyProperty="agentId" resultType="long" order="BEFORE">
+            SELECT agent_seq.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO agent (agent_id, company_id, name, email, password, phone_number, address, role, state, created_at, profile_image_url, email_verified)
+        VALUES (#{agentId}, #{companyId}, #{name}, #{email}, #{password}, #{phoneNumber}, #{address, jdbcType=VARCHAR}, #{role}, #{state}, #{createdAt}, #{profileImageUrl, jdbcType=VARCHAR}, #{emailVerified})
     </insert>
 
     <update id="updateAgent" parameterType="kr.or.kosa.visang.domain.agent.model.UpdateAgentDto">
-        UPDATE agents
+        UPDATE agent
         SET name = #{name},
             email = #{email},
             phone_number = #{phoneNumber},
-            address = #{address},
+            address = #{address, jdbcType=VARCHAR},
             state = #{state},
-            profile_image_url = #{profileImageUrl}
+            profile_image_url = #{profileImageUrl, jdbcType=VARCHAR}
         WHERE agent_id = #{agentId}
     </update>
 
     <update id="updateAgentStatus">
-        UPDATE agents
+        UPDATE agent
         SET state = #{state}
         WHERE agent_id = #{id}
     </update>
 
     <update id="updateAgentPassword">
-        UPDATE agents
+        UPDATE agent
         SET password = #{password}
         WHERE agent_id = #{agentId}
     </update>
     
-    <select id="isEmailExists" resultType="boolean">
-        SELECT COUNT(*) > 0
-        FROM agents
+    <select id="isEmailExists" resultType="int">
+        SELECT COUNT(*)
+        FROM agent
         WHERE email = #{email}
     </select>
     
-    <select id="isPhoneNumberExists" resultType="boolean">
-        SELECT COUNT(*) > 0
-        FROM agents
+    <select id="isPhoneNumberExists" resultType="int">
+        SELECT COUNT(*)
+        FROM agent
         WHERE REPLACE(phone_number, '-', '') = REPLACE(#{phoneNumber}, '-', '')
     </select>
     
     <update id="updateEmailVerificationStatus">
-        UPDATE agents
+        UPDATE agent
         SET email_verified = #{verified}
         WHERE email = #{email}
     </update>
