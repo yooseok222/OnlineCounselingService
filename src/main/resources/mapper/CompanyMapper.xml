@@ -8,26 +8,29 @@
         <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
     </resultMap>
 
-    <insert id="save" parameterType="kr.or.kosa.visang.domain.company.model.Company" useGeneratedKeys="true" keyProperty="companyId">
-        INSERT INTO companies (company_name, created_at)
-        VALUES (#{companyName}, #{createdAt})
+    <insert id="save" parameterType="kr.or.kosa.visang.domain.company.model.Company">
+        <selectKey keyProperty="companyId" resultType="long" order="BEFORE">
+            SELECT company_seq.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO company (company_id, company_name, created_at)
+        VALUES (#{companyId}, #{companyName}, #{createdAt})
     </insert>
     
     <select id="findById" resultMap="CompanyResultMap">
         SELECT company_id, company_name, created_at
-        FROM companies
+        FROM company
         WHERE company_id = #{companyId}
     </select>
     
     <select id="findByName" resultMap="CompanyResultMap">
         SELECT company_id, company_name, created_at
-        FROM companies
+        FROM company
         WHERE company_name = #{companyName}
     </select>
     
-    <select id="isCompanyNameExists" resultType="boolean">
-        SELECT COUNT(*) > 0
-        FROM companies
+    <select id="isCompanyNameExists" resultType="int">
+        SELECT COUNT(*)
+        FROM company
         WHERE company_name = #{companyName}
     </select>
 </mapper> 

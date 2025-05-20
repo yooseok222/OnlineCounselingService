@@ -236,71 +236,35 @@ public class UserServiceImpl implements UserService {
         email = email.trim().toLowerCase();
 
         log.info("이메일 중복 체크 시작 - 이메일: {}", email);
-        
         // 각 테이블에서 이메일 중복 체크
-        boolean clientExists = clientMapper.isEmailExists(email);
-        boolean adminExists = adminMapper.isEmailExists(email);
-        boolean agentExists = agentMapper.isEmailExists(email);
-        
-        log.info("이메일 중복 체크 결과 - Client: {}, Admin: {}, Agent: {}", 
-                 clientExists, adminExists, agentExists);
-        
-        // 어느 하나라도 중복이면 true 반환
+        boolean clientExists = clientMapper.isEmailExists(email) > 0;
+        boolean adminExists = adminMapper.isEmailExists(email) > 0;
+        boolean agentExists = agentMapper.isEmailExists(email) > 0;
+        log.info("이메일 중복 체크 결과 - Client: {}, Admin: {}, Agent: {}", clientExists, adminExists, agentExists);
         boolean isDuplicated = clientExists || adminExists || agentExists;
         log.info("이메일 중복 체크 최종 결과 - 이메일: {}, 중복 여부: {}", email, isDuplicated);
-        
         return isDuplicated;
     }
 
     @Override
     public boolean isPhoneNumberDuplicated(String phoneNumber) {
-        log.info("전화번호 중복 체크 시작 - 전화번호: {}", phoneNumber);
-        
-        // 전화번호가 null이거나 빈 문자열이면 중복 아님
         if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
-            log.info("전화번호 중복 체크 중단 - 빈 값이므로 false 반환");
             return false;
         }
-        
-        // 형식 정규화 - 하이픈 제거
-        String normalizedPhoneNumber = phoneNumber.replaceAll("-", "");
-        log.info("전화번호 정규화 - 원본: {}, 정규화: {}", phoneNumber, normalizedPhoneNumber);
-        
-        // 각 테이블에서 전화번호 중복 체크
-        boolean clientExists = clientMapper.isPhoneNumberExists(normalizedPhoneNumber);
-        boolean adminExists = adminMapper.isPhoneNumberExists(normalizedPhoneNumber);
-        boolean agentExists = agentMapper.isPhoneNumberExists(normalizedPhoneNumber);
-        
-        log.info("전화번호 중복 체크 결과 - Client: {}, Admin: {}, Agent: {}", 
-                 clientExists, adminExists, agentExists);
-        
-        // 어느 하나라도 중복이면 true 반환
-        boolean isDuplicated = clientExists || adminExists || agentExists;
-        log.info("전화번호 중복 체크 최종 결과 - 전화번호: {}, 정규화: {}, 중복 여부: {}", 
-                phoneNumber, normalizedPhoneNumber, isDuplicated);
-        
-        return isDuplicated;
+        phoneNumber = phoneNumber.trim();
+        boolean clientExists = clientMapper.isPhoneNumberExists(phoneNumber) > 0;
+        boolean adminExists = adminMapper.isPhoneNumberExists(phoneNumber) > 0;
+        boolean agentExists = agentMapper.isPhoneNumberExists(phoneNumber) > 0;
+        return clientExists || adminExists || agentExists;
     }
 
     @Override
     public boolean isSsnDuplicated(String ssn) {
-        log.info("주민번호 중복 체크 시작 - 주민번호: {}", ssn);
-        
-        // 주민번호가 null이거나 빈 문자열이면 중복 아님
         if (ssn == null || ssn.trim().isEmpty()) {
-            log.info("주민번호 중복 체크 중단 - 빈 값이므로 false 반환");
             return false;
         }
-        
-        // 형식 정규화 - 하이픈 제거
-        String normalizedSsn = ssn.replaceAll("-", "");
-        log.info("주민번호 정규화 - 원본: {}, 정규화: {}", ssn, normalizedSsn);
-        
-        // 주민번호 중복 체크 (Client 테이블에만 존재)
-        boolean exists = clientMapper.isSsnExists(normalizedSsn);
-        log.info("주민번호 중복 체크 결과 - 주민번호: {}, 중복 여부: {}", normalizedSsn, exists);
-        
-        return exists;
+        ssn = ssn.trim();
+        return clientMapper.isSsnExists(ssn) > 0;
     }
 
     @Override

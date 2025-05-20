@@ -74,12 +74,12 @@ public interface AgentMapper {
      * @param email 이메일
      * @return 존재 여부
      */
-    boolean isEmailExists(String email);
+    int isEmailExists(String email);
     
     /**
      * 전화번호 중복 확인
      */
-    boolean isPhoneNumberExists(String phoneNumber);
+    int isPhoneNumberExists(String phoneNumber);
     
     /**
      * 이메일 인증 상태 업데이트

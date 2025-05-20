@@ -33,5 +33,5 @@ public interface CompanyMapper {
      * @param companyName 회사명
      * @return 존재 여부
      */
-    boolean isCompanyNameExists(String companyName);
+    int isCompanyNameExists(String companyName);
 } 
