@@ -92,7 +92,6 @@
                 formData.append("pdf", form.pdf.files[0]); // 새 파일만 전송
             }
             formData.append("filePath", form.filePath.value || '');
-            formData.append("companyId", 1); // TODO: 실제 회사 ID로 변경
 
             const url = id ? `/admin/template/${id}` : "/admin/template";
             const method = id ? "PUT" : "POST";

@@ -1,10 +1,12 @@
 package kr.or.kosa.visang.domain.admin.controller;
 
+import kr.or.kosa.visang.common.config.security.CustomUserDetails;
 import kr.or.kosa.visang.domain.contractTemplate.model.ContractTemplate;
 import kr.or.kosa.visang.domain.contractTemplate.service.ContractTemplateService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -24,13 +26,10 @@ public class AdminContractTemplateController {
         return contractTemplate;
     }
 
-    @GetMapping("/template-list/{id}")
-    //public String templateList(@AuthenticationPrincipal CustomUserDetails admin,Model model) {
-    public String templateList(Model model, @PathVariable("id") Long id) {
-        //Long companyId = admin.getCompanyId(); // 로그인한 사용자의 회사 ID
-
-        System.out.println("companyId = " + id);
-        model.addAttribute("templateList", contractTemplateService.getAllTemplates(id));
+    @GetMapping("/template-list")
+    public String templateList(@AuthenticationPrincipal CustomUserDetails admin, Model model) {
+        Long companyId = admin.getCompanyId(); // 로그인한 사용자의 회사 ID
+        model.addAttribute("templateList", contractTemplateService.getAllTemplates(companyId));
 
         // 공통 레이아웃으로 전체 페이지 렌더링
         model.addAttribute("contentFragment", "contractTemplateManagement");
@@ -40,7 +39,11 @@ public class AdminContractTemplateController {
     }
 
     @PostMapping("/template")
-    public ResponseEntity<String> createTemplate(ContractTemplate contractTemplate) {
+    public ResponseEntity<String> createTemplate(@AuthenticationPrincipal CustomUserDetails admin,
+                                                 ContractTemplate contractTemplate) {
+        Long companyId = admin.getCompanyId(); // 로그인한 사용자의 회사 ID
+        contractTemplate.setCompanyId(companyId);
+
         // 계약서 템플릿 생성 로직
         contractTemplateService.createTemplate(contractTemplate);
         return new ResponseEntity<String>("success", HttpStatus.CREATED);
