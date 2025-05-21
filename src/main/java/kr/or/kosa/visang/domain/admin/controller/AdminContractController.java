@@ -29,8 +29,8 @@ public class AdminContractController {
             model.addAttribute("pageTitle", contractStatus.name().replace("_", " "));
 
             // 공통 레이아웃으로 전체 페이지 렌더링
-            model.addAttribute("contentFragment", "admin/contractManagement :: content");
-            model.addAttribute("scriptFragment", "admin/contractManagement :: script");
+            model.addAttribute("contentFragment", "contractManagement");
+            model.addAttribute("scriptFragment", "contractManagement");
             return "admin/adminLayout";
         } catch (IllegalArgumentException e) {
             // 잘못된 status가 들어왔을 때

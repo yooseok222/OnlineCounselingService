@@ -17,8 +17,7 @@
 				<li class="nav-item">
 					<a
 					class="nav-link d-flex justify-content-between align-items-center"
-					data-bs-toggle="collapse" href="#" role="button"
-					aria-expanded="false" aria-controls="contractMenu">
+					th:href="@{/admin/dashboard}" role="button">
 					<span>
 						<i class="bi bi-house-door-fill me-2"></i>
 						<span th:text="#{sidebar.dashboard}">대시보드</span>
@@ -67,7 +66,7 @@
 						   th:text="#{sidebar.contract.pending}">미완료 계약</a>
 						<a class="nav-link sub-nav" th:href="@{/admin/contract-list/completed}"
 						   th:text="#{sidebar.contract.completed}">완료된 계약</a>
-						<a class="nav-link sub-nav" th:href="@{/admin/contract-list/cancled}"
+						<a class="nav-link sub-nav" th:href="@{/admin/contract-list/canceled}"
 						   th:text="#{sidebar.contract.canceled}">취소된 계약</a>
 					</div>
 				</li>

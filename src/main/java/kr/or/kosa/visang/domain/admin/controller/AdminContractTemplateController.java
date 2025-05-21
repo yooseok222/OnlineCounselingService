@@ -29,11 +29,12 @@ public class AdminContractTemplateController {
     public String templateList(Model model, @PathVariable("id") Long id) {
         //Long companyId = admin.getCompanyId(); // 로그인한 사용자의 회사 ID
 
+        System.out.println("companyId = " + id);
         model.addAttribute("templateList", contractTemplateService.getAllTemplates(id));
 
         // 공통 레이아웃으로 전체 페이지 렌더링
-        model.addAttribute("contentFragment", "admin/adminContractTemplate :: content");
-        model.addAttribute("scriptFragment", "admin/adminContractTemplate :: script");
+        model.addAttribute("contentFragment", "contractTemplateManagement");
+        model.addAttribute("scriptFragment", "contractTemplateManagement");
         return "admin/adminLayout";
 
     }
