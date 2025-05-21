@@ -33,67 +33,68 @@ public class PdfUploadController {
     public ResponseEntity<?> handleFileUpload(@RequestParam("file") MultipartFile file, 
                                              @RequestParam(value = "contractId", required = false) Long contractId) {
         String fileName = StringUtils.cleanPath(file.getOriginalFilename());
+        System.out.println("PDF 업로드 요청: 파일명=" + fileName + ", 크기=" + file.getSize() + " bytes");
 
         try {
-            // 계약 ID가 있으면 DB에 저장
-            if (contractId != null) {
-                PdfDTO pdfDTO = pdfService.uploadPdf(file, contractId);
-                // 캐시를 방지하기 위해 타임스탬프 추가
-                String fileUrl = "/pdf/" + pdfDTO.getFilePath() + "?t=" + System.currentTimeMillis();
-                return ResponseEntity.ok()
-                        // 캐시 방지 헤더 추가
-                        .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
-                        .header(HttpHeaders.PRAGMA, "no-cache")
-                        .header(HttpHeaders.EXPIRES, "0")
-                        .body(fileUrl);
-            } else {
-                // 메모리에 저장 (임시 업로드)
-                String fileId = "pdf_" + UUID.randomUUID().toString();
-                byte[] fileBytes = file.getBytes();
-                inMemoryPdfStorage.put(fileId, fileBytes);
-                
-                // 캐시를 방지하기 위해 타임스탬프 추가
-                String fileUrl = "/pdf/" + fileId + "?t=" + System.currentTimeMillis();
-                return ResponseEntity.ok()
-                        // 캐시 방지 헤더 추가
-                        .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
-                        .header(HttpHeaders.PRAGMA, "no-cache")
-                        .header(HttpHeaders.EXPIRES, "0")
-                        .body(fileUrl);
+            // PDF DTO 생성
+            PdfDTO pdfDTO;
+            
+            // 계약 ID가 있으면 DB에 저장, 없으면 임시 ID 생성
+            if (contractId == null) {
+                // 임시 계약 ID 사용 (테스트용)
+                contractId = -1L;
+                System.out.println("임시 계약 ID 사용: " + contractId);
             }
+            
+            // 항상 동일한 서비스 메서드 사용
+            pdfDTO = pdfService.uploadPdf(file, contractId);
+            
+            // 응답 URL에 타임스탬프 추가
+            String timestamp = String.valueOf(System.currentTimeMillis());
+            String fileUrl = "/files/pdf/" + pdfDTO.getFilePath() + "?t=" + timestamp + "&nocache=" + Math.random();
+            
+            System.out.println("PDF 업로드 성공: URL=" + fileUrl);
+            
+            return ResponseEntity.ok()
+                    // 캐시 방지 헤더 추가 (더 엄격한 설정)
+                    .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate, max-age=0")
+                    .header(HttpHeaders.PRAGMA, "no-cache")
+                    .header(HttpHeaders.EXPIRES, "0")
+                    .header("X-Accel-Expires", "0")  // nginx 캐시 방지
+                    .header("X-Frame-Options", "SAMEORIGIN")
+                    .header("X-Content-Type-Options", "nosniff")
+                    .header("ETag", "\"" + System.nanoTime() + "\"")  // 고유한 ETag 생성
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(fileUrl);
+            
         } catch (IOException e) {
+            System.err.println("PDF 업로드 실패: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest().body("업로드 실패: " + e.getMessage());
         }
     }
 
-    @GetMapping("/pdf/{fileId}")
+    @GetMapping("/files/pdf/{fileId}")
     @ResponseBody
     public ResponseEntity<Resource> servePdf(@PathVariable String fileId) {
+        System.out.println("PDF 파일 요청: " + fileId);
+        
         // 쿼리 파라미터 제거(타임스탬프 제거)
         if (fileId.contains("?")) {
             fileId = fileId.substring(0, fileId.indexOf("?"));
         }
         
-        // DB에 저장된 파일인지 확인 (fileId가 UUID 형식이 아닌 경우)
-        if (!fileId.startsWith("pdf_")) {
-            return pdfService.getPdfResource(fileId);
+        // 모든 PDF 요청을 서비스로 처리
+        ResponseEntity<Resource> response = pdfService.getPdfResource(fileId);
+        
+        // 응답 로깅
+        if (response.getStatusCode().is2xxSuccessful()) {
+            System.out.println("PDF 파일 응답 성공: " + fileId);
+        } else {
+            System.err.println("PDF 파일 찾을 수 없음: " + fileId);
         }
         
-        // 메모리에서 PDF 데이터 조회
-        byte[] pdfData = inMemoryPdfStorage.get(fileId);
-        if (pdfData == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        ByteArrayResource resource = new ByteArrayResource(pdfData);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline;filename=" + fileId)
-                .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
-                .header(HttpHeaders.PRAGMA, "no-cache")
-                .header(HttpHeaders.EXPIRES, "0")
-                .contentType(MediaType.APPLICATION_PDF)
-                .contentLength(pdfData.length)
-                .body(resource);
+        return response;
     }
     
     @GetMapping("/api/pdfs/contract/{contractId}")
@@ -119,5 +120,13 @@ public class PdfUploadController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("PDF 삭제 실패: " + e.getMessage());
         }
+    }
+
+    // 이전 URL 경로도 지원 (하위 호환성)
+    @GetMapping("/pdf/{fileId}")
+    @ResponseBody
+    public ResponseEntity<Resource> servePdfLegacy(@PathVariable String fileId) {
+        System.out.println("이전 경로로 PDF 파일 요청 (리다이렉트): " + fileId);
+        return servePdf(fileId);
     }
 }

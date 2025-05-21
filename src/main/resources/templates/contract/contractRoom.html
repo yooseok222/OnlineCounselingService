@@ -11,303 +11,456 @@
   <!-- CSRF 토큰을 위한 메타 태그 추가 -->
   <meta name="_csrf" th:content="${_csrf.token}"/>
   <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
-<style>
-  body {
-    font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f8f9fa;
-    color: #333;
-  }
-  
-  .header {
-    background-color: #0064E1;
-    color: white;
-    padding: 15px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  }
-  
-  .header h3 {
-    margin: 0;
-    font-size: 22px;
-    font-weight: 600;
-  }
-  
-  .container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
-  }
-  
-  .toolbar {
-    background-color: white;
-    border-radius: 8px;
-    padding: 10px 15px;
-    margin-bottom: 15px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-  }
-  
-  .toolbar-group {
-    display: flex;
-    gap: 5px;
-    align-items: center;
-    border-right: 1px solid #eee;
-    padding-right: 10px;
-    margin-right: 5px;
-  }
-  
-  .toolbar-group:last-child {
-    border-right: none;
-  }
-  
-  .tool-btn {
-    background-color: #f8f9fa;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 8px 12px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  
-  .tool-btn:hover {
-    background-color: #e9ecef;
-    border-color: #ced4da;
-  }
-  
-  .tool-btn.active {
-    background-color: #0064E1;
-    color: white;
-    border-color: #0064E1;
-  }
-  
-  .tool-btn i {
-    font-size: 16px;
-  }
-  
-  .file-upload {
-    position: relative;
-    overflow: hidden;
-    display: inline-block;
-  }
-  
-  .file-upload input[type=file] {
-    position: absolute;
-    top: 0;
-    right: 0;
-    min-width: 100%;
-    min-height: 100%;
-    font-size: 100px;
-    text-align: right;
-    filter: alpha(opacity=0);
-    opacity: 0;
-    outline: none;
-    cursor: pointer;
-    display: block;
-  }
-  
-  .status-area {
-    background-color: #e3f0fd;
-    border-radius: 8px;
-    padding: 10px 15px;
-    margin-bottom: 15px;
-    font-weight: 500;
-    color: #0064E1;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  
-  #scrollWrapper {
-    background-color: white;
-    border-radius: 8px;
-    padding: 15px;
-    position: relative;
-    height: 700px;
-    overflow-y: scroll;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-  }
-  
-  #pdfCanvas {
-    border: none;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  }
-  
-  #drawingCanvas {
-    border: none;
-    position: absolute;
-    top: 15px;
-    left: 15px;
-  }
-  
-  #textPopup {
-    display: none;
-    position: fixed;
-    top: 30%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    z-index: 1000;
-    width: 300px;
-  }
-  
-  #textPopup input {
-    width: 100%;
-    padding: 8px;
-    margin: 10px 0;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-  }
-  
-  #textPopup button {
-    padding: 8px 15px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-right: 5px;
-  }
-  
-  #textPopup button:first-of-type {
-    background-color: #0064E1;
-    color: white;
-  }
-  
-  #textPopup button:last-of-type {
-    background-color: #f1f3f5;
-    color: #495057;
-  }
-  
-  #completeModal {
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 25px;
-    border-radius: 10px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    z-index: 10000;
-    width: 400px;
-    text-align: center;
-    border: 3px solid #0064E1;
-  }
-  
-  #completeModal h3 {
-    margin-top: 0;
-    color: #0064E1;
-  }
-  
-  #completeModal button {
-    background-color: #0064E1;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 4px;
-    font-size: 16px;
-    cursor: pointer;
-    margin-top: 15px;
-    transition: background-color 0.2s;
-  }
-  
-  #completeModal button:hover {
-    background-color: #0053b3;
-  }
-  
-  /* 토스트 메시지 스타일 */
-  #toastContainer {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 9999;
-  }
-  
-  .toast {
-    background-color: #0064E1;
-    color: white;
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    min-width: 300px;
-    max-width: 400px;
-    opacity: 0;
-    transform: translateX(100%);
-    transition: all 0.3s ease-in-out;
-  }
-  
-  .toast.show {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  
-  .toast-icon {
-    font-size: 24px;
-    margin-right: 10px;
-  }
-  
-  .toast-content {
-    flex-grow: 1;
-  }
-  
-  .toast-title {
-    font-weight: bold;
-    margin-bottom: 5px;
-  }
-  
-  .toast-message {
-    font-size: 14px;
-  }
-  
-  .toast-close {
-    cursor: pointer;
-    font-size: 18px;
-    margin-left: 10px;
-  }
-  
-  .end-consult-btn {
-    background-color: #0064E1;
-    color: white;
-  }
-  
-  .end-consult-btn:hover {
-    background-color: #0053b3;
-    border-color: #0053b3;
-  }
-  
-  @media (max-width: 768px) {
+  <style>
+    body {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f8f9fa;
+      color: #333;
+    }
+
+    .header {
+      background-color: #0064E1;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .header h3 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    .container {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
     .toolbar {
-      flex-direction: column;
+      background-color: white;
+      border-radius: 8px;
+      padding: 10px 15px;
+      margin-bottom: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
-    
+
     .toolbar-group {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      border-right: 1px solid #eee;
+      padding-right: 10px;
+      margin-right: 5px;
+    }
+
+    .toolbar-group:last-child {
       border-right: none;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 10px;
-      margin-bottom: 10px;
     }
-    
+
+    .tool-btn {
+      background-color: #f8f9fa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .tool-btn:hover {
+      background-color: #e9ecef;
+      border-color: #ced4da;
+    }
+
+    .tool-btn.active {
+      background-color: #0064E1;
+      color: white;
+      border-color: #0064E1;
+    }
+
+    .tool-btn i {
+      font-size: 16px;
+    }
+
+    .file-upload {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+    }
+
+    .file-upload input[type=file] {
+      position: absolute;
+      top: 0;
+      right: 0;
+      min-width: 100%;
+      min-height: 100%;
+      font-size: 100px;
+      text-align: right;
+      filter: alpha(opacity=0);
+      opacity: 0;
+      outline: none;
+      cursor: pointer;
+      display: block;
+    }
+
+    .status-area {
+      background-color: #e3f0fd;
+      border-radius: 8px;
+      padding: 10px 15px;
+      margin-bottom: 15px;
+      font-weight: 500;
+      color: #0064E1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 메인 콘텐츠 영역 */
+    .content-wrapper {
+      display: flex;
+      flex-direction: column; /* 전체 레이아웃을 세로로 변경 */
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    /* PDF 영역 - 항상 보이도록 수정 */
     #scrollWrapper {
-      height: 500px;
+      background-color: white;
+      border-radius: 8px;
+      padding: 15px;
+      position: relative;
+      height: 500px; /* 높이 조정 */
+      overflow-y: scroll;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      width: 100%; /* 너비 100%로 설정 */
     }
-  }
-</style>
-  </head>
+
+    /* 비디오 영역 - 가로로 배치 */
+    .video-container {
+      display: flex;
+      flex-direction: row;
+      gap: 15px;
+      width: 100%;
+    }
+
+    .video-wrapper {
+      background-color: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      position: relative;
+      flex: 1;
+    }
+
+    .video-wrapper h4 {
+      background-color: #0064E1;
+      color: white;
+      margin: 0;
+      padding: 8px 12px;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .video-wrapper video {
+      width: 100%;
+      height: 200px; /* 높이 조정 */
+      background-color: #222;
+      object-fit: cover;
+      display: block;
+      border: 2px solid #0064E1;
+      border-radius: 8px;
+      transition: border-color 0.3s;
+    }
+
+    .video-wrapper:hover video {
+      border-color: #ff4500;
+    }
+
+    .video-status {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      z-index: 10;
+      font-weight: bold;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    /* 녹음 컨트롤 */
+    .record-controls-container {
+      margin-top: 10px;
+    }
+
+    .record-controls {
+      display: flex;
+      gap: 10px;
+    }
+
+    .record-controls button {
+      flex: 1;
+      background-color: #0064E1;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .record-controls button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    #pdfCanvas {
+      border: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    #drawingCanvas {
+      border: none;
+      position: absolute;
+      top: 15px;
+      left: 15px;
+    }
+
+    #textPopup {
+      display: none;
+      position: fixed;
+      top: 30%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      z-index: 1000;
+      width: 300px;
+    }
+
+    #textPopup input {
+      width: 100%;
+      padding: 8px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    #textPopup button {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 5px;
+    }
+
+    #textPopup button:first-of-type {
+      background-color: #0064E1;
+      color: white;
+    }
+
+    #textPopup button:last-of-type {
+      background-color: #f1f3f5;
+      color: #495057;
+    }
+
+    #completeModal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      z-index: 10000;
+      width: 400px;
+      text-align: center;
+      border: 3px solid #0064E1;
+    }
+
+    #completeModal h3 {
+      margin-top: 0;
+      color: #0064E1;
+    }
+
+    #completeModal button {
+      background-color: #0064E1;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 15px;
+      transition: background-color 0.2s;
+    }
+
+    #completeModal button:hover {
+      background-color: #0053b3;
+    }
+
+    /* 토스트 메시지 스타일 */
+    #toastContainer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+    }
+
+    .toast {
+      background-color: #0064E1;
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-width: 300px;
+      max-width: 400px;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease-in-out;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .toast-icon {
+      font-size: 24px;
+      margin-right: 10px;
+    }
+
+    .toast-content {
+      flex-grow: 1;
+    }
+
+    .toast-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .toast-message {
+      font-size: 14px;
+    }
+
+    .toast-close {
+      cursor: pointer;
+      font-size: 18px;
+      margin-left: 10px;
+    }
+
+    .end-consult-btn {
+      background-color: #0064E1;
+      color: white;
+    }
+
+    .end-consult-btn:hover {
+      background-color: #0053b3;
+      border-color: #0053b3;
+    }
+
+    @media (max-width: 768px) {
+      .toolbar {
+        flex-direction: column;
+      }
+
+      .toolbar-group {
+        border-right: none;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+      }
+
+      #scrollWrapper {
+        height: 400px;
+      }
+
+      .video-container {
+        flex-direction: column;
+      }
+
+      .video-wrapper {
+        flex: 1;
+      }
+
+      .video-wrapper video {
+        height: 150px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      /* 모바일에서 비디오 영역 세로 배치로 변경 */
+      .video-container {
+        flex-direction: column !important;
+        padding: 10px;
+        gap: 10px;
+      }
+
+      .video-wrapper {
+        width: 100%;
+        margin-bottom: 10px;
+      }
+
+      .video-wrapper video {
+        height: 180px;
+      }
+    }
+
+    /* 비디오 요소 스타일 개선 */
+    #localVideo, #remoteVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background-color: #1a1a1a; /* 비디오 로딩 중일 때 배경색 */
+      display: block !important; /* 항상 표시되도록 설정 */
+      border-radius: 8px;
+      z-index: 1;
+    }
+
+    #localVideoContainer, #remoteVideoContainer {
+      position: relative;
+      overflow: hidden;
+      margin: 5px;
+      border-radius: 8px;
+      background-color: #1a1a1a;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      min-height: 200px; /* 최소 높이 보장 */
+    }
+
+    .video-status {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background-color: rgba(0,0,0,0.7);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      z-index: 2; /* 비디오 위에 표시 */
+    }
+  </style>
+</head>
 <body>
 <div class="header">
   <h3><i class="fas fa-file-pdf"></i> PDF 상담방</h3>
@@ -324,12 +477,12 @@
         <input type="file" id="pdfUpload" accept=".pdf" />
       </div>
     </div>
-    
+
     <div class="toolbar-group">
       <button class="tool-btn" onclick="prevPage()"><i class="fas fa-arrow-left"></i> 이전</button>
       <button class="tool-btn" onclick="nextPage()"><i class="fas fa-arrow-right"></i> 다음</button>
     </div>
-    
+
     <div class="toolbar-group">
       <button class="tool-btn" id="highlighterBtn" onclick="setHighlighter()"><i class="fas fa-highlighter"></i> 형광펜</button>
       <button class="tool-btn" id="penBtn" onclick="setPen()"><i class="fas fa-pen"></i> 펜</button>
@@ -337,7 +490,7 @@
       <button class="tool-btn" id="textBtn" onclick="openTextPopup()"><i class="fas fa-font"></i> 텍스트</button>
       <button class="tool-btn" id="stampBtn" onclick="setStampMode()" style="display: none;"><i class="fas fa-stamp"></i> 도장</button>
     </div>
-    
+
     <div class="toolbar-group">
       <button class="tool-btn end-consult-btn" onclick="endConsult()"><i class="fas fa-sign-out-alt"></i> 상담 종료</button>
     </div>
@@ -359,10 +512,31 @@
     <button onclick="goToHomePage()" style="margin-top: 20px; font-size: 16px; padding: 10px 20px;"><i class="fas fa-home"></i> 초기 화면으로 이동</button>
   </div>
 
-  <div id="scrollWrapper">
-    <canvas id="pdfCanvas"></canvas>
-    <canvas id="drawingCanvas"></canvas>
+  <!-- 콘텐츠 영역 -->  <div class="content-wrapper">    <!-- PDF 영역 -->    <div id="scrollWrapper">      <canvas id="pdfCanvas"></canvas>      <canvas id="drawingCanvas"></canvas>    </div>        <!-- 비디오 영역 -->
+  <div class="video-container">
+    <!-- 자신 비디오 -->
+    <div class="video-wrapper" id="localVideoContainer">
+      <h4 id="localVideoTitle"><i class="fas fa-user-alt"></i> <span id="localUserRole">내 화면</span></h4>
+      <video id="localVideo" autoplay playsinline muted></video>
+      <div class="video-status" id="localVideoStatus">연결 중...</div>
+    </div>
+
+    <!-- 상대방 비디오 -->
+    <div class="video-wrapper" id="remoteVideoContainer">
+      <h4 id="remoteVideoTitle"><i class="fas fa-user"></i> <span id="remoteUserRole">상대방</span></h4>
+      <video id="remoteVideo" autoplay playsinline></video>
+      <div class="video-status" id="remoteVideoStatus">연결 중...</div>
+    </div>
   </div>
+
+  <!-- 녹음 컨트롤 컨테이너 -->
+  <div class="record-controls-container">
+    <div class="record-controls">
+      <button id="startRec"><i class="fas fa-microphone"></i> 녹음 시작</button>
+      <button id="stopRec" disabled><i class="fas fa-stop"></i> 녹음 중지</button>
+    </div>
+  </div>
+</div>
 
   <div id="textPopup">
     <h4><i class="fas fa-font"></i> 텍스트 삽입</h4>
@@ -376,706 +550,860 @@
 </div>
 
 <script>
-let drawingDataPerPage = {};
-let stampDataPerPage = {};
-let textDataPerPage = {};
-let signatureDataPerPage = {};
+  let drawingDataPerPage = {};
+  let stampDataPerPage = {};
+  let textDataPerPage = {};
+  let signatureDataPerPage = {};
 
-let pdfDoc = null;
-let currentPage = 1;
-let renderTask = null;
-let stompClient = null;
-let mode = null; // 'pen' | 'highlight' | null
-let drawing = false;
-let pendingText = null;
-let uploadedPdfUrl = null;
-let userRole = null; // 'agent' | 'client'
-let sessionId = null; // 상담 세션 ID 추가
+  let pdfDoc = null;
+  let currentPage = 1;
+  let renderTask = null;
+  let stompClient = null;
+  let mode = null; // 'pen' | 'highlight' | null
+  let drawing = false;
+  let pendingText = null;
+  let uploadedPdfUrl = null;
+  let userRole = null; // 'agent' | 'client'
+  let sessionId = null; // 상담 세션 ID 추가
 
-// 페이지 로드 시 사용자 역할 확인 및 UI 초기화
-window.onload = function() {
-  console.log("윈도우 로드됨 - 초기화 시작");
-  
-  // 새로고침 방지 이벤트 리스너 추가 - 최상위 우선순위로 설정
-  const preventRefreshHandler = function(e) {
-    // 브라우저마다 표시되는 메시지가 다를 수 있음
-    var confirmationMessage = '상담이 진행 중입니다. 페이지를 떠나면 상담이 종료됩니다. 정말 나가시겠습니까?';
-    
-    e.preventDefault(); // 기본 동작 방지 (일부 브라우저에서 효과)
-    e.returnValue = confirmationMessage;  // 표준
-    return confirmationMessage;           // 일부 브라우저용
-  };
-  
-  // 이벤트 리스너 등록 (캡처 단계에서 실행)
-  window.addEventListener('beforeunload', preventRefreshHandler, true);
-  
-  // 글로벌 초기화 플래그 설정 (최초 1회만 실행되는 로직 제어용)
-  window.isInitialLoad = true;
-  window.dataLoaded = false;
-  
-  // URL에서 역할 파라미터 확인
-  const urlParams = new URLSearchParams(window.location.search);
-  const roleParam = urlParams.get('role');
-  const sessionParam = urlParams.get('session'); // 세션 ID 파라미터 확인
-  
-  // URL 파라미터에 역할이 있으면 세션 스토리지에 저장
-  if (roleParam) {
-    sessionStorage.setItem("role", roleParam);
-  }
-  
-  // 세션 스토리지에서 역할 정보 가져오기
-  userRole = sessionStorage.getItem("role");
-  console.log("사용자 역할:", userRole);
-  
-  // 사용자 역할 표시
-  const userRoleDisplay = document.getElementById('userRoleDisplay');
-  if (userRoleDisplay) {
-    const roleName = userRole === 'agent' ? '상담원' : '고객';
-  const roleIcon = userRole === 'agent' ? '<i class="fas fa-headset"></i>' : '<i class="fas fa-user"></i>';
-    userRoleDisplay.innerHTML = `${roleIcon} ${roleName}`;
-  }
+  // 페이지 로드 시 사용자 역할 확인 및 UI 초기화
+  window.onload = function() {
+    console.log("윈도우 로드됨 - 초기화 시작");
 
-  // 세션 ID 설정 (URL에서 가져오거나 새로 생성)
-  if (sessionParam) {
-    sessionId = sessionParam;
-    sessionStorage.setItem("sessionId", sessionId);
-    console.log("URL에서 세션 ID 로드:", sessionId);
-  } else if (sessionStorage.getItem("sessionId")) {
-    // 세션 스토리지에 저장된 세션 ID가 있으면 사용
-    sessionId = sessionStorage.getItem("sessionId");
-    console.log("세션 스토리지에서 세션 ID 로드:", sessionId);
-    
-    // URL 업데이트
-    const url = new URL(window.location.href);
-    url.searchParams.set('session', sessionId);
-    window.history.replaceState({}, '', url);
-  } else if (userRole === "agent") {
-    // 상담원인 경우에만 새 세션 ID 생성
-    sessionId = generateSessionId();
-    console.log("새 세션 ID 생성:", sessionId);
-    // URL에 세션 ID 추가 (페이지 이동 없이 URL 업데이트)
-    const url = new URL(window.location.href);
-    url.searchParams.set('session', sessionId);
-    window.history.replaceState({}, '', url);
-    // 세션 ID를 세션 스토리지에 저장
-    sessionStorage.setItem("sessionId", sessionId);
-  }
-  
-  // 세션 ID 확인
-  if (sessionId) {
-    console.log("세션 ID 설정됨:", sessionId);
-    
-    // 새로고침 시 이전 페이지 번호를 복원하기 위해 저장
-    if (sessionStorage.getItem("lastPage")) {
-      currentPage = parseInt(sessionStorage.getItem("lastPage")) || 1;
-      console.log("저장된 페이지 번호 복원:", currentPage);
+    // 새로고침 방지 이벤트 리스너 추가 - 최상위 우선순위로 설정
+    const preventRefreshHandler = function(e) {
+      // 브라우저마다 표시되는 메시지가 다를 수 있음
+      var confirmationMessage = '상담이 진행 중입니다. 페이지를 떠나면 상담이 종료됩니다. 정말 나가시겠습니까?';
+
+      e.preventDefault(); // 기본 동작 방지 (일부 브라우저에서 효과)
+      e.returnValue = confirmationMessage;  // 표준
+      return confirmationMessage;           // 일부 브라우저용
+    };
+
+    // 이벤트 리스너 등록 (캡처 단계에서 실행)
+    window.addEventListener('beforeunload', preventRefreshHandler, true);
+
+    // 글로벌 초기화 플래그 설정 (최초 1회만 실행되는 로직 제어용)
+    window.isInitialLoad = true;
+    window.dataLoaded = false;
+
+    // URL에서 역할 파라미터 확인
+    const urlParams = new URLSearchParams(window.location.search);
+    const roleParam = urlParams.get('role');
+    const sessionParam = urlParams.get('session'); // 세션 ID 파라미터 확인
+
+    // URL 파라미터에 역할이 있으면 세션 스토리지에 저장
+    if (roleParam) {
+      sessionStorage.setItem("role", roleParam);
     }
-  } else {
-    // 고객이면서 세션 ID가 없는 경우 오류 처리
-    if (userRole === "client") {
-      alert("유효한 상담 세션이 아닙니다. 초기 화면으로 이동합니다.");
-      location.href = "/";
-      return;
+
+    // 세션 스토리지에서 역할 정보 가져오기
+    userRole = sessionStorage.getItem("role");
+    console.log("사용자 역할:", userRole);
+
+    // 사용자 역할 표시
+    const userRoleDisplay = document.getElementById('userRoleDisplay');
+    if (userRoleDisplay) {
+      const roleName = userRole === 'agent' ? '상담원' : '고객';
+      const roleIcon = userRole === 'agent' ? '<i class="fas fa-headset"></i>' : '<i class="fas fa-user"></i>';
+      userRoleDisplay.innerHTML = `${roleIcon} ${roleName}`;
     }
-  }
-  
-  // 역할에 따라 UI 초기화
-  initializeUIByRole();
-  
-  // 상담원이 상담실에 입장하면 입장 상태를 자동으로 설정
-  if (userRole === "agent") {
-    // 상담원 입장 상태 변경
-    updateAgentStatus(true);
-    
-    // 토스트 메시지 표시
-    setTimeout(() => {
-      showToast("상담 시작", "고객이 상담실로 입장할 수 있습니다.", "info");
-    }, 1000); // 1초 후 표시
-  }
-  
-  // 고객인 경우에는 상담원 상태 확인 후 활성화되어 있지 않으면 대기실로 이동
-  if (userRole === "client") {
-    fetch('/api/contract/status')
-      .then(response => response.json())
-      .then(data => {
-        if (!data.present) {
-          // 상담원이 입장해 있지 않으면 대기실로 리다이렉트
-          console.warn("상담원이 아직 입장하지 않음. 대기실로 이동합니다.");
-          location.href = "/waiting-room";
-        } else {
-          console.log("상담원이 입장해 있습니다.");
-        }
-      })
-      .catch(error => {
-        console.error("상담원 상태 확인 오류:", error);
-      });
-  }
-  
-  // 세션 ID가 있으면 서버에서 데이터 로드
-  if (sessionId) {
-    console.log("세션 데이터 로드 시도:", sessionId);
-    
-    // 타임아웃 추가 (모든 것이 준비된 후 데이터 로드)
-    setTimeout(() => {
-      // 중요: 새로고침 복원 처리
-      console.log("세션 데이터 로드 시작 - 강제 복원 모드");
-      loadSessionData(true); // 강제 복원 모드
-    }, 500);
-  }
-  
-  // 처음에 커서 버튼을 활성화 상태로 설정
-  document.getElementById('cursorBtn').classList.add('active');
-  
-  // WebSocket 연결 상태 확인 및 재연결 메커니즘
-  checkAndReconnectWebSocket();
-};
 
-// 세션 ID 생성 함수
-function generateSessionId() {
-  return 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-}
+    // 세션 ID 설정 (URL에서 가져오거나 새로 생성)
+    if (sessionParam) {
+      sessionId = sessionParam;
+      sessionStorage.setItem("sessionId", sessionId);
+      console.log("URL에서 세션 ID 로드:", sessionId);
+    } else if (sessionStorage.getItem("sessionId")) {
+      // 세션 스토리지에 저장된 세션 ID가 있으면 사용
+      sessionId = sessionStorage.getItem("sessionId");
+      console.log("세션 스토리지에서 세션 ID 로드:", sessionId);
 
-// 역할에 따른 UI 초기화
-function initializeUIByRole() {
-  if (userRole === "agent") {
-    // 상담원인 경우 도장 버튼 숨김
-    document.getElementById("stampBtn").style.display = "none";
-    
-    // 상담원용 UI 표시
-    document.querySelector('.file-upload').style.display = "inline-flex";
-    document.querySelector('.end-consult-btn').style.display = "inline-flex";
-  } else {
-    // 고객인 경우 UI 제한
-    document.querySelector('.file-upload').style.display = "none";
-    document.querySelector('.end-consult-btn').style.display = "none";
-    
-    // entryType 확인
-    const entryType = sessionStorage.getItem("entryType");
-    
-    // 고객이 도장으로 입장한 경우 도장 버튼 표시, 아니면 숨김
-    if (entryType === "stamp") {
-      document.getElementById("stampBtn").style.display = "inline-flex";
-    } else if (entryType === "signature") {
-      document.getElementById("stampBtn").style.display = "none";
-      
-      // 서명 버튼 추가
-      const signatureBtn = document.createElement("button");
-      signatureBtn.id = "signatureBtn";
-      signatureBtn.className = "tool-btn";
-      signatureBtn.innerHTML = '<i class="fas fa-signature"></i> 서명';
-      signatureBtn.onclick = setSignatureMode;
-      
-      // 텍스트 버튼 다음에 서명 버튼 추가
-      const textBtn = document.getElementById("textBtn");
-      const toolbarGroup = textBtn.parentNode;
-      toolbarGroup.insertBefore(signatureBtn, textBtn.nextSibling);
+      // URL 업데이트
+      const url = new URL(window.location.href);
+      url.searchParams.set('session', sessionId);
+      window.history.replaceState({}, '', url);
+    } else if (userRole === "agent") {
+      // 상담원인 경우에만 새 세션 ID 생성
+      sessionId = generateSessionId();
+      console.log("새 세션 ID 생성:", sessionId);
+      // URL에 세션 ID 추가 (페이지 이동 없이 URL 업데이트)
+      const url = new URL(window.location.href);
+      url.searchParams.set('session', sessionId);
+      window.history.replaceState({}, '', url);
+      // 세션 ID를 세션 스토리지에 저장
+      sessionStorage.setItem("sessionId", sessionId);
+    }
+
+    // 세션 ID 확인
+    if (sessionId) {
+      console.log("세션 ID 설정됨:", sessionId);
+
+      // 새로고침 시 이전 페이지 번호를 복원하기 위해 저장
+      if (sessionStorage.getItem("lastPage")) {
+        currentPage = parseInt(sessionStorage.getItem("lastPage")) || 1;
+        console.log("저장된 페이지 번호 복원:", currentPage);
+      }
     } else {
-      document.getElementById("stampBtn").style.display = "none";
-    }
-  }
-}
-
-// 상담원 입장 상태 설정
-function updateAgentStatus(present) {
-  fetch('/api/contract/status', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ 
-      present: present,
-      sessionId: sessionId
-    })
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      console.log("상담원 입장 상태 업데이트:", present);
-    }
-  })
-  .catch(error => {
-    console.error("상담원 상태 업데이트 오류:", error);
-  });
-}
-
-// 정기적으로 세션 데이터 저장
-function startAutoSave() {
-  console.log("자동 저장 시작...");
-  
-  // 초기 저장 수행 (1회)
-  saveSessionData();
-  
-  // 10초마다 세션 데이터 저장 (더 빈번하게 저장)
-  setInterval(saveSessionData, 10000);
-}
-
-// 서버에 세션 데이터 저장 함수
-function saveSessionData() {
-  if (!sessionId) return;
-  console.log("세션 데이터 저장 시도...");
-  
-  // 저장 전 현재 페이지 정보가 유효한지 확인
-  if (!currentPage || currentPage < 1) {
-    console.error("현재 페이지 정보가 유효하지 않음:", currentPage);
-    currentPage = 1; // 페이지 정보가 잘못된 경우 기본값으로 설정
-  }
-  
-  const sessionData = {
-    pdfUrl: uploadedPdfUrl,
-    drawingData: drawingDataPerPage,
-    stampData: stampDataPerPage,
-    signatureData: signatureDataPerPage,
-    textData: textDataPerPage,
-    currentPage: currentPage  // 현재 페이지 정보 추가
-  };
-  
-  fetch(`/api/contract-data/${sessionId}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(sessionData)
-  })
-  .then(response => response.json())
-  .then(data => {
-    console.log("세션 데이터 저장 결과:", data);
-  })
-  .catch(error => {
-    console.error("세션 데이터 저장 오류:", error);
-  });
-}
-
-// 서버에서 세션 데이터 로드 함수 (강화된 버전)
-function loadSessionData(forceRestore = false) {
-  if (!sessionId) {
-    console.error("세션 ID가 없어 데이터를 로드할 수 없습니다.");
-    return;
-  }
-  
-  // 이미 데이터를 로드한 경우 중복 로드 방지 (강제 복원 옵션이 아닌 경우)
-  if (window.dataLoaded && !forceRestore) {
-    console.log("이미 데이터가 로드되어 있어 중복 로드를 방지합니다.");
-    return;
-  }
-  
-  console.log(`세션 데이터 로드 시작 (강제 복원: ${forceRestore})...`);
-  showToast("복원 중", "세션 데이터를 복원 중입니다...", "info");
-  
-  fetch(`/api/contract-data/${sessionId}`)
-    .then(response => response.json())
-    .then(data => {
-      if (data.success === false) {
-        console.log("세션 데이터 없음:", data.message);
-        
-        // 고객인 경우 상담원에게 PDF 요청
-        if (userRole === "client") {
-          console.log("고객이 처음 입장: 상담원에게 PDF 요청");
-          requestPdfFromAgent();
-        }
+      // 고객이면서 세션 ID가 없는 경우 오류 처리
+      if (userRole === "client") {
+        alert("유효한 상담 세션이 아닙니다. 초기 화면으로 이동합니다.");
+        location.href = "/";
         return;
       }
-      
-      console.log("세션 데이터 로드됨:", data);
-      window.dataLoaded = true;
-      
-      try {
-        // 저장된 페이지 정보 변수
-        let savedPageNumber = 1;
-        
-        // 먼저 데이터를 모두 설정 (페이지 렌더링 이전)
-        
-        // 그림 데이터 복원
-        if (data.drawingData && Object.keys(data.drawingData).length > 0) {
-          console.log("그림 데이터 설정:", Object.keys(data.drawingData).length + "개 페이지");
-          drawingDataPerPage = JSON.parse(JSON.stringify(data.drawingData));
-        }
-        
-        // 도장 데이터 복원
-        if (data.stampData && Object.keys(data.stampData).length > 0) {
-          console.log("도장 데이터 설정:", Object.keys(data.stampData).length + "개 페이지");
-          stampDataPerPage = JSON.parse(JSON.stringify(data.stampData));
-        }
-        
-        // 서명 데이터 복원
-        if (data.signatureData && Object.keys(data.signatureData).length > 0) {
-          console.log("서명 데이터 설정:", Object.keys(data.signatureData).length + "개 페이지");
-          signatureDataPerPage = JSON.parse(JSON.stringify(data.signatureData));
-        }
-        
-        // 텍스트 데이터 복원
-        if (data.textData && Object.keys(data.textData).length > 0) {
-          console.log("텍스트 데이터 설정:", Object.keys(data.textData).length + "개 페이지");
-          textDataPerPage = JSON.parse(JSON.stringify(data.textData));
-        }
-        
-        // 저장된 페이지 번호 확인
-        if (data.currentPage && data.currentPage > 0) {
-          savedPageNumber = data.currentPage;
-          // 현재 페이지 즉시 업데이트 (전역 변수)
-          currentPage = savedPageNumber;
-          // 세션 스토리지에도 저장 (새로고침 대비)
-          sessionStorage.setItem("lastPage", savedPageNumber);
-          console.log("저장된 페이지 번호로 복원:", savedPageNumber);
-        }
-        
-        // PDF URL 복원
-        if (data.pdfUrl) {
-          console.log("PDF URL 복원:", data.pdfUrl);
-          uploadedPdfUrl = data.pdfUrl;
-          
-          // PDF 로드 (모든 데이터가 설정된 후)
-          loadPdfFromUrl(data.pdfUrl, function() {
-            // PDF 로드 완료 후 저장된 페이지로 이동
-            if (savedPageNumber > 1 && savedPageNumber <= pdfDoc.numPages) {
-              console.log("저장된 페이지로 이동:", savedPageNumber);
-              setTimeout(() => {
-                // 명시적으로 지정된 페이지 렌더링
-                renderPage(savedPageNumber, function() {
-                  // WebSocket을 통해 페이지 동기화 (상담원만)
-                  if (userRole === "agent") {
-                    sendPageSync(savedPageNumber);
-                  }
-                  updateModeStatus(`페이지 ${savedPageNumber} 표시 중`);
-                  
-                  // 세션 데이터 복원 정보 저장
-                  showToast("세션 복원 완료", "PDF 문서와 페이지가 복원되었습니다.", "success");
-                });
-              }, 500);
-            } else {
-              renderPage(1, function() {
-                // 페이지 정보가 없거나, 범위 외인 경우 기본 토스트 메시지만 표시
-                showToast("PDF 로드 완료", "PDF 문서가 로드되었습니다.", "success");
+    }
+
+    // 역할에 따라 UI 초기화
+    initializeUIByRole();
+
+    // 상담원이 상담실에 입장하면 입장 상태를 자동으로 설정
+    if (userRole === "agent") {
+      // 상담원 입장 상태 변경
+      updateAgentStatus(true);
+
+      // 토스트 메시지 표시
+      setTimeout(() => {
+        showToast("상담 시작", "고객이 상담실로 입장할 수 있습니다.", "info");
+      }, 1000); // 1초 후 표시
+    }
+
+    // 고객인 경우에는 상담원 상태 확인 후 활성화되어 있지 않으면 대기실로 이동
+    if (userRole === "client") {
+      fetch('/api/contract/status')
+              .then(response => response.json())
+              .then(data => {
+                if (!data.present) {
+                  // 상담원이 입장해 있지 않으면 대기실로 리다이렉트
+                  console.warn("상담원이 아직 입장하지 않음. 대기실로 이동합니다.");
+                  location.href = "/waiting-room";
+                } else {
+                  console.log("상담원이 입장해 있습니다.");
+                }
+              })
+              .catch(error => {
+                console.error("상담원 상태 확인 오류:", error);
               });
-            }
-            
-            // 한 번 더 페이지 그리기 시도 (지연 시도)
-            setTimeout(() => {
-              if (drawingDataPerPage[currentPage] || 
-                  stampDataPerPage[currentPage] || 
-                  signatureDataPerPage[currentPage] || 
-                  textDataPerPage[currentPage]) {
-                console.log("지연 그리기 시도: 페이지", currentPage);
-                renderPage(currentPage);
+    }
+
+    // 세션 ID가 있으면 서버에서 데이터 로드
+    if (sessionId) {
+      console.log("세션 데이터 로드 시도:", sessionId);
+
+      // 타임아웃 추가 (모든 것이 준비된 후 데이터 로드)
+      setTimeout(() => {
+        // 중요: 새로고침 복원 처리
+        console.log("세션 데이터 로드 시작 - 강제 복원 모드");
+        loadSessionData(true); // 강제 복원 모드
+      }, 500);
+    }
+
+    // 처음에 커서 버튼을 활성화 상태로 설정
+    document.getElementById('cursorBtn').classList.add('active');
+
+    // WebSocket 연결 상태 확인 및 재연결 메커니즘
+    checkAndReconnectWebSocket();
+  };
+
+  // 세션 ID 생성 함수
+  function generateSessionId() {
+    return 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+  }
+
+  // 역할에 따른 UI 초기화
+  function initializeUIByRole() {
+    // 비디오 요소 참조
+    const localVideo = document.getElementById("localVideo");
+    const remoteVideo = document.getElementById("remoteVideo");
+
+    // 비디오 요소 초기 설정 (역할 가리지 않고 공통으로 적용)
+    if (localVideo) {
+      localVideo.muted = true; // 자기 목소리가 스피커로 출력되는 것 방지
+    }
+
+    // 비디오 컨테이너 ID 설정 - 역할에 따라 명확하게 구분
+    const localVideoContainer = document.getElementById("localVideoContainer");
+    const remoteVideoContainer = document.getElementById("remoteVideoContainer");
+
+    if (localVideoContainer) {
+      localVideoContainer.setAttribute("data-role", userRole);
+    }
+
+    // 비디오 레이블 추가 - 역할에 따라 다르게 표시
+    if (localVideoContainer && !localVideoContainer.querySelector('.video-label')) {
+      const localVideoLabel = document.createElement("div");
+      localVideoLabel.className = "video-label";
+      localVideoLabel.innerText = userRole === "agent" ? "상담원 (나)" : "고객 (나)";
+      localVideoContainer.appendChild(localVideoLabel);
+    }
+
+    if (remoteVideoContainer && !remoteVideoContainer.querySelector('.video-label')) {
+      const remoteVideoLabel = document.createElement("div");
+      remoteVideoLabel.className = "video-label";
+      remoteVideoLabel.innerText = userRole === "agent" ? "고객" : "상담원";
+      remoteVideoContainer.appendChild(remoteVideoLabel);
+    }
+
+    // 비디오 컨테이너에 CSS 스타일 추가
+    if (!document.getElementById('video-container-styles')) {
+      const styleElement = document.createElement('style');
+      styleElement.id = 'video-container-styles';
+      styleElement.textContent = `
+      .video-label {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        background-color: rgba(0,0,0,0.7);
+        color: white;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        z-index: 10;
+      }
+
+      #localVideoContainer, #remoteVideoContainer {
+        position: relative;
+        background-color: #1a1a1a;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        background-color: #1a1a1a;
+      }
+    `;
+      document.head.appendChild(styleElement);
+    }
+
+    if (userRole === "agent") {
+      // 상담원인 경우 도장 버튼 숨김
+      document.getElementById("stampBtn").style.display = "none";
+
+      // 상담원용 UI 표시
+      document.querySelector('.file-upload').style.display = "inline-flex";
+      document.querySelector('.end-consult-btn').style.display = "inline-flex";
+
+      // 상담원 모드 안내 메시지
+      showToast("상담원 모드", "상담원으로 입장했습니다. 고객이 입장하면 자동으로 연결됩니다.", "info");
+
+      // HTTPS 확인 - 보안 경고
+      if (window.location.protocol !== 'https:' && !window.location.hostname.includes('127.0.0.1') && !window.location.hostname.includes('localhost')) {
+        console.warn("비보안 연결(HTTP) 감지: 카메라와 마이크가 제대로 작동하지 않을 수 있습니다.");
+        showToast("보안 경고", "HTTPS가 아닌 연결로 영상 통화 기능이 제한될 수 있습니다.", "warning");
+      }
+
+      // 네트워크 설정 확인
+      if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
+        console.log("로컬 환경에서 실행 중 - 외부 접속 시 STUN/TURN 서버 설정이 필요할 수 있습니다.");
+      }
+    } else {
+      // 고객인 경우 UI 제한
+      document.querySelector('.file-upload').style.display = "none";
+      document.querySelector('.end-consult-btn').style.display = "none";
+
+      // 고객 모드 안내 메시지
+      showToast("고객 모드", "고객으로 입장했습니다. 상담원과 연결을 시도합니다.", "info");
+
+      // entryType 확인
+      const entryType = sessionStorage.getItem("entryType");
+
+      // HTTPS 확인 - 보안 경고
+      if (window.location.protocol !== 'https:' && !window.location.hostname.includes('127.0.0.1') && !window.location.hostname.includes('localhost')) {
+        console.warn("비보안 연결(HTTP) 감지: 카메라와 마이크가 제대로 작동하지 않을 수 있습니다.");
+        showToast("보안 경고", "HTTPS가 아닌 연결로 영상 통화 기능이 제한될 수 있습니다.", "warning");
+      }
+
+      // 고객이 도장으로 입장한 경우 도장 버튼 표시, 아니면 숨김
+      if (entryType === "stamp") {
+        document.getElementById("stampBtn").style.display = "inline-flex";
+      } else if (entryType === "signature") {
+        document.getElementById("stampBtn").style.display = "none";
+
+        // 서명 버튼 추가
+        const signatureBtn = document.createElement("button");
+        signatureBtn.id = "signatureBtn";
+        signatureBtn.className = "tool-btn";
+        signatureBtn.innerHTML = '<i class="fas fa-signature"></i> 서명';
+        signatureBtn.onclick = setSignatureMode;
+
+        // 텍스트 버튼 다음에 서명 버튼 추가
+        const textBtn = document.getElementById("textBtn");
+        const toolbarGroup = textBtn.parentNode;
+        toolbarGroup.insertBefore(signatureBtn, textBtn.nextSibling);
+      } else {
+        document.getElementById("stampBtn").style.display = "none";
+      }
+    }
+  }
+
+  // 상담원 입장 상태 설정
+  function updateAgentStatus(present) {
+    fetch('/api/contract/status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        present: present,
+        sessionId: sessionId
+      })
+    })
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                console.log("상담원 입장 상태 업데이트:", present);
               }
-            }, 2000);
-          });
-        } else if (userRole === "client") {
-          // PDF URL이 없는 경우 (고객인 경우) 상담원에게 PDF 요청
-          console.log("세션에 PDF URL이 없음: 상담원에게 PDF 요청");
-          requestPdfFromAgent();
-        }
-      } catch (err) {
-        console.error("세션 데이터 처리 중 오류 발생:", err);
-        showToast("데이터 처리 오류", "세션 데이터를 처리하는 중 문제가 발생했습니다.", "error");
-        
-        // 오류 발생 시에도 PDF 요청 시도
-        if (userRole === "client") {
-          setTimeout(requestPdfFromAgent, 2000);
-        }
+            })
+            .catch(error => {
+              console.error("상담원 상태 업데이트 오류:", error);
+            });
+  }
+
+  // 정기적으로 세션 데이터 저장
+  function startAutoSave() {
+    console.log("자동 저장 시작...");
+
+    // 초기 저장 수행 (1회)
+    saveSessionData();
+
+    // 10초마다 세션 데이터 저장 (더 빈번하게 저장)
+    setInterval(saveSessionData, 10000);
+  }
+
+  // 서버에 세션 데이터 저장 함수
+  function saveSessionData() {
+    if (!sessionId) return;
+    console.log("세션 데이터 저장 시도...");
+
+    // 저장 전 현재 페이지 정보가 유효한지 확인
+    if (!currentPage || currentPage < 1) {
+      console.error("현재 페이지 정보가 유효하지 않음:", currentPage);
+      currentPage = 1; // 페이지 정보가 잘못된 경우 기본값으로 설정
+    }
+
+    const sessionData = {
+      pdfUrl: uploadedPdfUrl,
+      drawingData: drawingDataPerPage,
+      stampData: stampDataPerPage,
+      signatureData: signatureDataPerPage,
+      textData: textDataPerPage,
+      currentPage: currentPage  // 현재 페이지 정보 추가
+    };
+
+    fetch(`/api/contract-data/${sessionId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(sessionData)
+    })
+            .then(response => response.json())
+            .then(data => {
+              console.log("세션 데이터 저장 결과:", data);
+            })
+            .catch(error => {
+              console.error("세션 데이터 저장 오류:", error);
+            });
+  }
+
+  // 서버에서 세션 데이터 로드 함수 (강화된 버전)
+  function loadSessionData(forceRestore = false) {
+    if (!sessionId) {
+      console.error("세션 ID가 없어 데이터를 로드할 수 없습니다.");
+      return;
+    }
+
+    // 이미 데이터를 로드한 경우 중복 로드 방지 (강제 복원 옵션이 아닌 경우)
+    if (window.dataLoaded && !forceRestore) {
+      console.log("이미 데이터가 로드되어 있어 중복 로드를 방지합니다.");
+      return;
+    }
+
+    console.log(`세션 데이터 로드 시작 (강제 복원: ${forceRestore})...`);
+    showToast("복원 중", "세션 데이터를 복원 중입니다...", "info");
+
+    fetch(`/api/contract-data/${sessionId}`)
+            .then(response => response.json())
+            .then(data => {
+              if (data.success === false) {
+                console.log("세션 데이터 없음:", data.message);
+
+                // 고객인 경우 상담원에게 PDF 요청
+                if (userRole === "client") {
+                  console.log("고객이 처음 입장: 상담원에게 PDF 요청");
+                  requestPdfFromAgent();
+                }
+                return;
+              }
+
+              console.log("세션 데이터 로드됨:", data);
+              window.dataLoaded = true;
+
+              try {
+                // 저장된 페이지 정보 변수
+                let savedPageNumber = 1;
+
+                // 먼저 데이터를 모두 설정 (페이지 렌더링 이전)
+
+                // 그림 데이터 복원
+                if (data.drawingData && Object.keys(data.drawingData).length > 0) {
+                  console.log("그림 데이터 설정:", Object.keys(data.drawingData).length + "개 페이지");
+                  drawingDataPerPage = JSON.parse(JSON.stringify(data.drawingData));
+                }
+
+                // 도장 데이터 복원
+                if (data.stampData && Object.keys(data.stampData).length > 0) {
+                  console.log("도장 데이터 설정:", Object.keys(data.stampData).length + "개 페이지");
+                  stampDataPerPage = JSON.parse(JSON.stringify(data.stampData));
+                }
+
+                // 서명 데이터 복원
+                if (data.signatureData && Object.keys(data.signatureData).length > 0) {
+                  console.log("서명 데이터 설정:", Object.keys(data.signatureData).length + "개 페이지");
+                  signatureDataPerPage = JSON.parse(JSON.stringify(data.signatureData));
+                }
+
+                // 텍스트 데이터 복원
+                if (data.textData && Object.keys(data.textData).length > 0) {
+                  console.log("텍스트 데이터 설정:", Object.keys(data.textData).length + "개 페이지");
+                  textDataPerPage = JSON.parse(JSON.stringify(data.textData));
+                }
+
+                // 저장된 페이지 번호 확인
+                if (data.currentPage && data.currentPage > 0) {
+                  savedPageNumber = data.currentPage;
+                  // 현재 페이지 즉시 업데이트 (전역 변수)
+                  currentPage = savedPageNumber;
+                  // 세션 스토리지에도 저장 (새로고침 대비)
+                  sessionStorage.setItem("lastPage", savedPageNumber);
+                  console.log("저장된 페이지 번호로 복원:", savedPageNumber);
+                }
+
+                // PDF URL 복원
+                if (data.pdfUrl) {
+                  console.log("PDF URL 복원:", data.pdfUrl);
+                  uploadedPdfUrl = data.pdfUrl;
+
+                  // PDF 로드 (모든 데이터가 설정된 후)
+                  loadPdfFromUrl(data.pdfUrl, function() {
+                    // PDF 로드 완료 후 저장된 페이지로 이동
+                    if (savedPageNumber > 1 && savedPageNumber <= pdfDoc.numPages) {
+                      console.log("저장된 페이지로 이동:", savedPageNumber);
+                      setTimeout(() => {
+                        // 명시적으로 지정된 페이지 렌더링
+                        renderPage(savedPageNumber, function() {
+                          // WebSocket을 통해 페이지 동기화 (상담원만)
+                          if (userRole === "agent") {
+                            sendPageSync(savedPageNumber);
+                          }
+                          updateModeStatus(`페이지 ${savedPageNumber} 표시 중`);
+
+                          // 세션 데이터 복원 정보 저장
+                          showToast("세션 복원 완료", "PDF 문서와 페이지가 복원되었습니다.", "success");
+                        });
+                      }, 500);
+                    } else {
+                      renderPage(1, function() {
+                        // 페이지 정보가 없거나, 범위 외인 경우 기본 토스트 메시지만 표시
+                        showToast("PDF 로드 완료", "PDF 문서가 로드되었습니다.", "success");
+                      });
+                    }
+
+                    // 한 번 더 페이지 그리기 시도 (지연 시도)
+                    setTimeout(() => {
+                      if (drawingDataPerPage[currentPage] ||
+                              stampDataPerPage[currentPage] ||
+                              signatureDataPerPage[currentPage] ||
+                              textDataPerPage[currentPage]) {
+                        console.log("지연 그리기 시도: 페이지", currentPage);
+                        renderPage(currentPage);
+                      }
+                    }, 2000);
+                  });
+                } else if (userRole === "client") {
+                  // PDF URL이 없는 경우 (고객인 경우) 상담원에게 PDF 요청
+                  console.log("세션에 PDF URL이 없음: 상담원에게 PDF 요청");
+                  requestPdfFromAgent();
+                }
+              } catch (err) {
+                console.error("세션 데이터 처리 중 오류 발생:", err);
+                showToast("데이터 처리 오류", "세션 데이터를 처리하는 중 문제가 발생했습니다.", "error");
+
+                // 오류 발생 시에도 PDF 요청 시도
+                if (userRole === "client") {
+                  setTimeout(requestPdfFromAgent, 2000);
+                }
+              }
+            })
+            .catch(error => {
+              console.error("세션 데이터 로드 오류:", error);
+              showToast("복원 실패", "세션 데이터를 불러오는 데 실패했습니다.", "error");
+
+              // 실패 시 PDF 요청 시도
+              if (userRole === "client") {
+                setTimeout(requestPdfFromAgent, 2000);
+              }
+            });
+  }
+
+  const canvas = document.getElementById("pdfCanvas");
+  const ctx = canvas.getContext("2d");
+  const drawingCanvas = document.getElementById("drawingCanvas");
+  const drawCtx = drawingCanvas.getContext("2d");
+
+  // 좌표 상태 (로컬)
+  let localLastX = null;
+  let localLastY = null;
+
+  // 좌표 상태 (WebSocket)
+  let wsLastX = null;
+  let wsLastY = null;
+
+  document.getElementById("pdfUpload").addEventListener("change", function (e) {
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append("file", file);
+
+    // CSRF 토큰 가져오기
+    const token = document.querySelector("meta[name='_csrf']").getAttribute("content");
+    const header = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
+
+    fetch("/upload", {
+      method: "POST",
+      body: formData,
+      headers: {
+        [header]: token
       }
     })
-    .catch(error => {
-      console.error("세션 데이터 로드 오류:", error);
-      showToast("복원 실패", "세션 데이터를 불러오는 데 실패했습니다.", "error");
-      
-      // 실패 시 PDF 요청 시도
-      if (userRole === "client") {
-        setTimeout(requestPdfFromAgent, 2000);
-      }
-    });
-}
+            .then(res => res.text())
+            .then(url => {
+              // 타임스탬프 추가하여 캐시 방지
+              const timestamp = new Date().getTime();
+              const timestampedUrl = url.includes('?') ?
+                      url + '&t=' + timestamp :
+                      url + '?t=' + timestamp;
 
-const canvas = document.getElementById("pdfCanvas");
-const ctx = canvas.getContext("2d");
-const drawingCanvas = document.getElementById("drawingCanvas");
-const drawCtx = drawingCanvas.getContext("2d");
+              console.log("PDF 업로드 성공, 타임스탬프 URL:", timestampedUrl);
 
-// 좌표 상태 (로컬)
-let localLastX = null;
-let localLastY = null;
-
-// 좌표 상태 (WebSocket)
-let wsLastX = null;
-let wsLastY = null;
-
-document.getElementById("pdfUpload").addEventListener("change", function (e) {
-  const file = e.target.files[0];
-  const formData = new FormData();
-  formData.append("file", file);
-
-  // CSRF 토큰 가져오기
-  const token = document.querySelector("meta[name='_csrf']").getAttribute("content");
-  const header = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
-
-  fetch("/upload", {
-    method: "POST",
-    body: formData,
-    headers: {
-      [header]: token
-    }
-  })
-          .then(res => res.text())
-          .then(url => {
-            // 타임스탬프 추가하여 캐시 방지
-            const timestamp = new Date().getTime();
-            const timestampedUrl = url.includes('?') ? 
-              url + '&t=' + timestamp : 
-              url + '?t=' + timestamp;
-              
-            console.log("PDF 업로드 성공, 타임스탬프 URL:", timestampedUrl);
-            
-            // 기존 PDF 객체 정리
-            if (pdfDoc) {
-              try {
-                pdfDoc.destroy();
-                pdfDoc = null;
-              } catch (e) {
-                console.warn("PDF 객체 정리 중 오류:", e);
+              // 기존 PDF 객체 정리
+              if (pdfDoc) {
+                try {
+                  pdfDoc.destroy();
+                  pdfDoc = null;
+                } catch (e) {
+                  console.warn("PDF 객체 정리 중 오류:", e);
+                }
               }
-            }
-            
-            // 새 URL 저장 및 PDF 로드
-            uploadedPdfUrl = timestampedUrl;
-            loadPdfFromUrl(timestampedUrl);
-            sendPdfPathSync(timestampedUrl);
-          })
-          .catch(error => {
-            console.error("PDF 업로드 오류:", error);
-            showToast("업로드 실패", "PDF 업로드 중 오류가 발생했습니다.", "error");
-          });
-});
 
-function loadPdfFromUrl(url, callback) {
-  if (!url) {
-    console.error("PDF URL이 없습니다.");
-    if (userRole === "client") {
-      console.log("고객 입장: PDF 자동 요청");
-      requestPdfFromAgent();
-    }
-    return;
-  }
-  
-  // 항상 새로 로드 (캐시 방지)
-  console.log("PDF 로드 시작:", url);
-  
-  // 기존 PDF 객체 정리
-  if (pdfDoc) {
-    try {
-      console.log("기존 PDF 객체 정리 중...");
-      pdfDoc.destroy();
-      pdfDoc = null;
-    } catch (e) {
-      console.warn("PDF 객체 정리 중 오류:", e);
-    }
-  }
-  
-  // 토스트 메시지 표시
-  showToast("PDF 로드 중", "PDF 문서를 불러오는 중입니다...", "info");
-  
-  // 명시적으로 URL 저장
-  uploadedPdfUrl = url;
-  
-  const loadingTask = pdfjsLib.getDocument(url);
-  loadingTask.promise.then(pdf => {
-    console.log("PDF 로드 성공:", pdf.numPages + "페이지");
-    
-    pdfDoc = pdf;
-    
-    // 세션 데이터 저장 (PDF 로드 성공 시)
-    if (sessionId) {
-      setTimeout(saveSessionData, 500);
-    }
-    
-    // 페이지 번호 체크
-    const hasHistory = sessionStorage.getItem("lastPage") !== null;
-    
-    // 세션에서 저장된 페이지 정보 가져오기
-    fetchSavedPageNumber(function(savedPage) {
-      if (hasHistory && savedPage > 0 && savedPage <= pdf.numPages) {
-        // 기존 세션이 있는 경우 (새로고침이나 일시적 연결 끊김 후 복귀)
-        currentPage = savedPage;
-      } else {
-        // 새로운 세션 시작 - 항상 1페이지로 시작
-        currentPage = 1;
-        // 세션 스토리지에 페이지 정보 저장
-        sessionStorage.setItem("lastPage", 1);
-      }
-      
-      // 페이지 렌더링
-      renderPage(currentPage, callback);
-      
-      // 항상 로드 완료 메시지 표시 (최초 로드 체크 제거)
-      showToast("PDF 로드 완료", "PDF 문서가 로드되었습니다.", "success");
-    });
-  }).catch(error => {
-    console.error("PDF 로드 오류:", error);
-    showToast("PDF 로드 실패", "PDF 파일을 불러오는데 실패했습니다. 다시 시도합니다.", "error");
-    
-    // PDF 로드 실패 시 고객은 다시 요청
-    if (userRole === "client") {
-      setTimeout(requestPdfFromAgent, 3000);
-    }
+              // 새 URL 저장 및 PDF 로드
+              uploadedPdfUrl = timestampedUrl;
+              loadPdfFromUrl(timestampedUrl);
+              sendPdfPathSync(timestampedUrl);
+            })
+            .catch(error => {
+              console.error("PDF 업로드 오류:", error);
+              showToast("업로드 실패", "PDF 업로드 중 오류가 발생했습니다.", "error");
+            });
   });
-}
 
-async function renderPage(pageNumber, callback) {
-  console.log(`페이지 ${pageNumber} 렌더링 시작...`);
-  
-  // 현재 페이지의 서명 데이터 확인
-  const signatures = signatureDataPerPage[pageNumber] || [];
-  console.log(`현재 페이지 ${pageNumber}의 서명 데이터: ${signatures.length}개`);
-  
-  if (renderTask) {
-    try {
-      console.log("이전 렌더링 작업 취소 중...");
-      await renderTask.cancel(); // 기다려주기
-    } catch (e) {
-      console.warn("Render task cancel error:", e);
+  function loadPdfFromUrl(url, callback) {
+    if (!url) {
+      console.error("PDF URL이 없습니다.");
+      if (userRole === "client") {
+        console.log("고객 입장: PDF 자동 요청");
+        requestPdfFromAgent();
+      }
+      return;
     }
+
+    // 항상 새로 로드 (캐시 방지)
+    console.log("PDF 로드 시작:", url);
+
+    // PDF URL 검증 - 캐시 버스팅 쿼리 파라미터 추가
+    let pdfUrlWithCacheBust = url;
+    if (url.indexOf('?') === -1) {
+      pdfUrlWithCacheBust = `${url}?cache=${Date.now()}`;
+    } else {
+      pdfUrlWithCacheBust = `${url}&cache=${Date.now()}`;
+    }
+
+    // 기존 PDF 객체 정리
+    if (pdfDoc) {
+      try {
+        console.log("기존 PDF 객체 정리 중...");
+        pdfDoc.destroy();
+        pdfDoc = null;
+      } catch (e) {
+        console.warn("PDF 객체 정리 중 오류:", e);
+      }
+    }
+
+    // 오류 발생 시 자동 재시도를 위한 변수
+    window._pdfLoadAttempts = (window._pdfLoadAttempts || 0) + 1;
+
+    // 토스트 메시지 표시
+    showToast("PDF 로드 중", "PDF 문서를 불러오는 중입니다...", "info");
+
+    // 명시적으로 URL 저장
+    uploadedPdfUrl = url;
+
+    // PDF 문서 로드 기능 강화 - 자동 재시도 및 오류 처리 개선
+    const loadingTask = pdfjsLib.getDocument({
+      url: pdfUrlWithCacheBust,
+      cMapUrl: '/static/js/pdf/cmaps/',
+      cMapPacked: true,
+      disableRange: false,
+      disableStream: false,
+      disableAutoFetch: false
+    });
+
+    // 로드 진행률 이벤트 처리
+    loadingTask.onProgress = function(progress) {
+      if (progress && progress.total) {
+        const percent = Math.round(progress.loaded / progress.total * 100);
+        console.log(`PDF 로드 진행률: ${percent}%`);
+      }
+    };
+
+    // PDF 로드 성공 처리
+    loadingTask.promise.then(pdf => {
+      console.log("PDF 로드 성공:", pdf.numPages + "페이지");
+
+      // 로드 시도 카운터 초기화
+      window._pdfLoadAttempts = 0;
+
+      pdfDoc = pdf;
+
+      // 세션 데이터 저장 (PDF 로드 성공 시)
+      if (sessionId) {
+        setTimeout(saveSessionData, 500);
+      }
+
+      // 페이지 번호 체크
+      const hasHistory = sessionStorage.getItem("lastPage") !== null;
+
+      // 세션에서 저장된 페이지 정보 가져오기
+      fetchSavedPageNumber(function(savedPage) {
+        if (hasHistory && savedPage > 0 && savedPage <= pdf.numPages) {
+          // 기존 세션이 있는 경우 (새로고침이나 일시적 연결 끊김 후 복귀)
+          currentPage = savedPage;
+        } else {
+          // 새로운 세션 시작 - 항상 1페이지로 시작
+          currentPage = 1;
+          // 세션 스토리지에 페이지 정보 저장
+          sessionStorage.setItem("lastPage", 1);
+        }
+
+        // 페이지 렌더링
+        renderPage(currentPage, callback);
+
+        // 항상 로드 완료 메시지 표시 (최초 로드 체크 제거)
+        showToast("PDF 로드 완료", "PDF 문서가 로드되었습니다.", "success");
+      });
+    }).catch(error => {
+      console.error("PDF 로드 오류:", error);
+
+      // 오류 상세 분석 및 사용자 친화적 메시지
+      let errorMessage = "알 수 없는 오류가 발생했습니다.";
+      if (error.name === 'MissingPDFException') {
+        errorMessage = "PDF 파일을 찾을 수 없습니다. 서버에 파일이 존재하는지 확인하세요.";
+      } else if (error.name === 'InvalidPDFException') {
+        errorMessage = "올바르지 않은 PDF 파일입니다. 파일이 손상되었을 수 있습니다.";
+      } else if (error.name === 'UnexpectedResponseException') {
+        errorMessage = "서버 응답이 잘못되었습니다. 네트워크 연결을 확인하세요.";
+      } else if (error.name === 'UnknownErrorException') {
+        errorMessage = "알 수 없는 오류가 발생했습니다. 페이지를 새로고침해보세요.";
+      }
+
+      showToast("PDF 로드 실패", errorMessage, "error");
+      console.error(`PDF 오류 상세 내용: ${errorMessage}`);
+
+      // 최대 3번까지 자동 재시도
+      if (window._pdfLoadAttempts < 3) {
+        console.log(`PDF 로드 재시도 (${window._pdfLoadAttempts}/3)...`);
+        showToast("PDF 재시도", `PDF 로드 재시도 중 (${window._pdfLoadAttempts}/3)...`, "info");
+
+        // 지연 후 재시도 (실패 횟수에 따라 지연 시간 증가)
+        setTimeout(() => {
+          loadPdfFromUrl(uploadedPdfUrl, callback);
+        }, window._pdfLoadAttempts * 2000); // 2초, 4초, 6초 간격으로 재시도
+      } else {
+        console.error("최대 시도 횟수 초과. PDF 로드 실패.");
+
+        // 고객인 경우 상담원에게 다시 요청
+        if (userRole === "client") {
+          setTimeout(() => {
+            console.log("고객 모드: PDF 재요청");
+            requestPdfFromAgent();
+          }, 5000);
+        } else {
+          // 상담원인 경우 파일 재업로드 권장
+          showToast("PDF 업로드 필요", "PDF 파일을 다시 업로드해주세요.", "warning");
+        }
+      }
+    });
   }
 
-  // 모든 데이터를 백업 (깊은 복사로)
-  console.log("페이지 데이터 백업 중...");
-  try {
-    const backupDrawingData = JSON.stringify(drawingDataPerPage);
-    const backupStampData = JSON.stringify(stampDataPerPage);
-    const backupSignatureData = JSON.stringify(signatureDataPerPage);
-    const backupTextData = JSON.stringify(textDataPerPage);
-    
+  async function renderPage(pageNumber, callback) {
+    console.log(`페이지 ${pageNumber} 렌더링 시작...`);
+
+    // 현재 페이지의 서명 데이터 확인
+    const signatures = signatureDataPerPage[pageNumber] || [];
+    console.log(`현재 페이지 ${pageNumber}의 서명 데이터: ${signatures.length}개`);
+
+    if (renderTask) {
+      try {
+        console.log("이전 렌더링 작업 취소 중...");
+        await renderTask.cancel(); // 기다려주기
+      } catch (e) {
+        console.warn("Render task cancel error:", e);
+      }
+    }
+
+    // 모든 데이터를 백업 (깊은 복사로)
+    console.log("페이지 데이터 백업 중...");
     try {
-      const page = await pdfDoc.getPage(pageNumber);
-      const viewport = page.getViewport({ scale: 1.5 });
+      const backupDrawingData = JSON.stringify(drawingDataPerPage);
+      const backupStampData = JSON.stringify(stampDataPerPage);
+      const backupSignatureData = JSON.stringify(signatureDataPerPage);
+      const backupTextData = JSON.stringify(textDataPerPage);
 
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
+      try {
+        const page = await pdfDoc.getPage(pageNumber);
+        const viewport = page.getViewport({ scale: 1.5 });
 
-      const renderContext = {
-        canvasContext: ctx,
-        viewport: viewport
-      };
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
 
-      console.log("PDF 페이지 렌더링 시작...");
-      renderTask = page.render(renderContext);
+        const renderContext = {
+          canvasContext: ctx,
+          viewport: viewport
+        };
 
-      await renderTask.promise;
-      console.log("PDF 페이지 렌더링 완료");
-      
+        console.log("PDF 페이지 렌더링 시작...");
+        renderTask = page.render(renderContext);
+
+        await renderTask.promise;
+        console.log("PDF 페이지 렌더링 완료");
+
         renderTask = null;
-      console.log("캔버스 리사이징 및 초기화...");
-      
+        console.log("캔버스 리사이징 및 초기화...");
+
         resizeDrawingCanvas();
         resetWsDrawState();
         scrollWrapper.scrollTop = 0;
-      
-      // drawingCanvas 초기화 (모든 그림 요소 제거)
-      drawCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-      
-      // 백업된 데이터 확인 및 복원 (필요한 경우)
-      try {
-        if (JSON.stringify(signatureDataPerPage) !== backupSignatureData) {
-          console.warn("서명 데이터가 변경되었습니다. 백업에서 복원합니다.");
-          signatureDataPerPage = JSON.parse(backupSignatureData);
+
+        // drawingCanvas 초기화 (모든 그림 요소 제거)
+        drawCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+
+        // 백업된 데이터 확인 및 복원 (필요한 경우)
+        try {
+          if (JSON.stringify(signatureDataPerPage) !== backupSignatureData) {
+            console.warn("서명 데이터가 변경되었습니다. 백업에서 복원합니다.");
+            signatureDataPerPage = JSON.parse(backupSignatureData);
+          }
+
+          if (JSON.stringify(drawingDataPerPage) !== backupDrawingData) {
+            console.warn("그림 데이터가 변경되었습니다. 백업에서 복원합니다.");
+            drawingDataPerPage = JSON.parse(backupDrawingData);
+          }
+
+          if (JSON.stringify(stampDataPerPage) !== backupStampData) {
+            console.warn("도장 데이터가 변경되었습니다. 백업에서 복원합니다.");
+            stampDataPerPage = JSON.parse(backupStampData);
+          }
+
+          if (JSON.stringify(textDataPerPage) !== backupTextData) {
+            console.warn("텍스트 데이터가 변경되었습니다. 백업에서 복원합니다.");
+            textDataPerPage = JSON.parse(backupTextData);
+          }
+        } catch (backupErr) {
+          console.error("백업 데이터 복원 오류:", backupErr);
         }
-        
-        if (JSON.stringify(drawingDataPerPage) !== backupDrawingData) {
-          console.warn("그림 데이터가 변경되었습니다. 백업에서 복원합니다.");
-          drawingDataPerPage = JSON.parse(backupDrawingData);
-        }
-        
-        if (JSON.stringify(stampDataPerPage) !== backupStampData) {
-          console.warn("도장 데이터가 변경되었습니다. 백업에서 복원합니다.");
-          stampDataPerPage = JSON.parse(backupStampData);
-        }
-        
-        if (JSON.stringify(textDataPerPage) !== backupTextData) {
-          console.warn("텍스트 데이터가 변경되었습니다. 백업에서 복원합니다.");
-          textDataPerPage = JSON.parse(backupTextData);
-        }
-      } catch (backupErr) {
-        console.error("백업 데이터 복원 오류:", backupErr);
-      }
-      
-      console.log("저장된 데이터 복원 시작...");
-      // 순서대로 요소 복원 - 중요: 서명 데이터는 가장 마지막에 복원
-      console.log("1. 그림 데이터 복원...");
-      restoreDrawingFromSavedData(pageNumber, false); // 캔버스 초기화 방지
-      
-      console.log("2. 도장 데이터 복원...");
+
+        console.log("저장된 데이터 복원 시작...");
+        // 순서대로 요소 복원 - 중요: 서명 데이터는 가장 마지막에 복원
+        console.log("1. 그림 데이터 복원...");
+        restoreDrawingFromSavedData(pageNumber, false); // 캔버스 초기화 방지
+
+        console.log("2. 도장 데이터 복원...");
         restoreStampsFromSavedData(pageNumber);
-      
-      console.log("3. 텍스트 데이터 복원...");
+
+        console.log("3. 텍스트 데이터 복원...");
         restoreTextsFromSavedData(pageNumber);
-      
-      // 서명 데이터 복원은 마지막에 수행 (레이어 순서 때문)
-      console.log("4. 서명 데이터 복원...");
-      await new Promise(resolve => {
-        // 약간의 지연을 주어 이전 작업들이 완료될 시간을 확보
-        setTimeout(() => {
-          restoreSignaturesFromSavedData(pageNumber);
-          resolve();
-        }, 50);
-    });
-      
-      console.log(`페이지 ${pageNumber} 렌더링 및 복원 완료`);
 
-      // 콜백 함수가 있으면 실행
-      if (typeof callback === 'function') {
-        callback();
+        // 서명 데이터 복원은 마지막에 수행 (레이어 순서 때문)
+        console.log("4. 서명 데이터 복원...");
+        await new Promise(resolve => {
+          // 약간의 지연을 주어 이전 작업들이 완료될 시간을 확보
+          setTimeout(() => {
+            restoreSignaturesFromSavedData(pageNumber);
+            resolve();
+          }, 50);
+        });
+
+        console.log(`페이지 ${pageNumber} 렌더링 및 복원 완료`);
+
+        // 콜백 함수가 있으면 실행
+        if (typeof callback === 'function') {
+          callback();
+        }
+      } catch (error) {
+        console.error("페이지 렌더링 중 오류 발생:", error);
+        renderTask = null;
       }
-    } catch (error) {
-      console.error("페이지 렌더링 중 오류 발생:", error);
-      renderTask = null;
+    } catch (backupError) {
+      console.error("페이지 데이터 백업 중 오류 발생:", backupError);
     }
-  } catch (backupError) {
-    console.error("페이지 데이터 백업 중 오류 발생:", backupError);
-  }
-}
-
-function resizeDrawingCanvas() {
-  drawingCanvas.width = canvas.width;
-  drawingCanvas.height = canvas.height;
-}
-
-function resetWsDrawState() {
-  wsLastX = null;
-  wsLastY = null;
-}
-
-function sendPageSync(page) {
-  if (stompClient && stompClient.connected) {
-    stompClient.send("/app/sync/page", {}, JSON.stringify({ pageNumber: page }));
-  }
-}
-
-function sendPdfPathSync(url) {
-  if (!url) {
-    console.error("PDF URL이 없어 동기화할 수 없습니다.");
-    return;
-  }
-  
-  if (stompClient && stompClient.connected) {
-    console.log("PDF 경로 동기화 메시지 전송:", url);
-    stompClient.send("/app/sync/pdf", {}, JSON.stringify({ 
-      url: url,
-      sessionId: sessionId
-    }));
-  } else {
-    console.error("WebSocket 연결이 없어 PDF 경로를 동기화할 수 없습니다.");
   }
 
-  // PDF URL이 설정되면 세션 데이터 저장 (상담원/고객 모두)
-  if (sessionId) {
-    console.log("PDF URL 설정 후 세션 데이터 저장");
-    setTimeout(saveSessionData, 1000);
+  function resizeDrawingCanvas() {
+    drawingCanvas.width = canvas.width;
+    drawingCanvas.height = canvas.height;
   }
-}
 
-function sendDrawPoint(x, y, type) {
-      // 펜이나 형광펜일 때만 push
-      if (!drawingDataPerPage[currentPage]) {
-        drawingDataPerPage[currentPage] = [];
-      }
-      drawingDataPerPage[currentPage].push({ x, y, type, mode });
+  function resetWsDrawState() {
+    wsLastX = null;
+    wsLastY = null;
+  }
+
+  function sendPageSync(page) {
+    if (stompClient && stompClient.connected) {
+      stompClient.send("/app/sync/page", {}, JSON.stringify({ pageNumber: page }));
+    }
+  }
+
+  function sendPdfPathSync(url) {
+    if (!url) {
+      console.error("PDF URL이 없어 동기화할 수 없습니다.");
+      return;
+    }
+
+    if (stompClient && stompClient.connected) {
+      console.log("PDF 경로 동기화 메시지 전송:", url);
+      stompClient.send("/app/sync/pdf", {}, JSON.stringify({
+        url: url,
+        sessionId: sessionId
+      }));
+    } else {
+      console.error("WebSocket 연결이 없어 PDF 경로를 동기화할 수 없습니다.");
+    }
+
+    // PDF URL이 설정되면 세션 데이터 저장 (상담원/고객 모두)
+    if (sessionId) {
+      console.log("PDF URL 설정 후 세션 데이터 저장");
+      setTimeout(saveSessionData, 1000);
+    }
+  }
+
+  function sendDrawPoint(x, y, type) {
+    // 펜이나 형광펜일 때만 push
+    if (!drawingDataPerPage[currentPage]) {
+      drawingDataPerPage[currentPage] = [];
+    }
+    drawingDataPerPage[currentPage].push({ x, y, type, mode });
 
     // WebSocket 전송은 모든 모드에 대해 수행
     if (stompClient && stompClient.connected && mode) {
@@ -1084,16 +1412,16 @@ function sendDrawPoint(x, y, type) {
         mode: mode,
         x: x,
         y: y,
-      pageNumber: currentPage
+        pageNumber: currentPage
       }));
     }
-  
-  // 데이터가 변경되면 세션 데이터 저장 (상담원만)
-  if (userRole === "consultant" && type === "start") {
-    // 많은 저장 요청을 방지하기 위해 그리기 시작할 때만 지연 저장
-    setTimeout(saveSessionData, 2000);
+
+    // 데이터가 변경되면 세션 데이터 저장 (상담원만)
+    if (userRole === "agent" && type === "start") {
+      // 많은 저장 요청을 방지하기 위해 그리기 시작할 때만 지연 저장
+      setTimeout(saveSessionData, 2000);
+    }
   }
-}
 
   function sendScrollSync(scrollTop) {
     if (stompClient && stompClient.connected) {
@@ -1147,7 +1475,7 @@ function sendDrawPoint(x, y, type) {
               // 페이지 변경 알림
               showToast("페이지 동기화", `${data.pageNumber}페이지로 이동했습니다.`, "info");
             });
-            
+
             // 페이지 동기화 이벤트로 페이지가 변경된 경우 세션 데이터 저장 (모든 사용자)
             setTimeout(saveSessionData, 500);
           } else {
@@ -1160,12 +1488,12 @@ function sendDrawPoint(x, y, type) {
         }
       });
 
-    stompClient.subscribe('/topic/pdfPath', function (message) {
-      const data = JSON.parse(message.body);
-      console.log("PDF 경로 동기화 메시지 수신:", data.url);
-      uploadedPdfUrl = data.url;
-      loadPdfFromUrl(data.url);
-    });
+      stompClient.subscribe('/topic/pdfPath', function (message) {
+        const data = JSON.parse(message.body);
+        console.log("PDF 경로 동기화 메시지 수신:", data.url);
+        uploadedPdfUrl = data.url;
+        loadPdfFromUrl(data.url);
+      });
 
       stompClient.subscribe('/topic/draw', function (message) {
         const data = JSON.parse(message.body);
@@ -1173,12 +1501,12 @@ function sendDrawPoint(x, y, type) {
           drawingDataPerPage[data.pageNumber] = [];
         }
 
-          drawingDataPerPage[data.pageNumber].push({
-            x: data.x,
-            y: data.y,
-            type: data.type,
-            mode: data.mode
-          });
+        drawingDataPerPage[data.pageNumber].push({
+          x: data.x,
+          y: data.y,
+          type: data.type,
+          mode: data.mode
+        });
 
         if (data.pageNumber !== currentPage) return;
 
@@ -1237,40 +1565,40 @@ function sendDrawPoint(x, y, type) {
       });
 
       stompClient.subscribe('/topic/signature', function (message) {
-      console.log("서명 데이터 수신:", message.body.substring(0, 100) + "...");
+        console.log("서명 데이터 수신:", message.body.substring(0, 100) + "...");
         const data = JSON.parse(message.body);
 
-      console.log(`서명 데이터 수신 완료: 페이지=${data.pageNumber}, x=${data.x}, y=${data.y}`);
-      
-      // 페이지별 서명 데이터 저장
+        console.log(`서명 데이터 수신 완료: 페이지=${data.pageNumber}, x=${data.x}, y=${data.y}`);
+
+        // 페이지별 서명 데이터 저장
         if (!signatureDataPerPage[data.pageNumber]) {
           signatureDataPerPage[data.pageNumber] = [];
         }
-      
-      // 중복 데이터가 있는지 확인 (같은 위치에 같은 서명 방지)
-      const isDuplicate = signatureDataPerPage[data.pageNumber].some(
-        item => item.x === data.x && item.y === data.y
-      );
-      
-      if (!isDuplicate) {
-        // 새로운 서명 데이터 저장
-        signatureDataPerPage[data.pageNumber].push({
-          x: data.x,
-          y: data.y,
-          image: data.image
-        });
 
-        console.log(`페이지 ${data.pageNumber}에 서명 데이터 저장 완료, 총 ${signatureDataPerPage[data.pageNumber].length}개`);
-        
-        // 현재 페이지일 때만 화면에 그리기
-        if (data.pageNumber === currentPage) {
-          console.log("현재 페이지에 서명 그리기:", data.x, data.y);
-          drawSignature(data.x, data.y, data.image);
+        // 중복 데이터가 있는지 확인 (같은 위치에 같은 서명 방지)
+        const isDuplicate = signatureDataPerPage[data.pageNumber].some(
+                item => item.x === data.x && item.y === data.y
+        );
+
+        if (!isDuplicate) {
+          // 새로운 서명 데이터 저장
+          signatureDataPerPage[data.pageNumber].push({
+            x: data.x,
+            y: data.y,
+            image: data.image
+          });
+
+          console.log(`페이지 ${data.pageNumber}에 서명 데이터 저장 완료, 총 ${signatureDataPerPage[data.pageNumber].length}개`);
+
+          // 현재 페이지일 때만 화면에 그리기
+          if (data.pageNumber === currentPage) {
+            console.log("현재 페이지에 서명 그리기:", data.x, data.y);
+            drawSignature(data.x, data.y, data.image);
+          } else {
+            console.log("다른 페이지 서명 데이터만 저장:", data.pageNumber);
+          }
         } else {
-          console.log("다른 페이지 서명 데이터만 저장:", data.pageNumber);
-        }
-      } else {
-        console.log("중복된 서명 데이터 무시");
+          console.log("중복된 서명 데이터 무시");
         }
       });
 
@@ -1280,273 +1608,273 @@ function sendDrawPoint(x, y, type) {
         loadPdfFromUrl(data.url);
       });
 
-    // 사용자 입장 메시지 구독
-    stompClient.subscribe('/topic/userJoin', function (message) {
-      const data = JSON.parse(message.body);
-      console.log("사용자 입장 메시지 수신:", data);
-      
-      // 자신이 보낸 메시지가 아닌 경우에만 알림 표시 (role 비교)
-      const myRole = sessionStorage.getItem("role");
-      if (myRole !== data.userType) {
-        let title, msg, type;
-        
-        if (data.userType === "client") {
-          title = "고객이 입장했습니다";
-          msg = data.entryType === "stamp" ? 
-                "고객이 도장을 이용하여 입장했습니다." : 
-                "고객이 서명을 이용하여 입장했습니다.";
-          type = "info";
-        } else {
-          title = "상담원이 입장했습니다";
-          msg = "상담원이 상담방에 입장했습니다.";
-          type = "success";
-        }
-        
-        showToast(title, msg, type);
-      }
-    });
+      // 사용자 입장 메시지 구독
+      stompClient.subscribe('/topic/userJoin', function (message) {
+        const data = JSON.parse(message.body);
+        console.log("사용자 입장 메시지 수신:", data);
 
-    // 상담 종료 메시지 구독
-    stompClient.subscribe('/topic/endConsult', function (message) {
-      console.log("상담 종료 메시지 수신:", message.body);
-      
-      try {
-        // 메시지 내용 파싱
-        const data = JSON.parse(message.body);
-        
-        // 로그 추가
-        console.log("파싱된 상담 종료 데이터:", data);
-        
-        // 현재 세션 ID와 메시지의 세션 ID 비교
-        const currentSessionId = sessionStorage.getItem("sessionId");
-        
-        // 세션 ID가 일치하거나 메시지에 세션 ID가 없는 경우에만 처리 (하위 호환성 유지)
-        if (!data.sessionId || data.sessionId === currentSessionId) {
-          console.log("현재 세션에 해당하는 상담 종료 메시지입니다.");
-          
-          // 모든 사용자에게 토스트 메시지 표시
-          showToast("상담이 종료되었습니다", data.message || "상담이 종료되어 초기 화면으로 이동합니다.", "info");
-          
-          // 세션 스토리지에서 페이지 정보 삭제 (상담 종료 시 페이지 정보 초기화)
-          sessionStorage.removeItem("lastPage");
-          sessionStorage.removeItem("lastSyncedPage");
-          // 상담 종료 플래그 설정
-          sessionStorage.setItem("consultClosed", "true");
-          // 현재 페이지를 1로 설정
-          currentPage = 1;
-          
-          // 항상 모달 표시하고 자동 리다이렉트하지 않음
-          console.log("상담 완료 모달 표시 예정");
-          
-          // 모달 표시 (리다이렉트 URL은 모달의 버튼에 설정)
-          setTimeout(() => {
-            console.log("상담 완료 모달 표시 실행");
-            
-            // 리다이렉트 URL이 있는 경우 버튼에 설정
-            if (data.redirectUrl) {
-              console.log("리다이렉트 URL을 버튼에 설정:", data.redirectUrl);
-              // 리다이렉트 URL을 goToHomePage 함수가 사용할 수 있도록 세션에 저장
-              sessionStorage.setItem("redirectUrl", data.redirectUrl);
-            }
-            
-            showCompleteModal();
-          }, 500);
-        } else {
-          console.log("다른 세션의 상담 종료 메시지이므로 무시합니다.");
+        // 자신이 보낸 메시지가 아닌 경우에만 알림 표시 (role 비교)
+        const myRole = sessionStorage.getItem("role");
+        if (myRole !== data.userType) {
+          let title, msg, type;
+
+          if (data.userType === "client") {
+            title = "고객이 입장했습니다";
+            msg = data.entryType === "stamp" ?
+                    "고객이 도장을 이용하여 입장했습니다." :
+                    "고객이 서명을 이용하여 입장했습니다.";
+            type = "info";
+          } else {
+            title = "상담원이 입장했습니다";
+            msg = "상담원이 상담방에 입장했습니다.";
+            type = "success";
+          }
+
+          showToast(title, msg, type);
         }
-      } catch (error) {
-        console.error("상담 종료 메시지 처리 중 오류 발생:", error);
-        // 오류가 발생해도 모달은 표시
-        setTimeout(() => showCompleteModal(), 500);
-      }
-    });
-    
-    // PDF 요청 메시지 구독 (상담원만 처리)
-    stompClient.subscribe('/topic/requestPdf', function (message) {
-      console.log("PDF 요청 메시지 수신");
-      
-      // 상담원만 처리
-      if (userRole === "consultant") {
-        const data = JSON.parse(message.body);
-        console.log("고객으로부터 PDF 요청 받음:", data);
-        
-        // 알림 표시
-        showToast("PDF 요청", "고객이 PDF 문서를 요청했습니다.", "info");
-        
-        // PDF 공유 함수 호출
-        setTimeout(() => sharePdfToClient(data.requesterId), 500);
-      }
-    });
-    
-    // 현재 페이지 정보 요청 구독 (상담원만 처리)
-    stompClient.subscribe('/topic/requestCurrentPage', function (message) {
-      console.log("현재 페이지 정보 요청 수신");
-      
-      // 상담원만 처리
-      if (userRole === "consultant") {
-        const data = JSON.parse(message.body);
-        console.log("고객으로부터 현재 페이지 정보 요청 받음:", data);
-        
-        // 페이지 정보가 있는 경우에만 전송
-        if (pdfDoc && currentPage) {
-          console.log("현재 페이지 정보 공유:", currentPage);
-          // 현재 페이지 정보 전송
-          sendPageSync(currentPage);
+      });
+
+      // 상담 종료 메시지 구독
+      stompClient.subscribe('/topic/endConsult', function (message) {
+        console.log("상담 종료 메시지 수신:", message.body);
+
+        try {
+          // 메시지 내용 파싱
+          const data = JSON.parse(message.body);
+
+          // 로그 추가
+          console.log("파싱된 상담 종료 데이터:", data);
+
+          // 현재 세션 ID와 메시지의 세션 ID 비교
+          const currentSessionId = sessionStorage.getItem("sessionId");
+
+          // 세션 ID가 일치하거나 메시지에 세션 ID가 없는 경우에만 처리 (하위 호환성 유지)
+          if (!data.sessionId || data.sessionId === currentSessionId) {
+            console.log("현재 세션에 해당하는 상담 종료 메시지입니다.");
+
+            // 모든 사용자에게 토스트 메시지 표시
+            showToast("상담이 종료되었습니다", data.message || "상담이 종료되어 초기 화면으로 이동합니다.", "info");
+
+            // 세션 스토리지에서 페이지 정보 삭제 (상담 종료 시 페이지 정보 초기화)
+            sessionStorage.removeItem("lastPage");
+            sessionStorage.removeItem("lastSyncedPage");
+            // 상담 종료 플래그 설정
+            sessionStorage.setItem("consultClosed", "true");
+            // 현재 페이지를 1로 설정
+            currentPage = 1;
+
+            // 항상 모달 표시하고 자동 리다이렉트하지 않음
+            console.log("상담 완료 모달 표시 예정");
+
+            // 모달 표시 (리다이렉트 URL은 모달의 버튼에 설정)
+            setTimeout(() => {
+              console.log("상담 완료 모달 표시 실행");
+
+              // 리다이렉트 URL이 있는 경우 버튼에 설정
+              if (data.redirectUrl) {
+                console.log("리다이렉트 URL을 버튼에 설정:", data.redirectUrl);
+                // 리다이렉트 URL을 goToHomePage 함수가 사용할 수 있도록 세션에 저장
+                sessionStorage.setItem("redirectUrl", data.redirectUrl);
+              }
+
+              showCompleteModal();
+            }, 500);
+          } else {
+            console.log("다른 세션의 상담 종료 메시지이므로 무시합니다.");
+          }
+        } catch (error) {
+          console.error("상담 종료 메시지 처리 중 오류 발생:", error);
+          // 오류가 발생해도 모달은 표시
+          setTimeout(() => showCompleteModal(), 500);
         }
-      }
-    });
+      });
+
+      // PDF 요청 메시지 구독 (상담원만 처리)
+      stompClient.subscribe('/topic/requestPdf', function (message) {
+        console.log("PDF 요청 메시지 수신");
+
+        // 상담원만 처리
+        if (userRole === "agent") {
+          const data = JSON.parse(message.body);
+          console.log("고객으로부터 PDF 요청 받음:", data);
+
+          // 알림 표시
+          showToast("PDF 요청", "고객이 PDF 문서를 요청했습니다.", "info");
+
+          // PDF 공유 함수 호출
+          setTimeout(() => sharePdfToClient(data.requesterId), 500);
+        }
+      });
+
+      // 현재 페이지 정보 요청 구독 (상담원만 처리)
+      stompClient.subscribe('/topic/requestCurrentPage', function (message) {
+        console.log("현재 페이지 정보 요청 수신");
+
+        // 상담원만 처리
+        if (userRole === "agent") {
+          const data = JSON.parse(message.body);
+          console.log("고객으로부터 현재 페이지 정보 요청 받음:", data);
+
+          // 페이지 정보가 있는 경우에만 전송
+          if (pdfDoc && currentPage) {
+            console.log("현재 페이지 정보 공유:", currentPage);
+            // 현재 페이지 정보 전송
+            sendPageSync(currentPage);
+          }
+        }
+      });
     });
   }
 
   connectWebSocket();
 
   function sendSignature(x, y, imageBase64) {
-  console.log("서명 전송:", x, y, currentPage);
+    console.log("서명 전송:", x, y, currentPage);
     if (stompClient && stompClient.connected) {
-    const message = {
-      x: x,
-      y: y,
-      image: imageBase64,
-      pageNumber: currentPage
-    };
-    console.log("서명 메시지:", JSON.stringify(message).substring(0, 100) + "...");
-    stompClient.send("/app/sync/signature", {}, JSON.stringify(message));
-    
-    // 서명 추가 후 세션 데이터 저장 (상담원/고객 모두 저장)
-    setTimeout(saveSessionData, 1000);
-  } else {
-    console.error("WebSocket 연결 상태:", stompClient ? "객체 있음" : "객체 없음", stompClient ? (stompClient.connected ? "연결됨" : "연결안됨") : "");
+      const message = {
+        x: x,
+        y: y,
+        image: imageBase64,
+        pageNumber: currentPage
+      };
+      console.log("서명 메시지:", JSON.stringify(message).substring(0, 100) + "...");
+      stompClient.send("/app/sync/signature", {}, JSON.stringify(message));
+
+      // 서명 추가 후 세션 데이터 저장 (상담원/고객 모두 저장)
+      setTimeout(saveSessionData, 1000);
+    } else {
+      console.error("WebSocket 연결 상태:", stompClient ? "객체 있음" : "객체 없음", stompClient ? (stompClient.connected ? "연결됨" : "연결안됨") : "");
     }
   }
 
   function prevPage() {
     if (currentPage <= 1) return;
-  
-  console.log(`이전 페이지로 이동: ${currentPage} → ${currentPage-1}`);
-  const prevPageNum = currentPage - 1;
-  
-  // 이동하려는 페이지의 서명 데이터 미리 확인
-  const signatures = signatureDataPerPage[prevPageNum] || [];
-  console.log(`페이지 ${prevPageNum}의 서명 데이터: ${signatures.length}개`);
-  
-  // 페이지 이동 전에 현재 페이지의 서명 데이터가 있다면 명시적으로 백업
-  if (signatureDataPerPage[currentPage] && signatureDataPerPage[currentPage].length > 0) {
-    console.log(`현재 페이지 ${currentPage}의 서명 데이터 백업: ${signatureDataPerPage[currentPage].length}개`);
-  }
-  
+
+    console.log(`이전 페이지로 이동: ${currentPage} → ${currentPage-1}`);
+    const prevPageNum = currentPage - 1;
+
+    // 이동하려는 페이지의 서명 데이터 미리 확인
+    const signatures = signatureDataPerPage[prevPageNum] || [];
+    console.log(`페이지 ${prevPageNum}의 서명 데이터: ${signatures.length}개`);
+
+    // 페이지 이동 전에 현재 페이지의 서명 데이터가 있다면 명시적으로 백업
+    if (signatureDataPerPage[currentPage] && signatureDataPerPage[currentPage].length > 0) {
+      console.log(`현재 페이지 ${currentPage}의 서명 데이터 백업: ${signatureDataPerPage[currentPage].length}개`);
+    }
+
     currentPage--;
-    
+
     // 페이지 번호를 세션 스토리지에 저장 (새로고침 대비)
     sessionStorage.setItem("lastPage", currentPage);
-    
-  renderPage(currentPage, function() {
-    sendPageSync(currentPage);
-    updateModeStatus(`페이지 ${currentPage} 표시 중`);
-    
-    // 페이지 이동 후 세션 데이터 저장 (상담원/고객 모두)
-    setTimeout(saveSessionData, 500);
-  });
+
+    renderPage(currentPage, function() {
+      sendPageSync(currentPage);
+      updateModeStatus(`페이지 ${currentPage} 표시 중`);
+
+      // 페이지 이동 후 세션 데이터 저장 (상담원/고객 모두)
+      setTimeout(saveSessionData, 500);
+    });
   }
 
   function nextPage() {
     if (currentPage >= pdfDoc.numPages) return;
-  
-  console.log(`다음 페이지로 이동: ${currentPage} → ${currentPage+1}`);
-  const nextPageNum = currentPage + 1;
-  
-  // 이동하려는 페이지의 서명 데이터 미리 확인
-  const signatures = signatureDataPerPage[nextPageNum] || [];
-  console.log(`페이지 ${nextPageNum}의 서명 데이터: ${signatures.length}개`);
-  
-  // 페이지 이동 전에 현재 페이지의 서명 데이터가 있다면 명시적으로 백업
-  if (signatureDataPerPage[currentPage] && signatureDataPerPage[currentPage].length > 0) {
-    console.log(`현재 페이지 ${currentPage}의 서명 데이터 백업: ${signatureDataPerPage[currentPage].length}개`);
-  }
-  
+
+    console.log(`다음 페이지로 이동: ${currentPage} → ${currentPage+1}`);
+    const nextPageNum = currentPage + 1;
+
+    // 이동하려는 페이지의 서명 데이터 미리 확인
+    const signatures = signatureDataPerPage[nextPageNum] || [];
+    console.log(`페이지 ${nextPageNum}의 서명 데이터: ${signatures.length}개`);
+
+    // 페이지 이동 전에 현재 페이지의 서명 데이터가 있다면 명시적으로 백업
+    if (signatureDataPerPage[currentPage] && signatureDataPerPage[currentPage].length > 0) {
+      console.log(`현재 페이지 ${currentPage}의 서명 데이터 백업: ${signatureDataPerPage[currentPage].length}개`);
+    }
+
     currentPage++;
-    
+
     // 페이지 번호를 세션 스토리지에 저장 (새로고침 대비)
     sessionStorage.setItem("lastPage", currentPage);
-    
-  renderPage(currentPage, function() {
-    sendPageSync(currentPage);
-    updateModeStatus(`페이지 ${currentPage} 표시 중`);
-    
-    // 페이지 이동 후 세션 데이터 저장 (상담원/고객 모두)
-    setTimeout(saveSessionData, 500);
-  });
-}
 
-function setHighlighter() { 
-  mode = 'highlight'; 
-  updateModeStatus('형광펜');
-  highlightActiveButton('형광펜');
-}
+    renderPage(currentPage, function() {
+      sendPageSync(currentPage);
+      updateModeStatus(`페이지 ${currentPage} 표시 중`);
 
-function setPen() { 
-  mode = 'pen'; 
-  updateModeStatus('펜');
-  highlightActiveButton('펜');
-}
-
-function setCursor() { 
-  mode = null; 
-  updateModeStatus('커서');
-  highlightActiveButton('커서');
-}
-
-function setStampMode() {
-  mode = 'stamp';
-  updateModeStatus('도장');
-  highlightActiveButton('도장');
-  alert("PDF 위에 클릭해서 도장을 삽입하세요.");
-}
-
-function setSignatureMode() {
-  mode = 'signature';
-  updateModeStatus('서명');
-  highlightActiveButton('서명');
-  alert("PDF를 클릭하면 서명이 삽입됩니다.");
-}
-
-function openTextPopup() {
-  document.getElementById('textPopup').style.display = 'block';
-  updateModeStatus('텍스트 입력');
-  highlightActiveButton('텍스트 입력');
-}
-
-// 현재 모드 상태 업데이트 함수
-function updateModeStatus(modeName) {
-  document.getElementById('currentMode').textContent = modeName;
-}
-
-// 활성화된 버튼 하이라이트 함수
-function highlightActiveButton(buttonName) {
-  // 모든 도구 버튼의 활성화 상태 제거
-  const buttons = document.querySelectorAll('.tool-btn');
-  buttons.forEach(btn => {
-    btn.classList.remove('active');
-  });
-  
-  // 해당 버튼 활성화
-  let activeButton;
-  
-  if (buttonName === '형광펜') {
-    activeButton = document.getElementById('highlighterBtn');
-  } else if (buttonName === '펜') {
-    activeButton = document.getElementById('penBtn');
-  } else if (buttonName === '커서') {
-    activeButton = document.getElementById('cursorBtn');
-  } else if (buttonName === '텍스트 입력') {
-    activeButton = document.getElementById('textBtn');
-  } else if (buttonName === '도장') {
-    activeButton = document.getElementById('stampBtn');
+      // 페이지 이동 후 세션 데이터 저장 (상담원/고객 모두)
+      setTimeout(saveSessionData, 500);
+    });
   }
-  
-  if (activeButton) {
-    activeButton.classList.add('active');
+
+  function setHighlighter() {
+    mode = 'highlight';
+    updateModeStatus('형광펜');
+    highlightActiveButton('형광펜');
   }
-}
+
+  function setPen() {
+    mode = 'pen';
+    updateModeStatus('펜');
+    highlightActiveButton('펜');
+  }
+
+  function setCursor() {
+    mode = null;
+    updateModeStatus('커서');
+    highlightActiveButton('커서');
+  }
+
+  function setStampMode() {
+    mode = 'stamp';
+    updateModeStatus('도장');
+    highlightActiveButton('도장');
+    alert("PDF 위에 클릭해서 도장을 삽입하세요.");
+  }
+
+  function setSignatureMode() {
+    mode = 'signature';
+    updateModeStatus('서명');
+    highlightActiveButton('서명');
+    alert("PDF를 클릭하면 서명이 삽입됩니다.");
+  }
+
+  function openTextPopup() {
+    document.getElementById('textPopup').style.display = 'block';
+    updateModeStatus('텍스트 입력');
+    highlightActiveButton('텍스트 입력');
+  }
+
+  // 현재 모드 상태 업데이트 함수
+  function updateModeStatus(modeName) {
+    document.getElementById('currentMode').textContent = modeName;
+  }
+
+  // 활성화된 버튼 하이라이트 함수
+  function highlightActiveButton(buttonName) {
+    // 모든 도구 버튼의 활성화 상태 제거
+    const buttons = document.querySelectorAll('.tool-btn');
+    buttons.forEach(btn => {
+      btn.classList.remove('active');
+    });
+
+    // 해당 버튼 활성화
+    let activeButton;
+
+    if (buttonName === '형광펜') {
+      activeButton = document.getElementById('highlighterBtn');
+    } else if (buttonName === '펜') {
+      activeButton = document.getElementById('penBtn');
+    } else if (buttonName === '커서') {
+      activeButton = document.getElementById('cursorBtn');
+    } else if (buttonName === '텍스트 입력') {
+      activeButton = document.getElementById('textBtn');
+    } else if (buttonName === '도장') {
+      activeButton = document.getElementById('stampBtn');
+    }
+
+    if (activeButton) {
+      activeButton.classList.add('active');
+    }
+  }
 
   drawingCanvas.addEventListener("mousedown", (e) => {
     const x = e.offsetX;
@@ -1555,24 +1883,24 @@ function highlightActiveButton(buttonName) {
     if (mode === 'text' || mode === null) return;
 
     if (mode === 'signature') {
-    console.log("서명 모드에서 클릭 감지");
+      console.log("서명 모드에서 클릭 감지");
       const image = sessionStorage.getItem("signatureImage");
-    if (!image) {
-      console.error("서명 이미지가 없습니다");
-      return;
-    }
-    console.log("서명 이미지 크기:", image.length);
+      if (!image) {
+        console.error("서명 이미지가 없습니다");
+        return;
+      }
+      console.log("서명 이미지 크기:", image.length);
       drawSignature(x, y, image);
-    
-    // 서명 데이터 저장
-    if (!signatureDataPerPage[currentPage]) {
-      signatureDataPerPage[currentPage] = [];
-    }
+
+      // 서명 데이터 저장
+      if (!signatureDataPerPage[currentPage]) {
+        signatureDataPerPage[currentPage] = [];
+      }
       signatureDataPerPage[currentPage].push({ x, y, image });
-    
-    // WebSocket으로 실시간 전송
+
+      // WebSocket으로 실시간 전송
       sendSignature(x, y, image);
-    
+
       mode = null;
       return;
     }
@@ -1583,7 +1911,7 @@ function highlightActiveButton(buttonName) {
     drawCtx.lineTo(x, y);
     drawCtx.stroke();
     sendDrawPoint(x, y, "start");
-    });
+  });
 
   drawingCanvas.addEventListener("mouseup", () => {
     drawing = false;
@@ -1598,109 +1926,109 @@ function highlightActiveButton(buttonName) {
   const role = sessionStorage.getItem("role");
   const stampImageBase64 = sessionStorage.getItem("stampImage");
 
-    document.addEventListener("DOMContentLoaded", () => {
-      console.log("DOM 로드 완료 - 페이지 초기화 시작");
-      const role = sessionStorage.getItem("role");
-      const entryType = sessionStorage.getItem("entryType");
-      const sessionId = sessionStorage.getItem("sessionId");
-      console.log("역할:", role, "입장 타입:", entryType, "세션 ID:", sessionId);
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log("DOM 로드 완료 - 페이지 초기화 시작");
+    const role = sessionStorage.getItem("role");
+    const entryType = sessionStorage.getItem("entryType");
+    const sessionId = sessionStorage.getItem("sessionId");
+    console.log("역할:", role, "입장 타입:", entryType, "세션 ID:", sessionId);
 
-      // 초기 모드 상태 설정
-      updateModeStatus('커서');
-      
-      // 캔버스 관련 설정 최적화
-      if (drawingCanvas && drawingCanvas.getContext) {
-        drawCtx.imageSmoothingEnabled = true;
-        drawCtx.imageSmoothingQuality = 'high';
-      }
-      
-      // 페이지가 로드되기 전에 서명 이미지 미리 로드
-      const signatureImage = sessionStorage.getItem("signatureImage");
-      if (signatureImage && entryType === "signature") {
-        console.log("서명 이미지 미리 로드 중...");
-        const preloadImg = new Image();
-        preloadImg.onload = () => {
-          imageCache[signatureImage] = preloadImg;
-          console.log("서명 이미지 미리 로드 완료");
-        };
-        preloadImg.src = signatureImage;
-      }
-      
-      // 사용자 입장 메시지 전송 (WebSocket 연결 후)
-      setTimeout(() => {
-        if (stompClient && stompClient.connected) {
-          sendUserJoinMessage();
-          
-          // 세션 데이터 자동 저장 시작 (상담원만)
-          if (role === "agent") {
-            startAutoSave();
-          }
-        } else {
-          // WebSocket 연결이 아직 안되었으면 다시 시도
-          const checkInterval = setInterval(() => {
-            if (stompClient && stompClient.connected) {
-              sendUserJoinMessage();
-              
-              // 세션 데이터 자동 저장 시작 (상담원만)
-              if (role === "agent") {
-                startAutoSave();
-              }
-              
-              clearInterval(checkInterval);
-            }
-          }, 500);
-        }
-      }, 1000);
-      
-      // 역할에 따른 UI 조정
-      if (role === "client") {
-        // 클라이언트에게 숨길 버튼들
-        document.getElementById("pdfUpload").style.display = "none";
-        const prevButton = document.querySelector("button[onclick='prevPage()']");
-        const nextButton = document.querySelector("button[onclick='nextPage()']");
-        const endConsultButton = document.querySelector("button[onclick='endConsult()']");
-        
-        // 버튼 숨기기
-        if (prevButton) prevButton.style.display = "none";
-        if (nextButton) nextButton.style.display = "none";
-        if (endConsultButton) endConsultButton.style.display = "none";
-        
-        // 버튼 컨테이너
-        const buttonContainer = document.getElementById("buttonArea");
+    // 초기 모드 상태 설정
+    updateModeStatus('커서');
 
-        // 도장 또는 서명 버튼 표시
-        if (entryType === "stamp") {
-          document.getElementById("stampBtn").style.display = "inline-block";
-        } else if (entryType === "signature") {
-          const signBtn = document.createElement("button");
-          signBtn.innerText = "서명";
-          signBtn.onclick = setSignatureMode;
-          
-          // 텍스트 입력 버튼 다음에 서명 버튼 삽입하는 방식 변경
-          const stampBtn = document.getElementById("stampBtn");
-          // 도장 버튼 위치에 서명 버튼 삽입
-          if (stampBtn && stampBtn.parentNode) {
-            buttonContainer.insertBefore(signBtn, stampBtn);
-          } else {
-            // 도장 버튼이 없으면 마지막 버튼 앞에 삽입
-            const lastBtn = document.querySelector("button[onclick='endConsult()']");
-            if (lastBtn) {
-              buttonContainer.insertBefore(signBtn, lastBtn);
-            } else {
-              // 마지막 버튼도 없으면 컨테이너 마지막에 추가
-          buttonContainer.appendChild(signBtn);
-            }
-          }
-        } else {
-          alert("entryType이 설정되지 않았습니다. 다시 입장해주세요.");
+    // 캔버스 관련 설정 최적화
+    if (drawingCanvas && drawingCanvas.getContext) {
+      drawCtx.imageSmoothingEnabled = true;
+      drawCtx.imageSmoothingQuality = 'high';
+    }
+
+    // 페이지가 로드되기 전에 서명 이미지 미리 로드
+    const signatureImage = sessionStorage.getItem("signatureImage");
+    if (signatureImage && entryType === "signature") {
+      console.log("서명 이미지 미리 로드 중...");
+      const preloadImg = new Image();
+      preloadImg.onload = () => {
+        imageCache[signatureImage] = preloadImg;
+        console.log("서명 이미지 미리 로드 완료");
+      };
+      preloadImg.src = signatureImage;
+    }
+
+    // 사용자 입장 메시지 전송 (WebSocket 연결 후)
+    setTimeout(() => {
+      if (stompClient && stompClient.connected) {
+        sendUserJoinMessage();
+
+        // 세션 데이터 자동 저장 시작 (상담원만)
+        if (role === "agent") {
+          startAutoSave();
         }
       } else {
-        // 상담원인 경우 모든 버튼 표시
-        // 상담원만 '상담종료' 버튼이 보이도록 함
-        const endConsultButton = document.querySelector("button[onclick='endConsult()']");
-        if (endConsultButton) endConsultButton.style.display = "inline-block";
+        // WebSocket 연결이 아직 안되었으면 다시 시도
+        const checkInterval = setInterval(() => {
+          if (stompClient && stompClient.connected) {
+            sendUserJoinMessage();
+
+            // 세션 데이터 자동 저장 시작 (상담원만)
+            if (role === "agent") {
+              startAutoSave();
+            }
+
+            clearInterval(checkInterval);
+          }
+        }, 500);
       }
-    });
+    }, 1000);
+
+    // 역할에 따른 UI 조정
+    if (role === "client") {
+      // 클라이언트에게 숨길 버튼들
+      document.getElementById("pdfUpload").style.display = "none";
+      const prevButton = document.querySelector("button[onclick='prevPage()']");
+      const nextButton = document.querySelector("button[onclick='nextPage()']");
+      const endConsultButton = document.querySelector("button[onclick='endConsult()']");
+
+      // 버튼 숨기기
+      if (prevButton) prevButton.style.display = "none";
+      if (nextButton) nextButton.style.display = "none";
+      if (endConsultButton) endConsultButton.style.display = "none";
+
+      // 버튼 컨테이너
+      const buttonContainer = document.getElementById("buttonArea");
+
+      // 도장 또는 서명 버튼 표시
+      if (entryType === "stamp") {
+        document.getElementById("stampBtn").style.display = "inline-block";
+      } else if (entryType === "signature") {
+        const signBtn = document.createElement("button");
+        signBtn.innerText = "서명";
+        signBtn.onclick = setSignatureMode;
+
+        // 텍스트 입력 버튼 다음에 서명 버튼 삽입하는 방식 변경
+        const stampBtn = document.getElementById("stampBtn");
+        // 도장 버튼 위치에 서명 버튼 삽입
+        if (stampBtn && stampBtn.parentNode) {
+          buttonContainer.insertBefore(signBtn, stampBtn);
+        } else {
+          // 도장 버튼이 없으면 마지막 버튼 앞에 삽입
+          const lastBtn = document.querySelector("button[onclick='endConsult()']");
+          if (lastBtn) {
+            buttonContainer.insertBefore(signBtn, lastBtn);
+          } else {
+            // 마지막 버튼도 없으면 컨테이너 마지막에 추가
+            buttonContainer.appendChild(signBtn);
+          }
+        }
+      } else {
+        alert("entryType이 설정되지 않았습니다. 다시 입장해주세요.");
+      }
+    } else {
+      // 상담원인 경우 모든 버튼 표시
+      // 상담원만 '상담종료' 버튼이 보이도록 함
+      const endConsultButton = document.querySelector("button[onclick='endConsult()']");
+      if (endConsultButton) endConsultButton.style.display = "inline-block";
+    }
+  });
 
   function drawStamp(x, y, imageSrc) {
     const img = new Image();
@@ -1727,179 +2055,179 @@ function highlightActiveButton(buttonName) {
         pageNumber: currentPage
       }));
     }
-  
-  // 도장 추가 후 세션 데이터 저장 (상담원/고객 모두)
-  setTimeout(saveSessionData, 1000);
-}
 
-// 이미지 캐시 객체 추가
-const imageCache = {};
+    // 도장 추가 후 세션 데이터 저장 (상담원/고객 모두)
+    setTimeout(saveSessionData, 1000);
+  }
+
+  // 이미지 캐시 객체 추가
+  const imageCache = {};
 
   function drawSignature(x, y, imageSrc) {
-  console.log(`서명 그리기: x=${x}, y=${y}, 이미지 길이=${imageSrc ? imageSrc.length : 0}`);
-  
-  if (!imageSrc) {
-    console.error("서명 이미지가 없습니다");
-    return;
-  }
-  
-  try {
-    // 이미지가 캐시에 있는지 확인
-    if (imageCache[imageSrc]) {
-      console.log("캐시된 이미지 사용");
-      try {
-        // 캐시된 이미지가 유효한지 확인
-        if (imageCache[imageSrc].complete) {
-          drawCtx.drawImage(imageCache[imageSrc], x - 30, y - 15, 100, 50);
-        } else {
-          // 이미지가 아직 로드 중인 경우 로드 완료 이벤트 추가
-          imageCache[imageSrc].onload = () => {
-            try {
-              drawCtx.drawImage(imageCache[imageSrc], x - 30, y - 15, 100, 50);
-              console.log("캐시된 이미지 지연 그리기 완료");
-            } catch (e) {
-              console.error("캐시된 이미지 지연 그리기 오류:", e);
-            }
-          };
-        }
-      } catch (e) {
-        console.error("캐시된 이미지 그리기 오류:", e);
-        // 오류 발생 시 이미지 다시 로드 시도
-        delete imageCache[imageSrc];
-        setTimeout(() => drawSignature(x, y, imageSrc), 100);
-      }
+    console.log(`서명 그리기: x=${x}, y=${y}, 이미지 길이=${imageSrc ? imageSrc.length : 0}`);
+
+    if (!imageSrc) {
+      console.error("서명 이미지가 없습니다");
       return;
     }
-    
-    const img = new Image();
-    
-    // 이미지 로드 완료 시 호출되는 콜백
-    img.onload = () => {
-      // 이미지를 캐시에 저장
-      imageCache[imageSrc] = img;
-      
-      // 서명 그리기
-      try {
-        drawCtx.drawImage(img, x - 30, y - 15, 100, 50);
-        console.log("서명 이미지 그리기 완료");
-      } catch (e) {
-        console.error("서명 이미지 그리기 오류:", e);
+
+    try {
+      // 이미지가 캐시에 있는지 확인
+      if (imageCache[imageSrc]) {
+        console.log("캐시된 이미지 사용");
+        try {
+          // 캐시된 이미지가 유효한지 확인
+          if (imageCache[imageSrc].complete) {
+            drawCtx.drawImage(imageCache[imageSrc], x - 30, y - 15, 100, 50);
+          } else {
+            // 이미지가 아직 로드 중인 경우 로드 완료 이벤트 추가
+            imageCache[imageSrc].onload = () => {
+              try {
+                drawCtx.drawImage(imageCache[imageSrc], x - 30, y - 15, 100, 50);
+                console.log("캐시된 이미지 지연 그리기 완료");
+              } catch (e) {
+                console.error("캐시된 이미지 지연 그리기 오류:", e);
+              }
+            };
+          }
+        } catch (e) {
+          console.error("캐시된 이미지 그리기 오류:", e);
+          // 오류 발생 시 이미지 다시 로드 시도
+          delete imageCache[imageSrc];
+          setTimeout(() => drawSignature(x, y, imageSrc), 100);
+        }
+        return;
       }
-    };
-    
-    img.onerror = (e) => {
-      console.error("서명 이미지 로드 오류:", e);
-      delete imageCache[imageSrc]; // 오류 발생 시 캐시에서 제거
-    };
-    
-    // 이미지 소스 설정 (이 시점에서 이미지 로드 시작)
-    img.src = imageSrc;
-    
-    // 5초 후에도 로드가 안 되면 타임아웃 처리
-    setTimeout(() => {
-      if (!img.complete) {
-        console.warn(`서명 이미지 로드 타임아웃 (x=${x}, y=${y})`);
-        delete imageCache[imageSrc];
-      }
-    }, 5000);
-  } catch (e) {
-    console.error("서명 그리기 중 예외 발생:", e);
+
+      const img = new Image();
+
+      // 이미지 로드 완료 시 호출되는 콜백
+      img.onload = () => {
+        // 이미지를 캐시에 저장
+        imageCache[imageSrc] = img;
+
+        // 서명 그리기
+        try {
+          drawCtx.drawImage(img, x - 30, y - 15, 100, 50);
+          console.log("서명 이미지 그리기 완료");
+        } catch (e) {
+          console.error("서명 이미지 그리기 오류:", e);
+        }
+      };
+
+      img.onerror = (e) => {
+        console.error("서명 이미지 로드 오류:", e);
+        delete imageCache[imageSrc]; // 오류 발생 시 캐시에서 제거
+      };
+
+      // 이미지 소스 설정 (이 시점에서 이미지 로드 시작)
+      img.src = imageSrc;
+
+      // 5초 후에도 로드가 안 되면 타임아웃 처리
+      setTimeout(() => {
+        if (!img.complete) {
+          console.warn(`서명 이미지 로드 타임아웃 (x=${x}, y=${y})`);
+          delete imageCache[imageSrc];
+        }
+      }, 5000);
+    } catch (e) {
+      console.error("서명 그리기 중 예외 발생:", e);
     }
-}
+  }
 
   function endConsult() {
-  if (!uploadedPdfUrl) {
-    alert("PDF 파일이 없습니다. PDF를 먼저 업로드하거나 공유받은 후 다시 시도해 주세요.");
-    return;
-  }
-
-  // 세션 스토리지에서 페이지 정보 삭제 (상담 종료 시 페이지 정보 초기화)
-  sessionStorage.removeItem("lastPage");
-  sessionStorage.removeItem("lastSyncedPage");
-  // 상담 종료 플래그 설정
-  sessionStorage.setItem("consultClosed", "true");
-  // 현재 페이지를 1로 설정
-  currentPage = 1;
-
-  // 상담원과 고객에 따라 다른 처리
-  if (userRole === "agent") {
-    // 먼저 WebSocket으로 상담 종료 메시지를 전송
-    if (stompClient && stompClient.connected) {
-      stompClient.send("/app/sync/endConsult", {}, JSON.stringify({
-        message: "상담이 종료되었습니다. 초기 화면으로 이동합니다.",
-        sessionId: sessionId,
-        redirectUrl: "/main-page"  // 리다이렉트 경로를 main-page로 설정
-      }));
-      console.log("상담 종료 메시지 전송 완료");
-    } else {
-      console.error("WebSocket 연결이 끊어져 상담 종료 메시지를 전송할 수 없습니다.");
+    if (!uploadedPdfUrl) {
+      alert("PDF 파일이 없습니다. PDF를 먼저 업로드하거나 공유받은 후 다시 시도해 주세요.");
+      return;
     }
-    
-    // 1. 계약 정보 생성
-    const contractData = {
-      status: "완료", // 문자열 타입의 상태값(숫자 아님)
-      clientId: sessionStorage.getItem("clientId") || "1", // String으로 유지
-      agentId: sessionStorage.getItem("agentId") || "1",   // String으로 유지 
-      memo: "상담 완료: " + new Date().toLocaleString()  // 메모에 현재 시간 기록
-    };
-    
-    console.log("계약 데이터 전송:", JSON.stringify(contractData));
-    
-    // 2. 계약 정보 DB에 저장
-    fetch('/api/contract', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(contractData)
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        console.log("계약 정보 저장 성공:", data);
-        showToast("상담 종료", "상담이 종료되고 계약 정보가 저장되었습니다.", "success");
+
+    // 세션 스토리지에서 페이지 정보 삭제 (상담 종료 시 페이지 정보 초기화)
+    sessionStorage.removeItem("lastPage");
+    sessionStorage.removeItem("lastSyncedPage");
+    // 상담 종료 플래그 설정
+    sessionStorage.setItem("consultClosed", "true");
+    // 현재 페이지를 1로 설정
+    currentPage = 1;
+
+    // 상담원과 고객에 따라 다른 처리
+    if (userRole === "agent") {
+      // 먼저 WebSocket으로 상담 종료 메시지를 전송
+      if (stompClient && stompClient.connected) {
+        stompClient.send("/app/sync/endConsult", {}, JSON.stringify({
+          message: "상담이 종료되었습니다. 초기 화면으로 이동합니다.",
+          sessionId: sessionId,
+          redirectUrl: "/main-page"  // 리다이렉트 경로를 main-page로 설정
+        }));
+        console.log("상담 종료 메시지 전송 완료");
       } else {
-        console.error("계약 저장 실패:", data);
-        showToast("저장 실패", "계약 정보 저장에 실패했습니다.", "error");
+        console.error("WebSocket 연결이 끊어져 상담 종료 메시지를 전송할 수 없습니다.");
       }
-      
-      // 상담원 상태 변경
-      updateAgentStatus(false);
-      
-      // 완료 모달 표시
-      showCompleteModal();
-    })
-    .catch(error => {
-      console.error("계약 저장 오류:", error);
-      showToast("저장 오류", "계약 정보를 저장하는 중 오류가 발생했습니다.", "error");
-      
-      // 오류가 발생해도 상담은 종료
-      updateAgentStatus(false);
-      showCompleteModal();
-    });
-  } else {
-    // 고객인 경우: 바로 완료 모달 표시
-    showCompleteModal();
-  }
-}
 
-// 페이지를 떠날 때 상담원 상태 변경 (원래 있던 리스너에 추가)
-const additionalUnloadHandler = function(e) {
-  console.log("페이지 이탈 감지 - 정리 작업 수행");
-  
-  if (userRole === "agent") {
-    // 상담원이 페이지를 떠날 때 퇴장 상태로 변경
-    updateAgentStatus(false);
-  }
-  
-  // 세션 데이터 마지막으로 저장 시도
-  if (sessionId) {
-    saveSessionData();
+      // 1. 계약 정보 생성
+      const contractData = {
+        status: "완료", // 문자열 타입의 상태값(숫자 아님)
+        clientId: sessionStorage.getItem("clientId") || "1", // String으로 유지
+        agentId: sessionStorage.getItem("agentId") || "1",   // String으로 유지
+        memo: "상담 완료: " + new Date().toLocaleString()  // 메모에 현재 시간 기록
+      };
+
+      console.log("계약 데이터 전송:", JSON.stringify(contractData));
+
+      // 2. 계약 정보 DB에 저장
+      fetch('/api/contract', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(contractData)
+      })
+              .then(response => response.json())
+              .then(data => {
+                if (data.success) {
+                  console.log("계약 정보 저장 성공:", data);
+                  showToast("상담 종료", "상담이 종료되고 계약 정보가 저장되었습니다.", "success");
+                } else {
+                  console.error("계약 저장 실패:", data);
+                  showToast("저장 실패", "계약 정보 저장에 실패했습니다.", "error");
+                }
+
+                // 상담원 상태 변경
+                updateAgentStatus(false);
+
+                // 완료 모달 표시
+                showCompleteModal();
+              })
+              .catch(error => {
+                console.error("계약 저장 오류:", error);
+                showToast("저장 오류", "계약 정보를 저장하는 중 오류가 발생했습니다.", "error");
+
+                // 오류가 발생해도 상담은 종료
+                updateAgentStatus(false);
+                showCompleteModal();
+              });
+    } else {
+      // 고객인 경우: 바로 완료 모달 표시
+      showCompleteModal();
     }
-};
+  }
 
-// 기존 이벤트 리스너에 추가로 등록
-window.addEventListener('beforeunload', additionalUnloadHandler);
+  // 페이지를 떠날 때 상담원 상태 변경 (원래 있던 리스너에 추가)
+  const additionalUnloadHandler = function(e) {
+    console.log("페이지 이탈 감지 - 정리 작업 수행");
+
+    if (userRole === "agent") {
+      // 상담원이 페이지를 떠날 때 퇴장 상태로 변경
+      updateAgentStatus(false);
+    }
+
+    // 세션 데이터 마지막으로 저장 시도
+    if (sessionId) {
+      saveSessionData();
+    }
+  };
+
+  // 기존 이벤트 리스너에 추가로 등록
+  window.addEventListener('beforeunload', additionalUnloadHandler);
 
   function restoreStampsFromSavedData(pageNumber) {
     const stampList = stampDataPerPage[pageNumber];
@@ -1936,43 +2264,43 @@ window.addEventListener('beforeunload', additionalUnloadHandler);
       textDataPerPage[currentPage].push({ x, y, text: pendingText });
       pendingText = null;
       mode = null;
-      
+
       // 텍스트 추가 후 명시적 저장
       setTimeout(saveSessionData, 500);
       return;
     }
 
     if (mode === 'stamp') {
-    const image = stampImageBase64 || localStorage.getItem("stampImage") || sessionStorage.getItem("stampImage");
+      const image = stampImageBase64 || localStorage.getItem("stampImage") || sessionStorage.getItem("stampImage");
       if (!image) return;
       drawStamp(x, y, image);
       sendStamp(x, y, image);
       mode = null;
-      
+
       // 도장 추가 후 명시적 저장
       setTimeout(saveSessionData, 500);
-    return;
-  }
-  
-  if (mode === 'signature') {
-    const image = sessionStorage.getItem("signatureImage");
-    if (!image) return;
-    drawSignature(x, y, image);
-    
-    // 서명 데이터 저장
-    if (!signatureDataPerPage[currentPage]) {
-      signatureDataPerPage[currentPage] = [];
+      return;
     }
-    signatureDataPerPage[currentPage].push({ x, y, image });
-    
-    // WebSocket으로 실시간 전송
-    sendSignature(x, y, image);
-    
-    mode = null;
-    
-    // 서명 추가 후 명시적 저장
-    setTimeout(saveSessionData, 500);
-    return;
+
+    if (mode === 'signature') {
+      const image = sessionStorage.getItem("signatureImage");
+      if (!image) return;
+      drawSignature(x, y, image);
+
+      // 서명 데이터 저장
+      if (!signatureDataPerPage[currentPage]) {
+        signatureDataPerPage[currentPage] = [];
+      }
+      signatureDataPerPage[currentPage].push({ x, y, image });
+
+      // WebSocket으로 실시간 전송
+      sendSignature(x, y, image);
+
+      mode = null;
+
+      // 서명 추가 후 명시적 저장
+      setTimeout(saveSessionData, 500);
+      return;
     }
   });
 
@@ -1991,9 +2319,9 @@ window.addEventListener('beforeunload', additionalUnloadHandler);
       text: text,
       pageNumber: currentPage
     }));
-  
-  // 텍스트 추가 후 세션 데이터 저장 (상담원/고객 모두)
-  setTimeout(saveSessionData, 1000);
+
+    // 텍스트 추가 후 세션 데이터 저장 (상담원/고객 모두)
+    setTimeout(saveSessionData, 1000);
   }
 
   function restoreTextsFromSavedData(pageNumber) {
@@ -2002,91 +2330,91 @@ window.addEventListener('beforeunload', additionalUnloadHandler);
     list.forEach(({ x, y, text }) => drawTextOnCanvas(x, y, text));
   }
 
-// 서명 데이터를 복원하는 함수 추가 (개선된 버전)
-function restoreSignaturesFromSavedData(pageNumber) {
-  const signatureList = signatureDataPerPage[pageNumber];
-  if (!signatureList || signatureList.length === 0) {
-    console.log(`페이지 ${pageNumber}에 복원할 서명 데이터가 없습니다.`);
-    return;
-  }
-  
-  console.log(`페이지 ${pageNumber}의 서명 데이터 복원: ${signatureList.length}개`);
+  // 서명 데이터를 복원하는 함수 추가 (개선된 버전)
+  function restoreSignaturesFromSavedData(pageNumber) {
+    const signatureList = signatureDataPerPage[pageNumber];
+    if (!signatureList || signatureList.length === 0) {
+      console.log(`페이지 ${pageNumber}에 복원할 서명 데이터가 없습니다.`);
+      return;
+    }
 
-  // 백그라운드에서 모든 이미지 로드 시작
-  signatureList.forEach(({ image, x, y }, index) => {
-    if (!image) {
-      console.warn(`서명 데이터 #${index+1}에 이미지가 없습니다.`);
-      return;
-    }
-    
-    // 이미 캐시에 있는 이미지는 바로 그리기
-    if (imageCache[image] && imageCache[image].complete) {
-      console.log(`캐시된 이미지 #${index+1} 사용`);
-      if (currentPage === pageNumber) {
-        try {
-          drawSignature(x, y, image);
-        } catch (e) {
-          console.error(`캐시된 이미지 그리기 오류:`, e);
-        }
+    console.log(`페이지 ${pageNumber}의 서명 데이터 복원: ${signatureList.length}개`);
+
+    // 백그라운드에서 모든 이미지 로드 시작
+    signatureList.forEach(({ image, x, y }, index) => {
+      if (!image) {
+        console.warn(`서명 데이터 #${index+1}에 이미지가 없습니다.`);
+        return;
       }
-      return;
-    }
-    
-    // 이미지 새로 로드
-    const img = new Image();
-    
-    // 로드 완료 시 캐시에 저장하고 그리기
-    img.onload = () => {
-      imageCache[image] = img;
-      console.log(`서명 이미지 #${index+1} 로드 완료`);
-      
-      // 현재 보고 있는 페이지에만 그리기
-      if (currentPage === pageNumber) {
-        try {
-          drawSignature(x, y, image);
-        } catch (e) {
-          console.error(`새 이미지 그리기 오류:`, e);
-        }
-      }
-    };
-    
-    img.onerror = (err) => {
-      console.error(`서명 이미지 #${index+1} 로드 실패:`, err);
-      
-      // 로드 실패 시 재시도 (1회)
-      setTimeout(() => {
-        console.log(`서명 이미지 #${index+1} 로드 재시도...`);
-        const retryImg = new Image();
-        retryImg.onload = () => {
-          imageCache[image] = retryImg;
-          if (currentPage === pageNumber) {
-            drawSignature(x, y, image);
-          }
-        };
-        retryImg.src = image;
-      }, 1000);
-    };
-    
-    // 이미지 로드 시작
-    img.src = image;
-  });
-  
-  // 페이지 로드 후 3초 뒤 정렬된 그리기 재시도 (마지막 안전 장치)
-  setTimeout(() => {
-    if (currentPage === pageNumber) {
-      console.log(`페이지 ${pageNumber}의 서명 데이터 최종 확인 및 복원`);
-      signatureList.forEach(({ x, y, image }) => {
-        if (image && imageCache[image] && imageCache[image].complete) {
+
+      // 이미 캐시에 있는 이미지는 바로 그리기
+      if (imageCache[image] && imageCache[image].complete) {
+        console.log(`캐시된 이미지 #${index+1} 사용`);
+        if (currentPage === pageNumber) {
           try {
             drawSignature(x, y, image);
           } catch (e) {
-            console.error("최종 서명 복구 시도 실패:", e);
+            console.error(`캐시된 이미지 그리기 오류:`, e);
           }
         }
-      });
-    }
-  }, 3000);
-}
+        return;
+      }
+
+      // 이미지 새로 로드
+      const img = new Image();
+
+      // 로드 완료 시 캐시에 저장하고 그리기
+      img.onload = () => {
+        imageCache[image] = img;
+        console.log(`서명 이미지 #${index+1} 로드 완료`);
+
+        // 현재 보고 있는 페이지에만 그리기
+        if (currentPage === pageNumber) {
+          try {
+            drawSignature(x, y, image);
+          } catch (e) {
+            console.error(`새 이미지 그리기 오류:`, e);
+          }
+        }
+      };
+
+      img.onerror = (err) => {
+        console.error(`서명 이미지 #${index+1} 로드 실패:`, err);
+
+        // 로드 실패 시 재시도 (1회)
+        setTimeout(() => {
+          console.log(`서명 이미지 #${index+1} 로드 재시도...`);
+          const retryImg = new Image();
+          retryImg.onload = () => {
+            imageCache[image] = retryImg;
+            if (currentPage === pageNumber) {
+              drawSignature(x, y, image);
+            }
+          };
+          retryImg.src = image;
+        }, 1000);
+      };
+
+      // 이미지 로드 시작
+      img.src = image;
+    });
+
+    // 페이지 로드 후 3초 뒤 정렬된 그리기 재시도 (마지막 안전 장치)
+    setTimeout(() => {
+      if (currentPage === pageNumber) {
+        console.log(`페이지 ${pageNumber}의 서명 데이터 최종 확인 및 복원`);
+        signatureList.forEach(({ x, y, image }) => {
+          if (image && imageCache[image] && imageCache[image].complete) {
+            try {
+              drawSignature(x, y, image);
+            } catch (e) {
+              console.error("최종 서명 복구 시도 실패:", e);
+            }
+          }
+        });
+      }
+    }, 3000);
+  }
 
   drawingCanvas.addEventListener("mousemove", (e) => {
     if (!drawing || !mode) return;
@@ -2110,573 +2438,2091 @@ function restoreSignaturesFromSavedData(pageNumber) {
     localLastY = y;
   });
 
-async function savePdfWithStampAndSignature(forEmail = false) {
-  try {
-    const PDFDocument = window.PDFLib.PDFDocument;
+  async function savePdfWithStampAndSignature(forEmail = false) {
+    try {
+      const PDFDocument = window.PDFLib.PDFDocument;
 
-    if (!uploadedPdfUrl) {
-      throw new Error("PDF 파일 경로를 찾을 수 없습니다.");
-    }
+      if (!uploadedPdfUrl) {
+        throw new Error("PDF 파일 경로를 찾을 수 없습니다.");
+      }
 
-    // 로딩 메시지 표시
-    if (!forEmail) {
-      alert("PDF 저장 중입니다. 잠시만 기다려주세요...");
-    } else {
-      showToast("PDF 생성 중", "PDF 문서를 생성하고 있습니다...", "info");
-    }
+      // 로딩 메시지 표시
+      if (!forEmail) {
+        alert("PDF 저장 중입니다. 잠시만 기다려주세요...");
+      } else {
+        showToast("PDF 생성 중", "PDF 문서를 생성하고 있습니다...", "info");
+      }
 
-    // 원본 PDF 가져오기
-    const existingPdfBytes = await fetch(uploadedPdfUrl).then(res => res.arrayBuffer());
-    const pdfDocLib = await PDFDocument.load(existingPdfBytes);
-    const pages = pdfDocLib.getPages();
+      // 원본 PDF 가져오기
+      const existingPdfBytes = await fetch(uploadedPdfUrl).then(res => res.arrayBuffer());
+      const pdfDocLib = await PDFDocument.load(existingPdfBytes);
+      const pages = pdfDocLib.getPages();
 
-    // 페이지별로 도장과 서명 데이터 처리
-    for (let i = 0; i < pages.length; i++) {
-      const pageNumber = i + 1;
-      const page = pages[i];
-      const { width, height } = page.getSize();
+      // 페이지별로 도장과 서명 데이터 처리
+      for (let i = 0; i < pages.length; i++) {
+        const pageNumber = i + 1;
+        const page = pages[i];
+        const { width, height } = page.getSize();
 
-      // 이 페이지에 있는 도장 목록
-      const stampItems = stampDataPerPage[pageNumber] || [];
-      console.log(`페이지 ${pageNumber}의 도장 개수: ${stampItems.length}`);
+        // 이 페이지에 있는 도장 목록
+        const stampItems = stampDataPerPage[pageNumber] || [];
+        console.log(`페이지 ${pageNumber}의 도장 개수: ${stampItems.length}`);
 
-      // 이 페이지에 있는 서명 목록
-      const signatureItems = signatureDataPerPage[pageNumber] || [];
-      console.log(`페이지 ${pageNumber}의 서명 개수: ${signatureItems.length}`);
+        // 이 페이지에 있는 서명 목록
+        const signatureItems = signatureDataPerPage[pageNumber] || [];
+        console.log(`페이지 ${pageNumber}의 서명 개수: ${signatureItems.length}`);
 
-      // 도장 추가
-      for (const { x, y, image } of stampItems) {
-        // 이미지를 PDF에 임베드
-        const stampImage = await pdfDocLib.embedPng(image);
-        
-        // 좌표 변환 (PDF 좌표계는 왼쪽 하단이 원점)
-        const scale = 1.5; // PDF.js의 renderPage에서 사용된 스케일과 맞춤
-        const pdfX = (x / scale);
-        const pdfY = height - (y / scale);
-        
-        // 도장 크기
-        const stampSize = 50;
-        
         // 도장 추가
-        page.drawImage(stampImage, {
-          x: pdfX - stampSize/2,
-          y: pdfY - stampSize/2,
-          width: stampSize,
-          height: stampSize
-        });
-      }
+        for (const { x, y, image } of stampItems) {
+          // 이미지를 PDF에 임베드
+          const stampImage = await pdfDocLib.embedPng(image);
 
-      // 서명 추가
-      for (const { x, y, image } of signatureItems) {
-        // 이미지를 PDF에 임베드
-        const signImage = await pdfDocLib.embedPng(image);
-        
-        // 좌표 변환
-        const scale = 1.5;
-        const pdfX = (x / scale);
-        const pdfY = height - (y / scale);
-        
-        // 서명 크기
-        const signWidth = 100;
-        const signHeight = 50;
-        
+          // 좌표 변환 (PDF 좌표계는 왼쪽 하단이 원점)
+          const scale = 1.5; // PDF.js의 renderPage에서 사용된 스케일과 맞춤
+          const pdfX = (x / scale);
+          const pdfY = height - (y / scale);
+
+          // 도장 크기
+          const stampSize = 50;
+
+          // 도장 추가
+          page.drawImage(stampImage, {
+            x: pdfX - stampSize/2,
+            y: pdfY - stampSize/2,
+            width: stampSize,
+            height: stampSize
+          });
+        }
+
         // 서명 추가
-        page.drawImage(signImage, {
-          x: pdfX - signWidth/2,
-          y: pdfY - signHeight/2,
-          width: signWidth,
-          height: signHeight
-        });
+        for (const { x, y, image } of signatureItems) {
+          // 이미지를 PDF에 임베드
+          const signImage = await pdfDocLib.embedPng(image);
+
+          // 좌표 변환
+          const scale = 1.5;
+          const pdfX = (x / scale);
+          const pdfY = height - (y / scale);
+
+          // 서명 크기
+          const signWidth = 100;
+          const signHeight = 50;
+
+          // 서명 추가
+          page.drawImage(signImage, {
+            x: pdfX - signWidth/2,
+            y: pdfY - signHeight/2,
+            width: signWidth,
+            height: signHeight
+          });
+        }
       }
+
+      // PDF 저장
+      const pdfBytes = await pdfDocLib.save();
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+
+      // 현재 날짜와 시간을 파일명에 추가
+      const now = new Date();
+      const timestamp = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
+      const fileName = `상담문서_${timestamp}.pdf`;
+
+      // 로컬 다운로드 (이메일 전송이 아닌 경우)
+      if (!forEmail) {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        link.click();
+        console.log("PDF 저장 완료");
+        return null;
+      } else {
+        // 이메일 전송을 위해 Base64 인코딩된 데이터 반환
+        console.log("이메일 전송용 PDF 생성 완료");
+        return await blobToBase64(blob);
+      }
+    } catch (error) {
+      console.error("PDF 저장 오류:", error);
+      if (!forEmail) {
+        alert("PDF 저장 중 오류가 발생했습니다: " + error.message);
+      } else {
+        showToast("PDF 생성 실패", "PDF 저장 중 오류가 발생했습니다: " + error.message, "error");
+      }
+      throw error;
     }
+  }
 
-    // PDF 저장
-    const pdfBytes = await pdfDocLib.save();
-    const blob = new Blob([pdfBytes], { type: "application/pdf" });
-    
-    // 현재 날짜와 시간을 파일명에 추가
-    const now = new Date();
-    const timestamp = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
-    const fileName = `상담문서_${timestamp}.pdf`;
-    
-    // 로컬 다운로드 (이메일 전송이 아닌 경우)
-    if (!forEmail) {
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = fileName;
-      link.click();
-      console.log("PDF 저장 완료");
-      return null;
-    } else {
-      // 이메일 전송을 위해 Base64 인코딩된 데이터 반환
-      console.log("이메일 전송용 PDF 생성 완료");
-      return await blobToBase64(blob);
+  // 토스트 메시지 함수
+  // 토스트 메시지 중복 방지 객체
+  const toastTracker = {
+    active: {}, // 현재 표시 중인 토스트 추적
+    lastShown: {}, // 각 유형별 마지막 표시 시간
+
+    // 동일한 토스트가 이미 표시 중인지 확인
+    isDuplicate: function(type, title) {
+      const key = `${type}_${title}`;
+      return !!this.active[key];
+    },
+
+    // 토스트 등록
+    register: function(type, title, toastElement) {
+      const key = `${type}_${title}`;
+      this.active[key] = toastElement;
+      this.lastShown[key] = Date.now();
+    },
+
+    // 토스트 삭제
+    remove: function(type, title) {
+      const key = `${type}_${title}`;
+      delete this.active[key];
+    },
+
+    // 너무 짧은 시간 내에 같은 메시지가 반복되는지 확인
+    isTooFrequent: function(type, title) {
+      const key = `${type}_${title}`;
+      const lastTime = this.lastShown[key];
+      return lastTime && (Date.now() - lastTime < 3000); // 3초 이내 동일 메시지 방지
     }
-  } catch (error) {
-    console.error("PDF 저장 오류:", error);
-    if (!forEmail) {
-      alert("PDF 저장 중 오류가 발생했습니다: " + error.message);
-    } else {
-      showToast("PDF 생성 실패", "PDF 저장 중 오류가 발생했습니다: " + error.message, "error");
-  }
-    throw error;
-  }
-}
-
-// 토스트 메시지 함수
-// 토스트 메시지 중복 방지 객체
-const toastTracker = {
-  active: {}, // 현재 표시 중인 토스트 추적
-  lastShown: {}, // 각 유형별 마지막 표시 시간
-  
-  // 동일한 토스트가 이미 표시 중인지 확인
-  isDuplicate: function(type, title) {
-    const key = `${type}_${title}`;
-    return !!this.active[key];
-  },
-  
-  // 토스트 등록
-  register: function(type, title, toastElement) {
-    const key = `${type}_${title}`;
-    this.active[key] = toastElement;
-    this.lastShown[key] = Date.now();
-  },
-  
-  // 토스트 삭제
-  remove: function(type, title) {
-    const key = `${type}_${title}`;
-    delete this.active[key];
-  },
-  
-  // 너무 짧은 시간 내에 같은 메시지가 반복되는지 확인
-  isTooFrequent: function(type, title) {
-    const key = `${type}_${title}`;
-    const lastTime = this.lastShown[key];
-    return lastTime && (Date.now() - lastTime < 3000); // 3초 이내 동일 메시지 방지
-  }
-};
-
-function showToast(title, message, type = 'success') {
-  // 중복 메시지 방지
-  if (toastTracker.isDuplicate(type, title) || toastTracker.isTooFrequent(type, title)) {
-    console.log(`중복 토스트 방지: [${type}] ${title}`);
-    return;
-  }
-
-  const toastContainer = document.getElementById('toastContainer');
-  
-  // 토스트 요소 생성
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-  
-  // 배경색 설정
-  if (type === 'success') {
-    toast.style.backgroundColor = '#4CAF50';
-  } else if (type === 'info') {
-    toast.style.backgroundColor = '#2196F3';
-  } else if (type === 'warning') {
-    toast.style.backgroundColor = '#ff9800';
-  } else if (type === 'error') {
-    toast.style.backgroundColor = '#f44336';
-  }
-  
-  // 토스트 내용 구성
-  const icon = document.createElement('div');
-  icon.className = 'toast-icon';
-  icon.innerHTML = type === 'success' ? '✅' : 
-                  type === 'info' ? 'ℹ️' :
-                  type === 'warning' ? '⚠️' : '❌';
-
-  const content = document.createElement('div');
-  content.className = 'toast-content';
-  
-  const titleEl = document.createElement('div');
-  titleEl.className = 'toast-title';
-  titleEl.textContent = title;
-  
-  const messageEl = document.createElement('div');
-  messageEl.className = 'toast-message';
-  messageEl.textContent = message;
-  
-  content.appendChild(titleEl);
-  content.appendChild(messageEl);
-  
-  const closeBtn = document.createElement('div');
-  closeBtn.className = 'toast-close';
-  closeBtn.innerHTML = '&times;';
-  closeBtn.onclick = function() {
-    toast.remove();
-    toastTracker.remove(type, title);
   };
-  
-  toast.appendChild(icon);
-  toast.appendChild(content);
-  toast.appendChild(closeBtn);
-  
-  // 토스트 컨테이너에 추가
-  toastContainer.appendChild(toast);
-  
-  // 토스트 추적에 등록
-  toastTracker.register(type, title, toast);
-  
-  // 애니메이션 표시
-  setTimeout(() => {
-    toast.classList.add('show');
-  }, 10);
-  
-  // 5초 후 사라짐
-  setTimeout(() => {
-    toast.classList.remove('show');
-    setTimeout(() => {
+
+  function showToast(title, message, type = 'success') {
+    // 중복 메시지 방지
+    if (toastTracker.isDuplicate(type, title) || toastTracker.isTooFrequent(type, title)) {
+      console.log(`중복 토스트 방지: [${type}] ${title}`);
+      return;
+    }
+
+    const toastContainer = document.getElementById('toastContainer');
+
+    // 토스트 요소 생성
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+
+    // 배경색 설정
+    if (type === 'success') {
+      toast.style.backgroundColor = '#4CAF50';
+    } else if (type === 'info') {
+      toast.style.backgroundColor = '#2196F3';
+    } else if (type === 'warning') {
+      toast.style.backgroundColor = '#ff9800';
+    } else if (type === 'error') {
+      toast.style.backgroundColor = '#f44336';
+    }
+
+    // 토스트 내용 구성
+    const icon = document.createElement('div');
+    icon.className = 'toast-icon';
+    icon.innerHTML = type === 'success' ? '✅' :
+            type === 'info' ? 'ℹ️' :
+                    type === 'warning' ? '⚠️' : '❌';
+
+    const content = document.createElement('div');
+    content.className = 'toast-content';
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'toast-title';
+    titleEl.textContent = title;
+
+    const messageEl = document.createElement('div');
+    messageEl.className = 'toast-message';
+    messageEl.textContent = message;
+
+    content.appendChild(titleEl);
+    content.appendChild(messageEl);
+
+    const closeBtn = document.createElement('div');
+    closeBtn.className = 'toast-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.onclick = function() {
       toast.remove();
       toastTracker.remove(type, title);
-    }, 300);
-  }, 5000);
-}
-
-// 사용자 입장 메시지 전송 함수
-function sendUserJoinMessage() {
-  // 세션에서 필요한 정보 가져오기
-  const role = sessionStorage.getItem("role");
-  const entryType = sessionStorage.getItem("entryType") || "default";
-  
-  // WebSocket이 연결된 상태인지 확인
-  if (stompClient && stompClient.connected) {
-    stompClient.send("/app/sync/userJoin", {}, JSON.stringify({
-      userType: role,
-      entryType: entryType,
-      sessionId: sessionId
-    }));
-    
-    // 고객이 입장한 경우, 상담원에게 현재 페이지 정보 요청
-    if (role === "client") {
-      console.log("고객 입장: 상담원에게 현재 페이지 정보 요청");
-      requestCurrentPageFromConsultant();
-    }
-  } else {
-    // WebSocket이 아직 연결되지 않았다면, 연결 후 메시지 전송을 위한 콜백 설정
-    console.log("WebSocket 연결 대기 중, 연결 후 사용자 입장 메시지를 전송합니다.");
-    
-    // 1초 후 다시 시도
-    setTimeout(() => {
-      if (stompClient && stompClient.connected) {
-        stompClient.send("/app/sync/userJoin", {}, JSON.stringify({
-          userType: role,
-          entryType: entryType,
-          sessionId: sessionId
-        }));
-        
-        // 고객이 입장한 경우, 상담원에게 현재 페이지 정보 요청
-        if (role === "client") {
-          requestCurrentPageFromConsultant();
-        }
-      }
-    }, 1000);
-  }
-}
-
-// 상담원에게 현재 페이지 정보 요청
-function requestCurrentPageFromConsultant() {
-  if (stompClient && stompClient.connected) {
-    stompClient.send("/app/sync/requestCurrentPage", {}, JSON.stringify({
-      sessionId: sessionId,
-      requesterId: "client_" + Date.now()
-    }));
-    console.log("상담원에게 현재 페이지 정보 요청 전송");
-  }
-}
-
-// 상담 완료 모달 표시/숨김 함수
-function showCompleteModal() {
-  console.log("상담 완료 모달 표시 함수 호출됨");
-  const completeModal = document.getElementById('completeModal');
-  
-  if (!completeModal) {
-    console.error("completeModal 요소를 찾을 수 없습니다!");
-    return;
-  }
-  
-  // 모달 스타일 확인 및 수정
-  completeModal.style.display = 'block';
-  completeModal.style.zIndex = '9999'; // 최상위 레이어로 설정
-  
-  // 배경을 어둡게 하는 오버레이 추가
-  let overlay = document.getElementById('modalOverlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'modalOverlay';
-    overlay.style.position = 'fixed';
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.width = '100%';
-    overlay.style.height = '100%';
-    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-    overlay.style.zIndex = '9998';
-    document.body.appendChild(overlay);
-  } else {
-    overlay.style.display = 'block';
-  }
-  
-  // 애니메이션 효과 추가
-  completeModal.style.opacity = '0';
-  setTimeout(() => {
-    completeModal.style.transition = 'opacity 0.3s ease-in-out';
-    completeModal.style.opacity = '1';
-  }, 50);
-  
-  // 확인 로그
-  console.log("상담 완료 모달이 표시되었습니다.");
-  
-  // 모달 외부 클릭 방지
-  overlay.onclick = (e) => {
-    e.stopPropagation();
-    // 외부 클릭해도 모달은 닫히지 않음
-  };
-  
-  // 뒤로가기 방지
-  window.history.pushState(null, "", window.location.href);
-  window.onpopstate = function() {
-    window.history.pushState(null, "", window.location.href);
-  };
-  
-  // 모달이 안 보이는 경우를 대비해 3초 후 다시 한번 표시 시도
-  setTimeout(() => {
-    if (completeModal.style.display !== 'block' || parseFloat(completeModal.style.opacity) < 1) {
-      console.log("모달 재표시 시도");
-      completeModal.style.display = 'block';
-      completeModal.style.opacity = '1';
-      completeModal.style.zIndex = '9999';
-      
-      if (overlay) {
-        overlay.style.display = 'block';
-      }
-    }
-  }, 3000);
-}
-
-function closeCompleteModal() {
-  document.getElementById('completeModal').style.display = 'none';
-}
-
-// 초기 화면으로 이동 함수
-function goToHomePage() {
-  // 세션 스토리지에서 페이지 정보 삭제
-  sessionStorage.removeItem("lastPage");
-  sessionStorage.removeItem("lastSyncedPage");
-  // 상담 종료 플래그 설정
-  sessionStorage.setItem("consultClosed", "true");
-  
-  // 현재 페이지 초기화
-  currentPage = 1;
-  
-  // 세션에 저장된 리다이렉트 URL이 있으면 그 URL로, 없으면 기본 URL로 이동
-  const redirectUrl = sessionStorage.getItem("redirectUrl") || "/main-page";
-  console.log("초기 화면으로 이동합니다:", redirectUrl);
-  
-  // 사용 후 리다이렉트 URL 삭제
-  sessionStorage.removeItem("redirectUrl");
-  
-  // 지정된 페이지로 이동
-  location.href = redirectUrl;
-}
-
-// Blob을 Base64 문자열로 변환하는 유틸리티 함수
-function blobToBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      // data:application/pdf;base64, 부분을 제거하고 Base64 문자열만 반환
-      const base64String = reader.result.split(',')[1];
-      resolve(base64String);
     };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
 
-// PDF 공유 관련 함수들
-function requestPdfFromAgent() {
-  if (stompClient && stompClient.connected) {
-    console.log("상담원에게 PDF 요청 메시지 전송");
-    stompClient.send("/app/sync/requestPdf", {}, JSON.stringify({
-      sessionId: sessionId,
-      requesterId: "client_" + Date.now()
-    }));
-    
-    // 사용자에게 알림
-    showToast("PDF 요청", "상담원에게 PDF 문서를 요청했습니다.", "info");
-  } else {
-    console.error("WebSocket 연결이 되어 있지 않아 PDF 요청을 보낼 수 없습니다.");
-    
-    // 5초 후에 다시 시도
+    toast.appendChild(icon);
+    toast.appendChild(content);
+    toast.appendChild(closeBtn);
+
+    // 토스트 컨테이너에 추가
+    toastContainer.appendChild(toast);
+
+    // 토스트 추적에 등록
+    toastTracker.register(type, title, toast);
+
+    // 애니메이션 표시
     setTimeout(() => {
-      if (stompClient && stompClient.connected) {
-        requestPdfFromAgent();
-      }
+      toast.classList.add('show');
+    }, 10);
+
+    // 5초 후 사라짐
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => {
+        toast.remove();
+        toastTracker.remove(type, title);
+      }, 300);
     }, 5000);
   }
-}
 
-// 상담원이 PDF 요청을 받았을 때 PDF 공유 함수
-function sharePdfToClient(requesterId) {
-  if (!uploadedPdfUrl) {
-    console.log("공유할 PDF가 없습니다.");
-    return;
-  }
-  
-  if (stompClient && stompClient.connected) {
-    console.log("고객에게 PDF 공유:", uploadedPdfUrl);
-    // 현재 PDF 파일 다시 공유
-    sendPdfPathSync(uploadedPdfUrl);
-    
-    // 현재 페이지 정보도 공유
-    sendPageSync(currentPage);
-  }
-}
+  // 사용자 입장 메시지 전송 함수
+  function sendUserJoinMessage() {
+    // 세션에서 필요한 정보 가져오기
+    const role = sessionStorage.getItem("role");
+    const entryType = sessionStorage.getItem("entryType") || "default";
 
-// 페이지 로딩 완료 후 5초 간격으로 PDF 존재 확인 및 자동 요청
-window.addEventListener('load', function() {
-  if (userRole === "client") {
-    // 5초마다 PDF가 로드되었는지 확인
-    const pdfCheckInterval = setInterval(() => {
-      if (!pdfDoc && stompClient && stompClient.connected) {
-        console.log("PDF가 아직 로드되지 않음, 요청 시도");
-        requestPdfFromAgent();
-      } else if (pdfDoc) {
-        // PDF가 로드되면 인터벌 중지
-        clearInterval(pdfCheckInterval);
-        console.log("PDF가 로드되어 자동 요청을 중지합니다.");
-      }
-    }, 5000);
-  }
-  
-  // 고객과 상담원 모두 자동 저장 시작
-  setTimeout(() => {
+    // WebSocket이 연결된 상태인지 확인
     if (stompClient && stompClient.connected) {
-      startAutoSave();
-    }
-  }, 2000);
-});
+      stompClient.send("/app/sync/userJoin", {}, JSON.stringify({
+        userType: role,
+        entryType: entryType,
+        sessionId: sessionId
+      }));
 
-// 저장된 페이지 번호 가져오기
-function fetchSavedPageNumber(callback) {
-  if (!sessionId) {
-    callback(1);
-    return;
-  }
-  
-  // 상담이 새로 시작된 경우 항상 1페이지로 시작
-  const isConsultClosed = sessionStorage.getItem("consultClosed");
-  if (isConsultClosed === "true") {
-    console.log("상담이 종료된 후 새로 시작되어 1페이지로 설정");
-    sessionStorage.removeItem("consultClosed");
-    callback(1);
-    return;
-  }
-  
-  fetch(`/api/contract-data/${sessionId}`)
-    .then(response => response.json())
-    .then(data => {
-      if (data.success === false || !data.currentPage) {
-        callback(1);
-        return;
+      // 고객이 입장한 경우, 상담원에게 현재 페이지 정보 요청
+      if (role === "client") {
+        console.log("고객 입장: 상담원에게 현재 페이지 정보 요청");
+        requestCurrentPageFromConsultant();
       }
-      
-      console.log("저장된 페이지 번호 가져옴:", data.currentPage);
-      callback(data.currentPage);
-    })
-    .catch(error => {
-      console.error("페이지 정보 가져오기 실패:", error);
-      callback(1);
-    });
-}
+    } else {
+      // WebSocket이 아직 연결되지 않았다면, 연결 후 메시지 전송을 위한 콜백 설정
+      console.log("WebSocket 연결 대기 중, 연결 후 사용자 입장 메시지를 전송합니다.");
 
-// WebSocket 연결 상태 확인 및 재연결
-function checkAndReconnectWebSocket() {
-  console.log("WebSocket 연결 상태 확인");
-  
-  if (!stompClient || !stompClient.connected) {
-    console.log("WebSocket이 연결되어 있지 않음, 재연결 시도");
-    
-    // 연결 시도
-    connectWebSocket();
-    
-    // 2초 후 연결 상태 다시 확인
+      // 1초 후 다시 시도
+      setTimeout(() => {
+        if (stompClient && stompClient.connected) {
+          stompClient.send("/app/sync/userJoin", {}, JSON.stringify({
+            userType: role,
+            entryType: entryType,
+            sessionId: sessionId
+          }));
+
+          // 고객이 입장한 경우, 상담원에게 현재 페이지 정보 요청
+          if (role === "client") {
+            requestCurrentPageFromConsultant();
+          }
+        }
+      }, 1000);
+    }
+  }
+
+  // 상담원에게 현재 페이지 정보 요청
+  function requestCurrentPageFromConsultant() {
+    if (stompClient && stompClient.connected) {
+      stompClient.send("/app/sync/requestCurrentPage", {}, JSON.stringify({
+        sessionId: sessionId,
+        requesterId: "client_" + Date.now()
+      }));
+      console.log("상담원에게 현재 페이지 정보 요청 전송");
+    }
+  }
+
+  // 상담 완료 모달 표시/숨김 함수
+  function showCompleteModal() {
+    console.log("상담 완료 모달 표시 함수 호출됨");
+    const completeModal = document.getElementById('completeModal');
+
+    if (!completeModal) {
+      console.error("completeModal 요소를 찾을 수 없습니다!");
+      return;
+    }
+
+    // 모달 스타일 확인 및 수정
+    completeModal.style.display = 'block';
+    completeModal.style.zIndex = '9999'; // 최상위 레이어로 설정
+
+    // 배경을 어둡게 하는 오버레이 추가
+    let overlay = document.getElementById('modalOverlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'modalOverlay';
+      overlay.style.position = 'fixed';
+      overlay.style.top = '0';
+      overlay.style.left = '0';
+      overlay.style.width = '100%';
+      overlay.style.height = '100%';
+      overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+      overlay.style.zIndex = '9998';
+      document.body.appendChild(overlay);
+    } else {
+      overlay.style.display = 'block';
+    }
+
+    // 애니메이션 효과 추가
+    completeModal.style.opacity = '0';
+    setTimeout(() => {
+      completeModal.style.transition = 'opacity 0.3s ease-in-out';
+      completeModal.style.opacity = '1';
+    }, 50);
+
+    // 확인 로그
+    console.log("상담 완료 모달이 표시되었습니다.");
+
+    // 모달 외부 클릭 방지
+    overlay.onclick = (e) => {
+      e.stopPropagation();
+      // 외부 클릭해도 모달은 닫히지 않음
+    };
+
+    // 뒤로가기 방지
+    window.history.pushState(null, "", window.location.href);
+    window.onpopstate = function() {
+      window.history.pushState(null, "", window.location.href);
+    };
+
+    // 모달이 안 보이는 경우를 대비해 3초 후 다시 한번 표시 시도
+    setTimeout(() => {
+      if (completeModal.style.display !== 'block' || parseFloat(completeModal.style.opacity) < 1) {
+        console.log("모달 재표시 시도");
+        completeModal.style.display = 'block';
+        completeModal.style.opacity = '1';
+        completeModal.style.zIndex = '9999';
+
+        if (overlay) {
+          overlay.style.display = 'block';
+        }
+      }
+    }, 3000);
+  }
+
+  function closeCompleteModal() {
+    document.getElementById('completeModal').style.display = 'none';
+  }
+
+  // 초기 화면으로 이동 함수
+  function goToHomePage() {
+    // 세션 스토리지에서 페이지 정보 삭제
+    sessionStorage.removeItem("lastPage");
+    sessionStorage.removeItem("lastSyncedPage");
+    // 상담 종료 플래그 설정
+    sessionStorage.setItem("consultClosed", "true");
+
+    // 현재 페이지 초기화
+    currentPage = 1;
+
+    // 세션에 저장된 리다이렉트 URL이 있으면 그 URL로, 없으면 기본 URL로 이동
+    const redirectUrl = sessionStorage.getItem("redirectUrl") || "/main-page";
+    console.log("초기 화면으로 이동합니다:", redirectUrl);
+
+    // 사용 후 리다이렉트 URL 삭제
+    sessionStorage.removeItem("redirectUrl");
+
+    // 지정된 페이지로 이동
+    location.href = redirectUrl;
+  }
+
+  // Blob을 Base64 문자열로 변환하는 유틸리티 함수
+  function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        // data:application/pdf;base64, 부분을 제거하고 Base64 문자열만 반환
+        const base64String = reader.result.split(',')[1];
+        resolve(base64String);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  // PDF 공유 관련 함수들
+  function requestPdfFromAgent() {
+    if (stompClient && stompClient.connected) {
+      console.log("상담원에게 PDF 요청 메시지 전송");
+      stompClient.send("/app/sync/requestPdf", {}, JSON.stringify({
+        sessionId: sessionId,
+        requesterId: "client_" + Date.now()
+      }));
+
+      // 사용자에게 알림
+      showToast("PDF 요청", "상담원에게 PDF 문서를 요청했습니다.", "info");
+    } else {
+      console.error("WebSocket 연결이 되어 있지 않아 PDF 요청을 보낼 수 없습니다.");
+
+      // 5초 후에 다시 시도
+      setTimeout(() => {
+        if (stompClient && stompClient.connected) {
+          requestPdfFromAgent();
+        }
+      }, 5000);
+    }
+  }
+
+  // 상담원이 PDF 요청을 받았을 때 PDF 공유 함수
+  function sharePdfToClient(requesterId) {
+    if (!uploadedPdfUrl) {
+      console.log("공유할 PDF가 없습니다.");
+      return;
+    }
+
+    if (stompClient && stompClient.connected) {
+      console.log("고객에게 PDF 공유:", uploadedPdfUrl);
+      // 현재 PDF 파일 다시 공유
+      sendPdfPathSync(uploadedPdfUrl);
+
+      // 현재 페이지 정보도 공유
+      sendPageSync(currentPage);
+    }
+  }
+
+  // 페이지 로딩 완료 후 5초 간격으로 PDF 존재 확인 및 자동 요청
+  window.addEventListener('load', function() {
+    if (userRole === "client") {
+      // 5초마다 PDF가 로드되었는지 확인
+      const pdfCheckInterval = setInterval(() => {
+        if (!pdfDoc && stompClient && stompClient.connected) {
+          console.log("PDF가 아직 로드되지 않음, 요청 시도");
+          requestPdfFromAgent();
+        } else if (pdfDoc) {
+          // PDF가 로드되면 인터벌 중지
+          clearInterval(pdfCheckInterval);
+          console.log("PDF가 로드되어 자동 요청을 중지합니다.");
+        }
+      }, 5000);
+    }
+
+    // 고객과 상담원 모두 자동 저장 시작
     setTimeout(() => {
       if (stompClient && stompClient.connected) {
-        console.log("WebSocket 재연결 성공");
-        
-        // 재연결 후 세션 데이터 로드
-        if (sessionId && !window.dataLoaded) {
-          console.log("재연결 후 세션 데이터 로드 시도");
-          loadSessionData(true);
-        }
-        
-        // 사용자 입장 메시지 재전송
-        sendUserJoinMessage();
-      } else {
-        console.error("WebSocket 재연결 실패, 3초 후 재시도");
-        setTimeout(checkAndReconnectWebSocket, 3000);
+        startAutoSave();
       }
     }, 2000);
-  } else {
-    console.log("WebSocket이 이미 연결되어 있음");
-  }
-}
+  });
 
-function exitRoom() {
-  if (confirm("상담방에서 나가시겠습니까? 저장하지 않은 내용은 모두 사라집니다.")) {
-    // 소켓 연결 종료
+  // 저장된 페이지 번호 가져오기
+  function fetchSavedPageNumber(callback) {
+    if (!sessionId) {
+      callback(1);
+      return;
+    }
+
+    // 상담이 새로 시작된 경우 항상 1페이지로 시작
+    const isConsultClosed = sessionStorage.getItem("consultClosed");
+    if (isConsultClosed === "true") {
+      console.log("상담이 종료된 후 새로 시작되어 1페이지로 설정");
+      sessionStorage.removeItem("consultClosed");
+      callback(1);
+      return;
+    }
+
+    fetch(`/api/contract-data/${sessionId}`)
+            .then(response => response.json())
+            .then(data => {
+              if (data.success === false || !data.currentPage) {
+                callback(1);
+                return;
+              }
+
+              console.log("저장된 페이지 번호 가져옴:", data.currentPage);
+              callback(data.currentPage);
+            })
+            .catch(error => {
+              console.error("페이지 정보 가져오기 실패:", error);
+              callback(1);
+            });
+  }
+
+  // WebSocket 연결 상태 확인 및 재연결
+  function checkAndReconnectWebSocket() {
+    console.log("WebSocket 연결 상태 확인");
+
+    if (!stompClient || !stompClient.connected) {
+      console.log("WebSocket이 연결되어 있지 않음, 재연결 시도");
+
+      // 연결 시도
+      connectWebSocket();
+
+      // 2초 후 연결 상태 다시 확인
+      setTimeout(() => {
+        if (stompClient && stompClient.connected) {
+          console.log("WebSocket 재연결 성공");
+
+          // 재연결 후 세션 데이터 로드
+          if (sessionId && !window.dataLoaded) {
+            console.log("재연결 후 세션 데이터 로드 시도");
+            loadSessionData(true);
+          }
+
+          // 사용자 입장 메시지 재전송
+          sendUserJoinMessage();
+        } else {
+          console.error("WebSocket 재연결 실패, 3초 후 재시도");
+          setTimeout(checkAndReconnectWebSocket, 3000);
+        }
+      }, 2000);
+    } else {
+      console.log("WebSocket이 이미 연결되어 있음");
+    }
+  }
+
+  function exitRoom() {
+    if (confirm("상담방에서 나가시겠습니까? 저장하지 않은 내용은 모두 사라집니다.")) {
+      // 소켓 연결 종료
+      disconnectWebSocket();
+
+      // 메인 페이지로 이동
+      location.href = "/main-page";
+    }
+  }
+
+  function handleOnlineStatusChange(isOnline) {
+    if (isOnline) {
+      // 상담원이 참여 중인 경우
+      if (isAgent) {
+        showToast("고객이 입장했습니다.");
+        document.getElementById("statusArea").textContent = "고객이 참여하고 있습니다. 상담을 진행해주세요.";
+      } else {
+        showToast("상담원이 입장했습니다.");
+        document.getElementById("statusArea").textContent = "상담원이 참여하고 있습니다. 상담을 시작합니다.";
+      }
+    } else {
+      // 상대방이 나간 경우
+      if (isAgent) {
+        alert("고객이 상담방을 나갔습니다. 메인 페이지로 이동합니다.");
+        disconnectWebSocket();
+        location.href = "/main-page";
+      } else {
+        alert("상담원이 상담방을 나갔습니다. 대기실로 이동합니다.");
+        disconnectWebSocket();
+        location.href = "/waiting-room";
+      }
+    }
+  }
+
+  // 완료 버튼 클릭 처리
+  function completeConsultation() {
+    if (confirm("상담을 완료하시겠습니까?")) {
+      // 완료 메시지 전송
+      sendWebSocketMessage("완료", "COMPLETE");
+
+      // 모달 표시 (필요시)
+      document.getElementById("completeModal").style.display = "block";
+    }
+  }
+
+  // 확인 버튼 클릭 처리
+  function confirmComplete() {
+    document.getElementById("completeModal").style.display = "none";
     disconnectWebSocket();
-    
-    // 메인 페이지로 이동
     location.href = "/main-page";
   }
-}
 
-function handleOnlineStatusChange(isOnline) {
-  if (isOnline) {
-    // 상담원이 참여 중인 경우
-    if (isAgent) {
-      showToast("고객이 입장했습니다.");
-      document.getElementById("statusArea").textContent = "고객이 참여하고 있습니다. 상담을 진행해주세요.";
-    } else {
-      showToast("상담원이 입장했습니다.");
-      document.getElementById("statusArea").textContent = "상담원이 참여하고 있습니다. 상담을 시작합니다.";
+  // ===== WebRTC 영상통화 기능 시작 =====
+  let pc; // RTCPeerConnection 객체
+  let localStream; // 로컬 미디어 스트림
+  let recorder, recordedChunks = []; // 녹음 관련 변수
+  let wsRtc = null; // WebRTC용 웹소켓
+
+  // WebRTC 웹소켓 초기화 및 연결
+  function initWebRTC() {
+    console.log("WebRTC 초기화 시작");
+
+    // 중복 연결 방지를 위한 체크 수정
+    if (stompClient && stompClient.connected) {
+      console.log("STOMP 클라이언트가 이미 연결되어 있습니다.");
+      // 이미 연결되어 있더라도 통화 시작 시도
+      setTimeout(() => {
+        startCall();
+      }, 1000);
+      return;
     }
-  } else {
-    // 상대방이 나간 경우
-    if (isAgent) {
-      alert("고객이 상담방을 나갔습니다. 메인 페이지로 이동합니다.");
-      disconnectWebSocket();
-      location.href = "/main-page";
-    } else {
-      alert("상담원이 상담방을 나갔습니다. 대기실로 이동합니다.");
-      disconnectWebSocket();
-      location.href = "/waiting-room";
+
+    try {
+      // SockJS와 STOMP 사용 (WebSocketConfig에 맞게 설정)
+      console.log("SockJS와 STOMP 사용하여 연결 시도");
+
+      // 필요한 라이브러리 로드
+      if (typeof SockJS === 'undefined' || typeof Stomp === 'undefined') {
+        console.log("필요한 라이브러리 로드 중...");
+        // SockJS 먼저 로드
+        loadScript('https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js', function() {
+          // 그 다음 STOMP 로드
+          loadScript('https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js', function() {
+            connectStomp();
+          });
+        });
+      } else {
+        connectStomp();
+      }
+    } catch (error) {
+      console.error("WebSocket 초기화 중 오류:", error);
+      showToast("연결 오류", "WebSocket 연결 초기화에 실패했습니다.", "error");
     }
   }
-}
 
-// 완료 버튼 클릭 처리
-function completeConsultation() {
-  if (confirm("상담을 완료하시겠습니까?")) {
-    // 완료 메시지 전송
-    sendWebSocketMessage("완료", "COMPLETE");
-    
-    // 모달 표시 (필요시)
-    document.getElementById("completeModal").style.display = "block";
+  // 라이브러리 동적 로드 함수
+  function loadScript(url, callback) {
+    console.log(url + " 라이브러리 로드 중...");
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = url;
+    script.onload = callback;
+    document.head.appendChild(script);
   }
-}
 
-// 확인 버튼 클릭 처리
-function confirmComplete() {
-  document.getElementById("completeModal").style.display = "none";
-  disconnectWebSocket();
-  location.href = "/main-page";
-}
+  // STOMP 연결 함수 개선
+  function connectStomp() {
+    try {
+      console.log("📡 STOMP 연결 시도");
+
+      // 정확한 WebSocket 주소 설정 - 절대 경로 사용
+      const socketUrl = window.location.origin + '/ws';
+      console.log("📡 WebSocket URL:", socketUrl);
+
+      // 기존 연결 정리
+      if (stompClient && stompClient.connected) {
+        console.log("📡 기존 STOMP 연결 정리");
+        try {
+          stompClient.disconnect();
+        } catch (e) {
+          console.warn("STOMP 연결 해제 중 오류:", e);
+        }
+        stompClient = null;
+      }
+
+      // SockJS 연결 생성
+      const socket = new SockJS(socketUrl);
+      stompClient = Stomp.over(socket);
+
+      // 디버그 로그 최소화 (주요 이벤트만 로깅)
+      stompClient.debug = function(str) {
+        if (str.includes("CONNECTED") || str.includes("ERROR") || str.includes("DISCONNECT")) {
+          console.log("📡 STOMP:", str);
+        }
+      };
+
+      // 세션 ID 확인 및 정리
+      const cleanSessionId = sessionId.trim(); // 공백 제거
+      console.log(`📡 사용할 세션 ID: ${cleanSessionId}, 역할: ${userRole}`);
+
+      // 연결 시도
+      stompClient.connect({},
+              // 성공 콜백
+              function(frame) {
+                console.log('✅ STOMP 연결 성공:', frame);
+                showToast("서버 연결", "영상 통화 서버에 연결되었습니다", "success");
+
+                // 방 ID별 WebRTC 메시지 구독 (세션 ID 기반)
+                const roomSpecificTopic = `/topic/webrtc/${cleanSessionId}`;
+                console.log(`📡 방별 WebRTC 토픽 구독: ${roomSpecificTopic}`);
+
+                stompClient.subscribe(roomSpecificTopic, function(message) {
+                  try {
+                    const data = JSON.parse(message.body);
+                    console.log(`📥 메시지 수신 [${data.type}] 보낸이: ${data.senderRole || 'unknown'}`);
+
+                    // 자신이 보낸 메시지는 무시 (에코 방지)
+                    if (data.senderRole === userRole && data.timestamp &&
+                            (Date.now() - data.timestamp < 5000)) {
+                      console.log("⚠️ 자신이 보낸 메시지 무시 (에코 방지)");
+                      return;
+                    }
+
+                    handleWebRTCMessage(data);
+                  } catch (e) {
+                    console.error("❌ WebRTC 메시지 처리 오류:", e);
+                  }
+                });
+
+                // 방 입장 메시지 전송 (명시적 초기화 플래그 포함)
+                sendRtcMessage("join", {
+                  requestOffer: userRole === "client", // 고객만 오퍼 요청
+                  init: true,
+                  reconnect: false
+                });
+
+                // 영상 통화 시작 (지연 시간 줄임)
+                setTimeout(() => {
+                  startCall();
+                }, 500);
+
+                // 재연결 카운터 초기화
+                window.reconnectAttempts = 0;
+              },
+              // 오류 콜백
+              function(error) {
+                console.error('STOMP 연결 오류:', error);
+                showToast("연결 오류", "영상 통화 연결에 실패했습니다.", "error");
+
+                // 5초 후 재연결 시도 - 재시도 횟수 제한
+                if (!window.reconnectAttempts) window.reconnectAttempts = 0;
+                window.reconnectAttempts++;
+
+                if (window.reconnectAttempts < 3) {
+                  setTimeout(function() {
+                    if (document.visibilityState !== 'hidden') {
+                      console.log(`STOMP 재연결 시도 ${window.reconnectAttempts}/3...`);
+                      connectStomp();
+                    }
+                  }, 5000);
+                } else {
+                  console.log("최대 재시도 횟수 초과, 연결 시도 중단");
+                  showToast("연결 실패", "여러 번 재시도했으나 연결할 수 없습니다. 페이지를 새로고침해 주세요.", "error");
+                }
+              }
+      );
+    } catch (err) {
+      console.error("STOMP 연결 시도 중 예외 발생:", err);
+      showToast("연결 오류", "WebSocket 연결 중 오류가 발생했습니다.", "error");
+    }
+  }
+
+  // WebRTC 메시지 처리 함수
+  function handleWebRTCMessage(data) {
+    if (!data || !data.type) {
+      console.error("잘못된 WebRTC 메시지 형식:", data);
+      return;
+    }
+
+    console.log("WebRTC 메시지 수신:", data.type);
+
+    // 모든 메시지 로깅 (디버깅용)
+    console.log("수신된 WebRTC 메시지:", data);
+
+    try {
+      switch (data.type) {
+        case "offer":
+          console.log("Offer 수신");
+          handleOffer(data);
+          break;
+
+        case "answer":
+          console.log("Answer 수신");
+          handleAnswer(data);
+          break;
+
+        case "ice":
+          console.log("ICE 후보 수신");
+          handleIceCandidateMessage(data);
+          break;
+
+        case "join":
+          console.log("Join 메시지 수신");
+          if (data.requestOffer && userRole === "agent") {
+            console.log("고객으로부터 Offer 요청 수신, Offer 생성");
+
+            // 새 연결이 필요한지 확인
+            if (!pc || pc.connectionState === 'failed' || pc.iceConnectionState === 'failed' ||
+                    pc.iceConnectionState === 'disconnected' || data.reconnect) {
+              console.log("Join 메시지에 따라 피어 연결 재설정");
+
+              if (pc) {
+                pc.close();
+                pc = null;
+              }
+
+              createPeerConnection().then(() => {
+                setTimeout(() => {
+                  createAndSendOffer({ iceRestart: true });
+                }, 500);
+              });
+            } else {
+              // 기존 연결 유지하며 새 Offer 생성
+              createAndSendOffer();
+            }
+          }
+          break;
+
+        default:
+          console.log("알 수 없는 메시지 타입:", data.type);
+      }
+    } catch (error) {
+      console.error("WebRTC 메시지 처리 중 오류:", error);
+      showToast("통신 오류", "영상 통화 메시지 처리 중 오류가 발생했습니다.", "error");
+
+      // 심각한 오류에서 자동 복구 시도
+      if (error.name === "InvalidStateError" || error.message.includes("Cannot read property")) {
+        console.log("심각한 오류 감지, 연결 재설정 시도");
+        setTimeout(restartConnection, 1500);
+      }
+    }
+  }
+
+  // 브라우저 환경 점검
+  function checkBrowserEnvironment() {
+    console.log("브라우저 환경 점검 중...");
+
+    // 브라우저 종류 확인
+    const userAgent = navigator.userAgent;
+    const browserInfo = {
+      isChrome: userAgent.indexOf("Chrome") > -1 && userAgent.indexOf("Edg") === -1,
+      isFirefox: userAgent.indexOf("Firefox") > -1,
+      isEdge: userAgent.indexOf("Edg") > -1,
+      isSafari: userAgent.indexOf("Safari") > -1 && userAgent.indexOf("Chrome") === -1,
+      version: ""
+    };
+
+    // 버전 추출 시도
+    if (browserInfo.isChrome) {
+      const match = userAgent.match(/Chrome\/(\d+)/);
+      browserInfo.version = match ? match[1] : "unknown";
+      console.log("Chrome 브라우저 감지, 버전:", browserInfo.version);
+    } else if (browserInfo.isFirefox) {
+      const match = userAgent.match(/Firefox\/(\d+)/);
+      browserInfo.version = match ? match[1] : "unknown";
+      console.log("Firefox 브라우저 감지, 버전:", browserInfo.version);
+    } else if (browserInfo.isEdge) {
+      const match = userAgent.match(/Edg\/(\d+)/);
+      browserInfo.version = match ? match[1] : "unknown";
+      console.log("Edge 브라우저 감지, 버전:", browserInfo.version);
+    }
+
+    // WebRTC 지원 확인
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.error("이 브라우저는 WebRTC를 지원하지 않습니다.");
+      showToast("브라우저 호환성 오류", "이 브라우저는 영상 통화를 지원하지 않습니다. 최신 Chrome이나 Firefox를 사용해주세요.", "error");
+      return false;
+    }
+
+    // 미디어 권한 확인 (접근 권한이 거부된 상태인지)
+    navigator.permissions.query({ name: 'camera' })
+            .then(permissionStatus => {
+              console.log("카메라 권한 상태:", permissionStatus.state);
+              if (permissionStatus.state === 'denied') {
+                showToast("카메라 접근 거부됨", "카메라 접근이 차단되었습니다. 브라우저 설정에서 권한을 허용해주세요.", "warning");
+              }
+            })
+            .catch(e => console.log("권한 확인 불가:", e));
+
+    return true;
+  }
+
+  // 카메라 직접 테스트 함수 - 초기화 전 점검용
+  async function testCameraAccess() {
+    const videoTest = document.getElementById("localVideo");
+
+    try {
+      console.log("카메라 사전 테스트 시작...");
+      const testStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 160, max: 320 },
+          height: { ideal: 120, max: 240 }
+        }
+      });
+
+      // 테스트용 비디오 표시
+      videoTest.srcObject = testStream;
+      await videoTest.play();
+      console.log("카메라 테스트 성공!");
+
+      // 3초 후 테스트 종료
+      setTimeout(() => {
+        testStream.getTracks().forEach(track => track.stop());
+        videoTest.srcObject = null;
+        console.log("카메라 테스트 종료");
+      }, 3000);
+
+      return true;
+    } catch (error) {
+      console.error("카메라 테스트 실패:", error);
+
+      // 오류 메시지
+      let errorMsg = "카메라 접근 실패";
+      if (error.name === "NotAllowedError") {
+        errorMsg = "카메라 접근이 거부되었습니다. 브라우저 설정에서 권한을 허용해주세요.";
+      } else if (error.name === "NotFoundError") {
+        errorMsg = "카메라를 찾을 수 없습니다. 카메라가 연결되어 있는지 확인해주세요.";
+      }
+
+      showToast("카메라 테스트 실패", errorMsg, "error");
+      return false;
+    }
+  }
+
+  // 페이지 로드 시 WebRTC 초기화 및 통화 시작
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOMContentLoaded - WebRTC 초기화 준비");
+
+    // 브라우저 환경 점검
+    if (!checkBrowserEnvironment()) {
+      return;
+    }
+
+    // 역할에 따른 특별 처리 (상담원 모드에서 추가 점검)
+    if (userRole === "agent") {
+      console.log("상담원 모드 감지 - 추가 점검 시작");
+
+      // 카메라 사전 테스트 수행
+      testCameraAccess().then(cameraOk => {
+        console.log("카메라 사전 테스트 결과:", cameraOk ? "성공" : "실패");
+
+        // 카메라 테스트 결과와 관계없이 계속 진행
+        initializeWebRTC();
+      });
+    } else {
+      // 고객 모드에서는 즉시 초기화
+      initializeWebRTC();
+    }
+  });
+
+  // WebRTC 초기화 함수
+  function initializeWebRTC() {
+    // 지연 후 초기화 시작 (다른 페이지 요소 로드 대기)
+    setTimeout(() => {
+      // SockJS 라이브러리 로드 확인
+      if (typeof SockJS === 'undefined') {
+        console.error("SockJS 라이브러리가 로드되지 않았습니다");
+        showToast("라이브러리 오류", "필요한 라이브러리가 로드되지 않았습니다", "error");
+        return;
+      }
+
+      // STOMP 라이브러리 로드 확인
+      if (typeof Stomp === 'undefined') {
+        console.error("STOMP 라이브러리가 로드되지 않았습니다");
+        showToast("라이브러리 오류", "필요한 라이브러리가 로드되지 않았습니다", "error");
+        return;
+      }
+
+      // 모든 준비 완료, 연결 시작
+      console.log("WebRTC 초기화 시작");
+      connectStomp();
+
+      // 연결 상태 모니터링
+      setInterval(() => {
+        if (!stompClient || !stompClient.connected) {
+          console.log("WebSocket 연결 끊김 감지");
+
+          // 재연결 시도 (재시도 횟수 제한 유지)
+          if (!window.reconnectAttempts || window.reconnectAttempts < 3) {
+            console.log("재연결 시도...");
+            connectStomp();
+          }
+        }
+      }, 10000);
+
+    }, 1500);
+  }
+
+  // 원격 비디오 강제 적용 함수 - 상대방 비디오가 표시되지 않을 때 사용
+  function forceApplyRemoteStream() {
+    console.log("원격 비디오 강제 적용 시도");
+
+    try {
+      const remoteVideo = document.getElementById("remoteVideo");
+      if (!remoteVideo) {
+        console.error("원격 비디오 요소가 없습니다.");
+        return false;
+      }
+
+      // 원격 비디오 컨테이너 가시성 확인
+      const remoteVideoContainer = document.getElementById("remoteVideoContainer");
+      if (remoteVideoContainer) {
+        remoteVideoContainer.style.display = "block";
+        remoteVideoContainer.style.visibility = "visible";
+      }
+
+      // 이미 스트림이 있으면 재생 확인
+      if (remoteVideo.srcObject) {
+        console.log("원격 비디오에 이미 스트림이 있습니다:", remoteVideo.srcObject.id);
+
+        // 오디오/비디오 트랙 확인
+        const audioTracks = remoteVideo.srcObject.getAudioTracks();
+        const videoTracks = remoteVideo.srcObject.getVideoTracks();
+        console.log(`기존 트랙: 오디오=${audioTracks.length}, 비디오=${videoTracks.length}`);
+
+        // 비디오 트랙이 없지만 window.remoteStream에 있으면 적용
+        if (videoTracks.length === 0 && window.remoteStream) {
+          const remoteStreamVideoTracks = window.remoteStream.getVideoTracks();
+          if (remoteStreamVideoTracks.length > 0) {
+            console.log("전역 스트림에서 비디오 트랙 발견, 기존 스트림에 추가");
+            try {
+              remoteStreamVideoTracks.forEach(track => {
+                remoteVideo.srcObject.addTrack(track);
+              });
+              console.log("트랙 추가 완료, 비디오 업데이트");
+              updateRemoteVideoStatus("카메라 켜짐");
+              return true;
+            } catch (trackErr) {
+              console.warn("트랙 추가 실패, 전체 스트림 교체:", trackErr);
+              remoteVideo.srcObject = window.remoteStream;
+              remoteVideo.play().catch(e => console.warn("재생 실패:", e));
+              return true;
+            }
+          }
+        }
+
+        // 이미 재생 중이면 그대로 둠
+        if (!remoteVideo.paused) {
+          console.log("이미 재생 중입니다.");
+          return true;
+        }
+
+        // 일시정지 상태면 재생 시도
+        console.log("일시정지 상태, 재생 시도");
+        remoteVideo.play().catch(e => console.warn("재생 실패:", e));
+        return true;
+      }
+
+      // 저장된 원격 스트림 확인
+      if (window.remoteStream) {
+        console.log("저장된 원격 스트림을 강제 적용합니다:", window.remoteStream.id);
+
+        // 비디오/오디오 트랙 확인
+        const videoTracks = window.remoteStream.getVideoTracks();
+        const audioTracks = window.remoteStream.getAudioTracks();
+        console.log(`원격 스트림 트랙: 비디오=${videoTracks.length}, 오디오=${audioTracks.length}`);
+
+        // 스트림 적용
+        remoteVideo.srcObject = window.remoteStream;
+
+        // 속성 설정으로 재생 보장
+        remoteVideo.muted = false; // 상대방 소리가 들려야 함
+        remoteVideo.autoplay = true;
+        remoteVideo.playsInline = true;
+
+        // 스타일 정확히 지정
+        remoteVideo.style.display = "block";
+        remoteVideo.style.width = "100%";
+        remoteVideo.style.height = "100%";
+        remoteVideo.style.objectFit = "cover";
+
+        // 재생 시도
+        remoteVideo.play()
+                .then(() => {
+                  console.log("원격 비디오 강제 재생 성공");
+                  updateRemoteVideoStatus(videoTracks.length > 0 ? "카메라 켜짐" : "오디오만");
+                })
+                .catch(e => console.warn("강제 재생 실패:", e));
+
+        return true;
+      }
+
+      // PC에서 원격 스트림 가져오기 시도
+      if (pc && pc.getReceivers) {
+        const receivers = pc.getReceivers();
+        console.log("PC에서 수신자 확인:", receivers.length);
+
+        // 모든 트랙을 새 스트림에 추가
+        if (receivers.length > 0) {
+          const stream = new MediaStream();
+          let hasVideoTrack = false;
+
+          // 모든 트랙 추가
+          receivers.forEach(receiver => {
+            if (receiver.track) {
+              stream.addTrack(receiver.track);
+              console.log(`트랙 추가: ${receiver.track.kind}`);
+              if (receiver.track.kind === 'video') hasVideoTrack = true;
+            }
+          });
+
+          // 스트림에 최소한 하나의 트랙이 있는 경우에만 적용
+          if (stream.getTracks().length > 0) {
+            console.log("수신자에서 가져온 스트림으로 원격 비디오 설정");
+            remoteVideo.srcObject = stream;
+
+            // 전역 저장
+            window.remoteStream = stream;
+
+            // 상태 업데이트
+            updateRemoteVideoStatus(hasVideoTrack ? "카메라 켜짐" : "오디오만");
+
+            // 재생 시도
+            remoteVideo.play()
+                    .then(() => console.log("수신자에서 가져온 스트림 재생 성공"))
+                    .catch(e => console.warn("재생 실패:", e));
+
+            return true;
+          }
+        }
+      }
+
+      // 원격 스트림을 찾을 수 없는 경우 연결 재시도
+      console.log("원격 스트림을 찾을 수 없습니다. 연결 재시도...");
+
+      // 연결 다시 시작
+      if (pc) {
+        // ICE 재협상 시도
+        if (pc.restartIce) {
+          console.log("ICE 재시작 시도");
+          pc.restartIce();
+
+          // 역할에 따라 다시 오퍼/앤서 교환
+          setTimeout(() => {
+            if (userRole === "agent") {
+              console.log("상담원이 Offer 재생성");
+              createAndSendOffer({ iceRestart: true });
+            } else {
+              console.log("고객이 Offer 요청");
+              sendRtcMessage("join", { roomId: sessionId, requestOffer: true });
+            }
+          }, 1000);
+
+          return true;
+        } else {
+          // restartIce를 지원하지 않으면 완전히 새로 연결
+          console.log("ICE 재시작을 지원하지 않음, 전체 연결 재시작");
+          restartConnection();
+          return true;
+        }
+      }
+
+      return false;
+    } catch (e) {
+      console.error("원격 비디오 강제 적용 중 오류:", e);
+      // 오류 발생시 재연결 시도
+      setTimeout(() => {
+        restartConnection();
+      }, 2000);
+      return false;
+    }
+  }
+
+  // WebRTC 연결 자동화 - 페이지 로드 완료 후 실행
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log("🚀 WebRTC 자동 연결 시스템 초기화");
+
+    // 카메라 접근 권한 확인 메시지 표시
+    showToast("접근 필요", "카메라와 마이크 사용 권한을 브라우저에서 허용해주세요.", "info");
+
+    // 연결 초기화를 위한 타이머 설정 (3초 후 시작, 브라우저가 준비될 시간)
+    setTimeout(() => {
+      try {
+        // 상담 연결 시작
+        console.log("화상 연결 시작 중...");
+        startCall();
+
+        // 상태 모니터링 간격 설정 (10초마다)
+        setInterval(() => {
+          try {
+            // 연결 상태가 생성되지 않았거나 실패한 경우 재시도
+            if (!pc) {
+              console.log("⚠️ PeerConnection이 없습니다. 재생성 시도");
+              createPeerConnection().then(() => startCall());
+              return;
+            }
+
+            // 연결 상태 로깅
+            console.log("연결 상태:", pc.connectionState);
+            console.log("ICE 상태:", pc.iceConnectionState);
+            console.log("신호 상태:", pc.signalingState);
+
+            // 연결이 끊어졌거나 실패한 경우 재연결
+            if (pc.connectionState === 'disconnected' ||
+                    pc.connectionState === 'failed' ||
+                    pc.iceConnectionState === 'failed') {
+
+              console.log("🔄 연결 실패 감지! 재연결 시도 중...");
+              updateRemoteVideoStatus("재연결 중...");
+
+              // 기존 연결 정리 후 재시도
+              pc.close();
+              pc = null;
+
+              // 새 연결 시도
+              setTimeout(() => {
+                createPeerConnection().then(() => startCall());
+              }, 1000);
+            }
+            // 미디어 상태 체크 - 연결은 됐지만 비디오 없는 경우
+            else if (pc.connectionState === 'connected') {
+              const remoteVideo = document.getElementById("remoteVideo");
+              if (remoteVideo && remoteVideo.srcObject) {
+                const videoTracks = remoteVideo.srcObject.getVideoTracks();
+                if (videoTracks.length === 0) {
+                  console.log("⚠️ 원격 비디오 트랙 없음, 비디오 상태 업데이트");
+                  updateRemoteVideoStatus("비디오 없음");
+
+                  // 원격 비디오가 없는 경우 강제 적용 시도
+                  forceApplyRemoteStream();
+                }
+              } else if (remoteVideo && !remoteVideo.srcObject) {
+                console.log("⚠️ 원격 비디오에 스트림 없음");
+                updateRemoteVideoStatus("스트림 없음");
+
+                // 스트림이 없는 경우 강제 적용 시도
+                forceApplyRemoteStream();
+              }
+            }
+          } catch (err) {
+            console.error("❌ 모니터링 중 오류:", err);
+          }
+        }, 10000);
+      } catch (err) {
+        console.error("❌ 연결 초기화 중 오류:", err);
+        showToast("연결 오류", "영상 통화 초기화에 실패했습니다. 페이지를 새로고침해보세요.", "error");
+      }
+    }, 3000);
+  });
+
+  // ICE 서버 구성 - 로컬 테스트에 최적화된 설정
+  const ICE_SERVERS = {
+    iceServers: [
+      // 로컬 테스트를 위한 최소한의 STUN 서버 (Chrome에서 잘 작동)
+      { urls: "stun:stun.l.google.com:19302" },
+
+      // 로컬 환경 연결에 중요: localhost나 같은 네트워크에서 접근 시 작동하는 공개 STUN 서버
+      { urls: "stun:stun.stunprotocol.org:3478" },
+
+      // 로컬 테스트용 간소화 TURN 서버 구성 (localhost 통신에서는 대부분 필요 없음)
+      {
+        urls: [
+          "turn:turn.metered.ca:80",
+          "turn:turn.metered.ca:443?transport=tcp"
+        ],
+        username: "5f75b1edc5ee0b8cd7bcac3d",
+        credential: "hVY0EfbS9HkEGqcO"
+      }
+    ],
+    iceCandidatePoolSize: 5,      // 로컬 테스트에 충분한 값으로 줄임
+    bundlePolicy: "max-bundle",    // 미디어 트랙 번들링 (표준 설정)
+    rtcpMuxPolicy: "require",      // RTCP 멀티플렉싱 (표준 설정)
+    sdpSemantics: "unified-plan",  // 최신 WebRTC 표준
+
+    // 로컬 네트워크 연결에 가장 중요한 부분
+    iceTransportPolicy: "all"      // 모든 후보 허용 (로컬 IP 주소 포함)
+  };
+
+  // ICE 후보 버퍼링을 위한 배열
+  let iceCandidateBuffer = [];
+
+  // WebRTC 연결 생성 함수
+  async function createPeerConnection() {
+    try {
+      console.log("📞 Peer Connection 생성 시작");
+
+      // 기존 연결 제거
+      if (pc) {
+        console.log("기존 PC 연결 닫기");
+        pc.close();
+        pc = null;
+      }
+
+      // RTCPeerConnection 생성
+      pc = new RTCPeerConnection(ICE_SERVERS);
+      console.log("RTCPeerConnection 생성됨:", pc);
+
+      // ICE 버퍼 초기화
+      iceCandidateBuffer = [];
+
+      // ICE 후보 이벤트 처리
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          console.log("ICE 후보 생성:", event.candidate.candidate.substr(0, 50) + "...");
+
+          // ICE 후보 전송
+          sendRtcMessage("ice", {
+            roomId: sessionId,
+            ice: event.candidate
+          });
+        } else {
+          console.log("ICE 후보 수집 완료");
+        }
+      };
+
+      // 연결 상태 변경 이벤트
+      pc.onconnectionstatechange = () => {
+        console.log("연결 상태 변경:", pc.connectionState);
+        updateRemoteVideoStatus(`연결 상태: ${pc.connectionState}`);
+
+        // 연결 실패 시 재시도
+        if (pc.connectionState === 'failed') {
+          console.log("연결 실패, 5초 후 재시도...");
+          setTimeout(() => {
+            restartConnection();
+          }, 5000);
+        }
+      };
+
+      // ICE 연결 상태 변경 이벤트
+      pc.oniceconnectionstatechange = () => {
+        console.log("ICE 연결 상태:", pc.iceConnectionState);
+
+        // ICE 연결 실패시 재시도
+        if (pc.iceConnectionState === 'failed') {
+          console.log("ICE 연결 실패, 재시도 중...");
+          restartConnection();
+        }
+      };
+
+      // 원격 스트림 추가 이벤트 (로컬 테스트 환경에 최적화)
+      pc.ontrack = (event) => {
+        console.log("👍 원격 트랙 수신:", event.track.kind, event.streams && event.streams[0] ? "스트림 있음" : "스트림 없음");
+
+        // 원격 비디오 요소 가져오기
+        const remoteVideo = document.getElementById("remoteVideo");
+
+        // event.streams[0]가 있으면 해당 스트림을 사용하고, 없으면 새 스트림 생성
+        if (event.streams && event.streams[0]) {
+          console.log("💡 원격 미디어 스트림 발견, 직접 사용");
+
+          // 스트림을 원격 비디오에 직접 연결 (더 신뢰성 높음)
+          remoteVideo.srcObject = event.streams[0];
+          window.remoteStream = event.streams[0];
+        } else {
+          console.log("💡 원격 스트림 없음, 수동으로 생성");
+
+          // 스트림 설정 - 수동으로 MediaStream 생성
+          if (!remoteVideo.srcObject) {
+            remoteVideo.srcObject = new MediaStream();
+            window.remoteStream = remoteVideo.srcObject;
+            console.log("새 원격 스트림 생성됨");
+          }
+
+          // 스트림에 트랙 추가
+          const remoteStream = remoteVideo.srcObject;
+
+          // 같은 종류의 트랙이 이미 있는지 확인하고 제거
+          const existingTracks = remoteStream.getTracks().filter(t => t.kind === event.track.kind);
+          existingTracks.forEach(track => {
+            console.log(`기존 ${track.kind} 트랙 제거`);
+            remoteStream.removeTrack(track);
+          });
+
+          // 새 트랙 추가
+          remoteStream.addTrack(event.track);
+        }
+
+        console.log(`✅ 원격 스트림에 ${event.track.kind} 트랙 추가됨`);
+
+        // 스트림 상태 디버깅
+        const remoteStream = remoteVideo.srcObject;
+        if (remoteStream) {
+          const audioTracks = remoteStream.getAudioTracks();
+          const videoTracks = remoteStream.getVideoTracks();
+          console.log(`✅ 원격 스트림 상태: 오디오=${audioTracks.length}, 비디오=${videoTracks.length}`);
+
+          // 비디오 트랙 상태 업데이트
+          updateRemoteVideoStatus(videoTracks.length > 0 ? "카메라 켜짐" : "오디오만");
+
+          // 트랙 상태 모니터링 (트랙 종료시 자동 복구)
+          videoTracks.forEach(track => {
+            track.onended = () => {
+              console.log("⚠️ 원격 비디오 트랙이 종료됨, 재연결 시도");
+              // 비디오 종료 시 재연결 시도
+              setTimeout(() => {
+                if (userRole === 'agent') {
+                  createAndSendOffer({ iceRestart: true });
+                } else {
+                  sendRtcMessage("join", { roomId: sessionId, requestOffer: true, reconnect: true });
+                }
+              }, 1000);
+            };
+          });
+        }
+
+        // 원격 비디오 자동 재생 시도 (여러 방법 시도)
+        try {
+          // 1. 기본 재생 시도
+          const playPromise = remoteVideo.play();
+
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              console.log("✅ 원격 비디오 재생 성공");
+              remoteVideo.style.opacity = "1"; // 재생 시작되면 투명도를 1로 변경
+            }).catch(e => {
+              console.warn("⚠️ 자동 재생 실패:", e);
+
+              // 2. muted 속성 추가 후 재시도
+              remoteVideo.muted = true;
+              remoteVideo.play().then(() => {
+                console.log("✅ 음소거 상태로 재생 성공");
+
+                // 3초 후 음소거 해제 시도
+                setTimeout(() => {
+                  remoteVideo.muted = false;
+                  console.log("음소거 해제됨");
+                }, 3000);
+              }).catch(() => {
+                // 3. 사용자 상호작용 유도
+                showToast("비디오 재생", "화면을 클릭하면 원격 비디오가 재생됩니다", "info");
+
+                document.addEventListener('click', () => {
+                  remoteVideo.play()
+                          .then(() => console.log("✅ 클릭 후 재생 성공"))
+                          .catch(err => console.error("❌ 클릭 후에도 재생 실패:", err));
+                }, { once: true });
+              });
+            });
+          }
+        } catch (playError) {
+          console.error("❌ 재생 중 예외 발생:", playError);
+        }
+      };
+
+      // 카메라 접근 및 로컬 스트림 설정
+      const constraints = {
+        audio: true,
+        video: {
+          width: { ideal: 320, max: 640 },
+          height: { ideal: 240, max: 480 },
+          frameRate: { max: 30 }
+        }
+      };
+
+      // 카메라/마이크 접근
+      console.log("카메라/마이크 접근 요청:", constraints);
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log("미디어 스트림 획득 성공");
+
+      // 로컬 비디오에 연결
+      const localVideo = document.getElementById("localVideo");
+      if (localVideo.srcObject) {
+        // 기존 스트림 트랙 중지
+        const tracks = localVideo.srcObject.getTracks();
+        tracks.forEach(track => track.stop());
+      }
+
+      localVideo.srcObject = stream;
+      localStream = stream;
+
+      // 로컬 비디오 자동 재생
+      await localVideo.play().catch(e => {
+        console.warn("로컬 비디오 자동 재생 실패:", e);
+        showToast("비디오 재생 오류", "비디오 재생에 문제가 있습니다. 화면을 클릭해주세요.", "warning");
+
+        // 사용자 상호작용이 필요한 경우 클릭 이벤트 기다림
+        document.addEventListener('click', () => {
+          localVideo.play().catch(err => console.error("클릭 후에도 재생 실패:", err));
+        }, { once: true });
+      });
+
+      // 비디오 상태 업데이트
+      updateLocalVideoStatus("연결됨");
+
+      // 스트림의 모든 트랙을 Peer Connection에 추가
+      stream.getTracks().forEach(track => {
+        console.log(`로컬 트랙 추가: ${track.kind}`);
+        pc.addTrack(track, stream);
+      });
+
+      return pc;
+    } catch (error) {
+      console.error("Peer Connection 생성 중 오류:", error);
+      showToast("연결 오류", "화상 통화 연결을 설정하는 데 문제가 발생했습니다.", "error");
+      throw error;
+    }
+  }
+
+  // 버퍼에 저장된 ICE 후보 처리
+  async function processIceCandidateBuffer() {
+    if (!pc || !pc.remoteDescription) {
+      console.log("원격 설명이 설정되지 않아 ICE 후보 처리 지연");
+      return;
+    }
+
+    console.log(`ICE 후보 버퍼에서 ${iceCandidateBuffer.length}개 처리 시작`);
+
+    // 버퍼에 저장된 모든 ICE 후보 처리
+    while (iceCandidateBuffer.length > 0) {
+      const candidate = iceCandidateBuffer.shift();
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        console.log("버퍼의 ICE 후보 추가됨");
+      } catch (error) {
+        console.error("버퍼의 ICE 후보 처리 중 오류:", error);
+      }
+    }
+  }
+
+  // 연결 다시 시작
+  async function restartConnection() {
+    try {
+      console.log("WebRTC 연결 재시작");
+      showToast("연결 재시도", "화상 통화 연결을 다시 시도합니다", "info");
+      updateRemoteVideoStatus("재연결 중...");
+
+      // WebSocket 연결 확인
+      if (!stompClient || !stompClient.connected) {
+        console.log("WebSocket이 연결되어 있지 않음, 먼저 WebSocket 재연결");
+        initWebRTC();
+        return;
+      }
+
+      // 사용자 미디어 스트림이 있는지 확인 및 재연결
+      const localVideo = document.getElementById("localVideo");
+      if (!localStream || !localVideo.srcObject) {
+        console.log("로컬 스트림이 없음, 미디어 장치 재접근");
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true
+          });
+          localStream = stream;
+          localVideo.srcObject = stream;
+          await localVideo.play().catch(e => console.warn("재생 실패:", e));
+          updateLocalVideoStatus("카메라 켜짐");
+        } catch (mediaError) {
+          console.error("미디어 장치 접근 실패:", mediaError);
+          showToast("카메라 오류", "카메라나 마이크에 접근할 수 없습니다", "error");
+        }
+      }
+
+      // 기존 연결 종료
+      if (pc) {
+        pc.close();
+        pc = null;
+      }
+
+      // 원격 비디오 초기화
+      const remoteVideo = document.getElementById("remoteVideo");
+      if (remoteVideo && remoteVideo.srcObject) {
+        const tracks = remoteVideo.srcObject.getTracks();
+        tracks.forEach(track => track.stop());
+        remoteVideo.srcObject = null;
+      }
+
+      // 새 연결 생성
+      await createPeerConnection();
+
+      console.log("새 Peer Connection 생성됨, 역할:", userRole);
+
+      // 역할에 따라 처리
+      if (userRole === "agent") {
+        // 상담원은 새 Offer 생성 (강제 ICE 재시작 플래그)
+        console.log("상담원 역할, 새 Offer 생성");
+        createAndSendOffer({ iceRestart: true });
+      } else {
+        // 고객은 상담원에게 Offer 요청
+        console.log("고객 역할, Offer 요청");
+        sendRtcMessage("join", {
+          roomId: sessionId,
+          requestOffer: true,
+          reconnect: true // 재연결 플래그 추가
+        });
+      }
+
+      // 연결 상태 확인 타이머 설정
+      setTimeout(() => {
+        if (pc && (pc.connectionState === 'failed' || pc.iceConnectionState === 'failed')) {
+          console.log("30초 후에도 연결 실패, 페이지 새로고침 권장");
+          showToast("연결 실패", "30초 이상 연결 시도 실패. 페이지를 새로고침해 주세요.", "error");
+        }
+      }, 30000);
+    } catch (error) {
+      console.error("연결 재시작 중 오류:", error);
+      showToast("연결 오류", "연결 재시도 중 문제가 발생했습니다", "error");
+    }
+  }
+
+  // Offer 생성 및 전송 (최적화된 방식)
+  async function createAndSendOffer(options = {}) {
+    if (!pc) {
+      console.error("❌ Offer 생성 불가: PeerConnection이 없음");
+      // PC가 없는 경우 즉시 생성 후 오퍼 생성 재시도
+      try {
+        await createPeerConnection();
+        setTimeout(() => createAndSendOffer(options), 500);
+      } catch (e) {
+        console.error("PC 생성 실패:", e);
+      }
+      return;
+    }
+
+    try {
+      console.log("🔄 새 Offer 생성 시작", options.iceRestart ? "(ICE 재시작)" : "");
+
+      // 로컬 미디어 스트림 확인 및 필요시 강제 재연결
+      const localVideo = document.getElementById("localVideo");
+      if (localStream && !localVideo.srcObject) {
+        localVideo.srcObject = localStream;
+        console.log("📹 로컬 비디오에 스트림 강제 할당");
+      }
+
+      // Offer 생성 - ICE 재시작 옵션 처리 + 추가 옵션
+      const offerOptions = {
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true,
+        // 명시적으로 ICE 재시작이 요청된 경우나 기본값으로 항상 ICE 재시작 플래그 켜기
+        iceRestart: options.iceRestart === undefined ? true : options.iceRestart,
+        // 추가 옵션 - 로컬 연결 안정성 향상
+        voiceActivityDetection: true
+      };
+
+      console.log("📝 Offer 옵션:", offerOptions);
+      const offer = await pc.createOffer(offerOptions);
+
+      // 필요시 SDP 수정 (비디오 코덱 및 설정 최적화)
+      let sdp = offer.sdp;
+
+      // CPU 사용량 감소를 위한 비디오 품질 제한
+      if (sdp.includes('a=fmtp:')) {
+        console.log("🛠️ SDP 비디오 품질 최적화 적용");
+      }
+
+      // 수정된 SDP 적용 (혹은 원본 사용)
+      const finalOffer = new RTCSessionDescription({
+        type: 'offer',
+        sdp: sdp
+      });
+
+      // 로컬 설명 설정
+      await pc.setLocalDescription(finalOffer);
+      console.log("✅ Local SDP 설정됨 (Offer)");
+
+      // 현재 ICE 후보 상태
+      console.log("🧊 현재 ICE 상태:", pc.iceConnectionState);
+
+      // Offer 전송 (확장된 정보 포함)
+      sendRtcMessage("offer", {
+        sdp: pc.localDescription,
+        iceRestart: offerOptions.iceRestart,
+        timestamp: Date.now(),
+        iceState: pc.iceConnectionState
+      });
+
+      console.log("📤 Offer 전송 완료");
+    } catch (error) {
+      console.error("❌ Offer 생성 및 전송 중 오류:", error);
+      showToast("연결 오류", "화상 통화 연결에 문제가 발생했습니다", "error");
+
+      // 오류 발생 시 재연결 시도 (지연 시간 단축)
+      setTimeout(() => {
+        restartConnection();
+      }, 1500);
+    }
+  }
+
+  // 영상 통화 시작 함수 (로컬 테스트 환경에 최적화)
+  async function startCall() {
+    try {
+      console.log("🌟 영상 통화 시작 함수 호출");
+
+      // 이미 연결된 상태인지 확인
+      if (pc && (pc.connectionState === 'connected' || pc.iceConnectionState === 'connected')) {
+        console.log("✅ 이미 연결된 상태입니다");
+
+        // 이미 연결되었지만 원격 비디오에 스트림이 없는 경우 재연결
+        const remoteVideo = document.getElementById("remoteVideo");
+        if (!remoteVideo.srcObject ||
+                (remoteVideo.srcObject && remoteVideo.srcObject.getVideoTracks().length === 0)) {
+          console.log("⚠️ 원격 비디오 스트림이 없음, 재연결 시도");
+          if (userRole === "agent") {
+            createAndSendOffer({ iceRestart: true });
+          } else {
+            sendRtcMessage("join", { roomId: sessionId, requestOffer: true, reconnect: true });
+          }
+        }
+        return;
+      }
+
+      // Peer Connection이 없으면 생성
+      if (!pc) {
+        console.log("🚀 새 Peer Connection 생성 시작");
+        await createPeerConnection();
+      }
+
+      // 상담원인 경우는 항상 오퍼를 생성하여 보냄
+      if (userRole === "agent") {
+        console.log("👨‍💼 상담원 역할: Offer 생성");
+
+        // 로컬 미디어 스트림 확인 및 추가
+        const localVideo = document.getElementById("localVideo");
+        if (!localVideo.srcObject && !localStream) {
+          console.log("⚠️ 로컬 스트림이 없음, 미디어 접근 시도");
+          try {
+            // 안정적인 연결을 위해 해상도와 프레임레이트 제한
+            localStream = await navigator.mediaDevices.getUserMedia({
+              video: {
+                width: { ideal: 320, max: 640 },
+                height: { ideal: 240, max: 480 },
+                frameRate: { ideal: 15, max: 24 }
+              },
+              audio: true
+            });
+            localVideo.srcObject = localStream;
+
+            // 스트림의 모든 트랙을 Peer Connection에 추가
+            localStream.getTracks().forEach(track => {
+              console.log(`📌 로컬 트랙 추가: ${track.kind}`);
+              pc.addTrack(track, localStream);
+            });
+
+            updateLocalVideoStatus("카메라 켜짐");
+
+            // 비디오 자동 재생
+            await localVideo.play().catch(e => {
+              console.warn("⚠️ 로컬 비디오 자동 재생 실패:", e);
+              // 음소거 상태로 재시도
+              localVideo.muted = true;
+              localVideo.play();
+            });
+          } catch (mediaError) {
+            console.error("❌ 미디어 장치 접근 실패:", mediaError);
+            showToast("카메라 오류", "카메라나 마이크에 접근할 수 없습니다", "error");
+
+            // 미디어 실패 시에도 오디오만으로 시도
+            try {
+              console.log("🎤 오디오만으로 연결 시도");
+              localStream = await navigator.mediaDevices.getUserMedia({
+                audio: true,
+                video: false
+              });
+              localVideo.srcObject = localStream;
+
+              // 오디오 트랙 추가
+              localStream.getTracks().forEach(track => {
+                console.log(`📌 오디오 트랙 추가`);
+                pc.addTrack(track, localStream);
+              });
+
+              updateLocalVideoStatus("오디오만");
+            } catch (audioError) {
+              console.error("❌ 오디오 접근도 실패:", audioError);
+              showToast("연결 불가", "음성과 영상 모두 접근할 수 없습니다", "error");
+              return;
+            }
+          }
+        } else if (localStream) {
+          // 이미 스트림이 있지만 PC에 모든 트랙이 추가되었는지 확인
+          console.log("🔄 기존 스트림 확인 및 누락된 트랙 추가");
+          const senders = pc.getSenders();
+          const hasTracks = localStream.getTracks();
+
+          // 모든 트랙이 PC에 추가되었는지 확인
+          hasTracks.forEach(track => {
+            const trackExists = senders.some(sender => sender.track === track);
+            if (!trackExists) {
+              console.log(`➕ 누락된 트랙 추가: ${track.kind}`);
+              pc.addTrack(track, localStream);
+            }
+          });
+        }
+
+        // Offer 생성 및 전송 (ICE 재시작 옵션 포함)
+        console.log("📤 Offer 생성 및 전송");
+        createAndSendOffer({ iceRestart: true });
+      } else {
+        // 고객인 경우 - 미디어 스트림 확인 후 상담원에게 Offer 요청
+        console.log("👨‍👩‍👧 고객 역할: 상담원에게 Offer 요청");
+
+        // 로컬 미디어 스트림이 없으면 먼저 생성
+        const localVideo = document.getElementById("localVideo");
+        if (!localVideo.srcObject && !localStream) {
+          console.log("⚠️ 고객 로컬 스트림이 없음, 미디어 접근 시도");
+          try {
+            localStream = await navigator.mediaDevices.getUserMedia({
+              video: true,
+              audio: true
+            });
+            localVideo.srcObject = localStream;
+
+            // 스트림의 모든 트랙을 Peer Connection에 추가 (고객도 미리 추가)
+            localStream.getTracks().forEach(track => {
+              console.log(`📌 고객 로컬 트랙 추가: ${track.kind}`);
+              pc.addTrack(track, localStream);
+            });
+
+            updateLocalVideoStatus("카메라 켜짐");
+          } catch (mediaError) {
+            console.error("❌ 고객 미디어 접근 실패:", mediaError);
+            // 오류 발생해도 계속 진행 (Offer 요청은 보냄)
+          }
+        }
+
+        // Offer 요청 전송 (명확한 플래그 포함)
+        sendRtcMessage("join", {
+          roomId: sessionId,
+          requestOffer: true,
+          clientReady: true
+        });
+      }
+    } catch (error) {
+      console.error("❌ 통화 시작 중 오류:", error);
+      showToast("연결 오류", "화상 통화 연결을 시작하는 데 문제가 발생했습니다", "error");
+
+      // 오류 발생시 3초 후 재시도
+      setTimeout(() => {
+        console.log("🔄 자동 재시도...");
+        try {
+          if (pc) {
+            pc.close();
+            pc = null;
+          }
+          createPeerConnection().then(() => startCall());
+        } catch (e) {
+          console.error("🔄 재시도 중 오류:", e);
+        }
+      }, 3000);
+    }
+  }
+
+  // 로컬 비디오 상태 표시 업데이트
+  function updateLocalVideoStatus(status) {
+    const localVideoStatus = document.getElementById("localVideoStatus");
+    if (localVideoStatus) {
+      localVideoStatus.textContent = status;
+      console.log("로컬 비디오 상태 업데이트:", status);
+    }
+  }
+
+  // 원격 비디오 상태 표시 업데이트
+  function updateRemoteVideoStatus(status) {
+    const remoteVideoStatus = document.getElementById("remoteVideoStatus");
+    if (remoteVideoStatus) {
+      remoteVideoStatus.textContent = status;
+      console.log("원격 비디오 상태 업데이트:", status);
+    }
+  }
+
+  // 양쪽 비디오 상태 업데이트
+  function updateVideoStatus() {
+    // 로컬 비디오 상태 확인
+    const localVideo = document.getElementById("localVideo");
+    if (localVideo && localVideo.srcObject) {
+      const videoTracks = localVideo.srcObject.getVideoTracks();
+      updateLocalVideoStatus(videoTracks.length > 0 ? "카메라 켜짐" : "오디오만");
+    } else {
+      updateLocalVideoStatus("비디오 없음");
+    }
+
+    // 원격 비디오 상태 확인
+    const remoteVideo = document.getElementById("remoteVideo");
+    if (remoteVideo && remoteVideo.srcObject) {
+      const videoTracks = remoteVideo.srcObject.getVideoTracks();
+      updateRemoteVideoStatus(videoTracks.length > 0 ? "카메라 켜짐" : "오디오만");
+    } else {
+      updateRemoteVideoStatus("연결 중...");
+    }
+  }
+
+  // ICE 후보 처리 함수
+  function handleIceCandidate(event) {
+    if (event.candidate) {
+      console.log("ICE 후보 생성:", event.candidate.candidate.substr(0, 50) + "...");
+
+      // ICE 후보 전송
+      sendRtcMessage("ice", {
+        roomId: sessionId,
+        ice: event.candidate
+      });
+    } else {
+      console.log("ICE 후보 수집 완료");
+    }
+  }
+
+  // Offer 처리 함수
+  async function handleOffer(data) {
+    try {
+      if (!pc) {
+        console.log("Offer 처리: PC가 없어 새로 생성");
+        await createPeerConnection();
+      }
+
+      // 이미 원격 설명이 설정되어 있는지 확인
+      if (pc.signalingState !== "stable") {
+        console.log("이미 설정된 SDP가 있어 롤백 실행");
+        await pc.setLocalDescription({type: "rollback"});
+      }
+
+      // 원격 설명 설정
+      const remoteDesc = new RTCSessionDescription(data.sdp);
+      await pc.setRemoteDescription(remoteDesc);
+      console.log("원격 SDP 설정됨 (Offer)");
+
+      // 버퍼링된 ICE 후보 처리
+      await processIceCandidateBuffer();
+
+      // 로컬 미디어 스트림 확인 (답변을 보내기 전에 로컬 미디어 추가 확인)
+      if (userRole === "client" && (!localStream || !document.getElementById("localVideo").srcObject)) {
+        console.log("로컬 스트림이 없음, 미디어 접근 시도");
+        try {
+          localStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true
+          });
+          document.getElementById("localVideo").srcObject = localStream;
+
+          // 스트림의 모든 트랙을 Peer Connection에 추가
+          localStream.getTracks().forEach(track => {
+            console.log(`로컬 트랙 추가: ${track.kind}`);
+            pc.addTrack(track, localStream);
+          });
+
+          updateLocalVideoStatus("카메라 켜짐");
+        } catch (mediaError) {
+          console.error("미디어 장치 접근 실패:", mediaError);
+          showToast("카메라 오류", "카메라나 마이크에 접근할 수 없습니다", "error");
+        }
+      }
+
+      // Answer 생성
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      console.log("Local SDP 설정됨 (Answer)");
+
+      // Answer 전송
+      sendRtcMessage("answer", {
+        roomId: sessionId,
+        sdp: pc.localDescription
+      });
+
+      console.log("Answer 전송 완료");
+    } catch (error) {
+      console.error("Offer 처리 중 오류:", error);
+      // 심각한 오류 발생 시 연결 재시작
+      setTimeout(restartConnection, 2000);
+    }
+  }
+
+  // Answer 처리 함수
+  async function handleAnswer(data) {
+    try {
+      if (!pc) {
+        console.error("Answer 처리: PC가 아직 생성되지 않음");
+        return;
+      }
+
+      // 원격 설명 설정
+      const remoteDesc = new RTCSessionDescription(data.sdp);
+      await pc.setRemoteDescription(remoteDesc);
+      console.log("원격 SDP 설정됨 (Answer)");
+
+      // 버퍼링된 ICE 후보 처리
+      await processIceCandidateBuffer();
+    } catch (error) {
+      console.error("Answer 처리 중 오류:", error);
+    }
+  }
+
+  // ICE 후보 수신 메시지 처리 함수 (강화된 버전)
+  async function handleIceCandidateMessage(data) {
+    try {
+      // 보낸 사람의 역할 확인
+      const senderRole = data.senderRole || (data.ice ? "unknown" : "system");
+      console.log(`🧊 ICE 후보 수신 (보낸이: ${senderRole})`);
+
+      if (!pc) {
+        console.error("❌ ICE 후보 처리: PC가 없음, 즉시 생성");
+
+        try {
+          // 연결 즉시 재생성
+          await createPeerConnection();
+          console.log("✅ 피어 연결 생성 완료");
+
+          // PC가 생성되었으면 바로 처리 시도
+          if (pc && data.ice) {
+            console.log("🔄 생성된 PC로 ICE 후보 재처리");
+            setTimeout(() => handleIceCandidateMessage(data), 100); // 약간의 지연 추가
+          } else {
+            // 연결 재설정 요청
+            console.log("⚠️ 새 연결 생성됨, 시그널링 재시작 요청");
+            sendRtcMessage("join", {
+              requestOffer: userRole === "client",
+              reconnect: true,
+              forceRestart: true
+            });
+          }
+        } catch (err) {
+          console.error("❌ 피어 연결 생성 실패:", err);
+          showToast("연결 오류", "비디오 연결을 초기화할 수 없습니다", "error");
+        }
+        return;
+      }
+
+      // ICE 후보 추가
+      if (data.ice) {
+        const iceCandidate = new RTCIceCandidate(data.ice);
+
+        // 후보 타입 확인 (로컬 네트워크용 최적화)
+        const candidateType = iceCandidate.candidate.includes('typ host') ? 'host' :
+                iceCandidate.candidate.includes('typ srflx') ? 'srflx' :
+                        iceCandidate.candidate.includes('typ relay') ? 'relay' : 'unknown';
+
+        console.log(`🧊 ICE 후보 타입: ${candidateType}, 주소 일부: ${iceCandidate.candidate.substring(0, 30)}...`);
+
+        // 원격 설명이 설정되지 않은 경우 버퍼에 저장
+        if (!pc.remoteDescription) {
+          console.log("⚠️ 원격 설명 없음, ICE 후보 버퍼링");
+
+          // 중복 후보 확인 및 제거
+          const isDuplicate = iceCandidateBuffer.some(c =>
+                  c.candidate === data.ice.candidate &&
+                  c.sdpMid === data.ice.sdpMid &&
+                  c.sdpMLineIndex === data.ice.sdpMLineIndex
+          );
+
+          if (!isDuplicate) {
+            iceCandidateBuffer.push(data.ice);
+            console.log(`🧊 버퍼에 ICE 후보 추가됨 (총 ${iceCandidateBuffer.length}개)`);
+          } else {
+            console.log("🧊 중복된 ICE 후보 무시");
+          }
+
+          // 처음 버퍼링될 때 또는 버퍼가 특정 개수에 도달하면 재연결 요청
+          if (iceCandidateBuffer.length === 1 || iceCandidateBuffer.length === 5) {
+            console.log("🔄 ICE 후보 버퍼링 중, 연결 재요청");
+            sendRtcMessage("join", {
+              requestOffer: userRole === "client", // 역할에 따라 다르게 처리
+              reconnect: true,
+              pendingCandidates: iceCandidateBuffer.length
+            });
+          }
+          return;
+        }
+
+        // 원격 설명이 있으면 바로 추가
+        try {
+          await pc.addIceCandidate(iceCandidate);
+          console.log(`✅ ICE 후보 추가 성공 (${candidateType})`);
+
+          // 연결 상태 업데이트
+          updateRemoteVideoStatus(`ICE 후보 수신됨: ${candidateType}`);
+        } catch (addError) {
+          console.warn("❌ ICE 후보 추가 실패:", addError);
+
+          // 상태에 따른 복구 전략
+          if (pc.signalingState === "closed") {
+            console.log("❌ 연결이 닫힘, 재시작");
+            setTimeout(restartConnection, 300);
+          } else if (pc.iceConnectionState === 'failed' || pc.iceConnectionState === 'disconnected') {
+            console.log("❌ ICE 연결 실패, ICE 재시작");
+            if (userRole === "agent") {
+              setTimeout(() => createAndSendOffer({iceRestart: true}), 500);
+            }
+          } else {
+            console.log("⚠️ ICE 후보 추가 실패, 그러나 연결은 유지 중");
+          }
+        }
+      }
+    } catch (error) {
+      console.error("❌ ICE 후보 처리 중 심각한 오류:", error);
+
+      // 오류 유형에 따른 맞춤 복구 전략
+      showToast("연결 문제", "비디오 연결 문제가 발생했습니다. 재연결을 시도합니다.", "warning");
+      setTimeout(() => {
+        try {
+          restartConnection();
+        } catch (e) {
+          console.error("❌ 연결 재시작 실패:", e);
+        }
+      }, 1000);
+    }
+  }
+
+  // WebRTC 메시지 전송 함수
+  function sendRtcMessage(type, data) {
+    if (!stompClient || !stompClient.connected) {
+      console.error("WebSocket이 연결되지 않아 메시지를 전송할 수 없습니다");
+      showToast("연결 오류", "WebSocket이 연결되지 않았습니다. 새로고침 후 다시 시도해주세요.", "error");
+      return;
+    }
+
+    // 중요: 항상 같은 채널(roomId)로 보내도록 설정
+    // URL에서 추출한 세션 ID를 강제로 사용 (data의 roomId를 덮어씀)
+    const cleanSessionId = sessionId.trim(); // 혹시 공백이 있을 경우 제거
+
+    const message = {
+      type: type,
+      roomId: cleanSessionId,
+      senderRole: userRole, // 보내는 사람의 역할 추가
+      timestamp: Date.now(), // 메시지 타임스탬프 추가
+      ...data
+    };
+
+    // data에 roomId가 있더라도 항상 URL의 세션 ID로 덮어쓰도록 함
+    if (message.roomId !== cleanSessionId) {
+      console.warn(`주의: 메시지의 roomId(${message.roomId})가 현재 세션 ID(${cleanSessionId})와 다릅니다. 세션 ID로 덮어씁니다.`);
+      message.roomId = cleanSessionId;
+    }
+
+    try {
+      console.log(`📤 WebRTC ${type} 메시지 전송: 세션=${cleanSessionId}, 역할=${userRole}`);
+      stompClient.send("/app/webrtc", {}, JSON.stringify(message));
+    } catch (error) {
+      console.error("❌ WebRTC 메시지 전송 오류:", error);
+      showToast("메시지 전송 실패", "연결이 불안정합니다.", "error");
+    }
+  }
+
 </script>
 
 </body>
 </html>
-
