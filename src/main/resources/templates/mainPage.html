@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -283,9 +283,26 @@
             <a class="nav-link" href="#">고객지원</a>
           </li>
         </ul>
-        <div class="d-flex">
-          <a href="/login" class="btn btn-outline-primary me-2">로그인</a>
-          <a href="/register" class="btn btn-primary">회원가입</a>
+        <!-- 로그인/회원가입 (비로그인 상태) -->
+        <div class="d-flex" sec:authorize="isAnonymous()">
+          <a th:href="@{/login}" class="btn btn-outline-primary me-2">로그인</a>
+          <a th:href="@{/register}" class="btn btn-primary">회원가입</a>
+        </div>
+
+        <!-- 인증된 사용자 메뉴 -->
+        <div class="d-flex align-items-center" sec:authorize="isAuthenticated()">
+          <div sec:authorize="hasRole('USER')" class="me-2">
+            <a th:href="@{/user/dashboard}" class="btn btn-outline-primary">마이페이지</a>
+          </div>
+          <div sec:authorize="hasRole('AGENT')" class="me-2">
+            <a th:href="@{/agent/dashboard}" class="btn btn-outline-primary">상담원 페이지</a>
+          </div>
+          <div sec:authorize="hasRole('ADMIN')" class="me-2">
+            <a th:href="@{/admin/dashboard}" class="btn btn-outline-primary">관리자 페이지</a>
+          </div>
+          <div>
+            <a th:href="@{/logout}" class="btn btn-primary">로그아웃</a>
+          </div>
         </div>
       </div>
     </div>
