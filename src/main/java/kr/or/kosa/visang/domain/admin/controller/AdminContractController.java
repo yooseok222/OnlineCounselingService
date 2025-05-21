@@ -1,13 +1,15 @@
 package kr.or.kosa.visang.domain.admin.controller;
 
 import kr.or.kosa.visang.domain.contract.enums.ContractStatus;
+import kr.or.kosa.visang.domain.contract.model.Contract;
+import kr.or.kosa.visang.domain.contract.model.ContractSearchRequest;
 import kr.or.kosa.visang.domain.contract.service.ContractService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Controller
 @RequestMapping("/admin")
@@ -27,6 +29,7 @@ public class AdminContractController {
             System.out.println("contractStatus = " + contractStatus);
             model.addAttribute("contractList", contractService.getContractByStatus(id, contractStatus.name()));
             model.addAttribute("pageTitle", contractStatus.name().replace("_", " "));
+            model.addAttribute("status", contractStatus.name());
 
             // 공통 레이아웃으로 전체 페이지 렌더링
             model.addAttribute("contentFragment", "contractManagement");
@@ -37,4 +40,13 @@ public class AdminContractController {
             return "error/404";
         }
     }
+
+
+    @GetMapping("/contracts/search")
+    @ResponseBody
+    public List<Contract> searchContracts(@ModelAttribute ContractSearchRequest request) {
+        System.out.println(request.toString());
+        return contractService.searchContracts(request);
+    }
+
 }

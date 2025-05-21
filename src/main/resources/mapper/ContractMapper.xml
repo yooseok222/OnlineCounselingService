@@ -75,6 +75,39 @@
 		)
 	</insert>
 
+
+	<select id="searchContracts" resultMap="ContractResultMap">
+		SELECT
+		c.contract_id,
+		c.contract_time,
+		c.agent_id,
+		c.client_id,
+		c.status
+		FROM contract c
+		LEFT JOIN contract_templates t ON c.contract_template_id = t.contract_template_id
+		<where>
+			<if test="contractId != null and contractId != ''">
+				AND c.contract_id = #{contractId}
+			</if>
+			<if test="contractTime != null and contractTime != ''">
+				AND TRUNC(c.contract_time, 'MM') = TO_DATE(#{contractTime}, 'YYYY-MM')
+			</if>
+			<if test="agentId != null and agentId != ''">
+				AND c.agent_id = #{agentId}
+			</if>
+			<if test="clientId != null and clientId != ''">
+				AND c.client_id = #{clientId}
+			</if>
+			<if test="status != null and status != ''">
+				AND c.status = #{status}
+			</if>
+			<if test="contractName != null and contractName != ''">
+				AND LOWER(t.contract_name) LIKE '%' || LOWER(#{contractName}) || '%'
+			</if>
+		</where>
+		ORDER BY c.contract_time ASC
+	</select>
+
 	<select id="selectSchedulesByAgent" parameterType="long"
 		resultMap="scheduleResultMap">
 		SELECT
@@ -182,7 +215,7 @@
         SELECT *
         FROM contract
         WHERE status = #{status} and company_id = #{companyId}
-        ORDER BY contract_time DESC
+        ORDER BY contract_time ASC
     </select>
 
     <!-- 모든 계약 조회 -->

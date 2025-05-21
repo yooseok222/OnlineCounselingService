@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+import kr.or.kosa.visang.domain.contract.model.ContractSearchRequest;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -25,6 +26,8 @@ public interface ContractMapper {
             @Param("year") String year,
             @Param("month") String month
     );
+
+    List<Contract> searchContracts(ContractSearchRequest request);
 
     // 계약 조회
     Contract selectContractById(Long contractId);

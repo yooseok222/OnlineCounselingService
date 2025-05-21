@@ -2,9 +2,9 @@ package kr.or.kosa.visang.domain.contract.service;
 
 import kr.or.kosa.visang.domain.agent.repository.AgentMapper;
 import kr.or.kosa.visang.domain.contract.model.Contract;
+import kr.or.kosa.visang.domain.contract.model.ContractSearchRequest;
 import kr.or.kosa.visang.domain.contract.repository.ContractMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -28,6 +28,13 @@ public class ContractService {
         conn.forEach(System.out::println);
         return conn;
     }
+
+    //searchContracts
+    public List<Contract> searchContracts(ContractSearchRequest request) {
+        // 계약 ID, 계약 월, 상담사 ID, 고객 ID, 계약서 템플릿 이름을 사용하여 계약 목록을 조회하는 로직을 구현합니다.
+        return contractMapper.searchContracts(request);
+    }
+
 
 
     public List<Contract> getMonthlyScheduleByAgentId(Long agentId, String year, String month) {
