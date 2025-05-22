@@ -84,6 +84,11 @@ async function loadAndRenderPDF(url, targetPage = 1) {
     if (currentPage in stampDataPerPage) {
       restoreStampData();
     }
+    
+    // 서명 데이터가 있으면 복원
+    if (currentPage in signatureDataPerPage) {
+      restoreSignatureData();
+    }
 
     // 페이지 로딩 완료 이벤트 디스패치
     document.dispatchEvent(new CustomEvent('pdfPageLoaded', { detail: { page: currentPage } }));
@@ -140,6 +145,31 @@ async function renderPage(pageNum) {
     // 현재 페이지 상태 업데이트
     currentPage = pageNum;
     document.getElementById('currentMode').textContent = mode || '커서';
+    
+    // 이제 현재 페이지의 모든 데이터 복원
+    setTimeout(() => {
+      // 드로잉 데이터 복원
+      if (typeof restoreDrawingData === 'function' && currentPage in drawingDataPerPage) {
+        restoreDrawingData();
+      }
+      
+      // 텍스트 데이터 복원
+      if (typeof restoreTextData === 'function' && currentPage in textDataPerPage) {
+        restoreTextData();
+      }
+      
+      // 도장 데이터 복원
+      if (typeof restoreStampData === 'function' && currentPage in stampDataPerPage) {
+        restoreStampData();
+      }
+      
+      // 서명 데이터 복원
+      if (typeof restoreSignatureData === 'function' && currentPage in signatureDataPerPage) {
+        restoreSignatureData();
+      }
+      
+      console.log("페이지 데이터 복원 완료:", currentPage);
+    }, 100);
 
     return page;
   } catch (error) {
@@ -157,15 +187,26 @@ function prevPage() {
   saveDrawingData();
   saveTextData();
   saveStampData();
+  saveSignatureData();
   
-  // 이전 페이지 렌더링
-  renderPage(currentPage - 1);
+  // 이전 페이지로 이동
+  const prevPageNum = currentPage - 1;
+  
+  // 다음 페이지 렌더링
+  renderPage(prevPageNum);
   
   // 페이지 번호 저장
-  sessionStorage.setItem("lastPage", currentPage - 1);
+  sessionStorage.setItem("lastPage", prevPageNum);
   
   // 세션 데이터 저장
   saveSessionData();
+  
+  // 페이지 동기화 메시지 전송
+  if (typeof sendPageSync === 'function') {
+    sendPageSync(prevPageNum);
+  } else {
+    console.error("페이지 동기화 함수를 찾을 수 없습니다.");
+  }
 }
 
 // 다음 페이지로 이동
@@ -176,15 +217,26 @@ function nextPage() {
   saveDrawingData();
   saveTextData();
   saveStampData();
+  saveSignatureData();
+  
+  // 다음 페이지로 이동
+  const nextPageNum = currentPage + 1;
   
   // 다음 페이지 렌더링
-  renderPage(currentPage + 1);
+  renderPage(nextPageNum);
   
   // 페이지 번호 저장
-  sessionStorage.setItem("lastPage", currentPage + 1);
+  sessionStorage.setItem("lastPage", nextPageNum);
   
   // 세션 데이터 저장
   saveSessionData();
+  
+  // 페이지 동기화 메시지 전송
+  if (typeof sendPageSync === 'function') {
+    sendPageSync(nextPageNum);
+  } else {
+    console.error("페이지 동기화 함수를 찾을 수 없습니다.");
+  }
 }
 
 // 세션 ID 확인 유틸리티 함수
@@ -394,7 +446,8 @@ function saveSessionData() {
     currentPage: currentPage,
     drawingData: JSON.stringify(drawingDataPerPage),
     textData: JSON.stringify(textDataPerPage),
-    stampData: JSON.stringify(stampDataPerPage)
+    stampData: JSON.stringify(stampDataPerPage),
+    signatureData: JSON.stringify(signatureDataPerPage)
   };
 
   console.log("세션 데이터 저장 시도:", sessionId);

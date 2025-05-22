@@ -351,9 +351,71 @@ function loadSessionData(forceRestore = false) {
     return;
   }
 
+  // 로컬 스토리지에서 데이터 복원 시도
+  try {
+    // 로컬 스토리지에서 데이터 가져오기
+    const savedDrawingData = localStorage.getItem(`drawing_${sessionId}`);
+    const savedTextData = localStorage.getItem(`text_${sessionId}`);
+    const savedStampData = localStorage.getItem(`stamp_${sessionId}`);
+    const savedSignatureData = localStorage.getItem(`signature_${sessionId}`);
+    const savedCurrentPage = localStorage.getItem(`currentPage_${sessionId}`);
+    
+    let restoredFromLocal = false;
+    
+    if (savedDrawingData) {
+      drawingDataPerPage = JSON.parse(savedDrawingData);
+      restoredFromLocal = true;
+      console.log("로컬 스토리지에서 드로잉 데이터 복원됨");
+    }
+    
+    if (savedTextData) {
+      textDataPerPage = JSON.parse(savedTextData);
+      restoredFromLocal = true;
+      console.log("로컬 스토리지에서 텍스트 데이터 복원됨");
+    }
+    
+    if (savedStampData) {
+      stampDataPerPage = JSON.parse(savedStampData);
+      restoredFromLocal = true;
+      console.log("로컬 스토리지에서 도장 데이터 복원됨");
+    }
+    
+    if (savedSignatureData) {
+      signatureDataPerPage = JSON.parse(savedSignatureData);
+      restoredFromLocal = true;
+      console.log("로컬 스토리지에서 서명 데이터 복원됨");
+    }
+    
+    if (savedCurrentPage) {
+      currentPage = parseInt(savedCurrentPage);
+      console.log("로컬 스토리지에서 현재 페이지 복원됨:", currentPage);
+    }
+    
+    if (restoredFromLocal) {
+      window.dataLoaded = true;
+      
+      // 현재 PDF가 로드되어 있으면 화면에 데이터 표시
+      if (pdfDoc) {
+        queueRenderPage(currentPage);
+        
+        // 모든 데이터 복원
+        setTimeout(() => {
+          if (typeof restoreDrawingData === 'function') restoreDrawingData();
+          if (typeof restoreTextData === 'function') restoreTextData();
+          if (typeof restoreStampData === 'function') restoreStampData();
+          if (typeof restoreSignatureData === 'function') restoreSignatureData();
+        }, 500);
+      }
+    }
+  } catch (e) {
+    console.error("로컬 스토리지에서 데이터 복원 중 오류:", e);
+  }
+
   // CSRF 토큰 가져오기
-  const token = document.querySelector("meta[name='_csrf']").getAttribute("content");
-  const header = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
+  const token = document.querySelector("meta[name='_csrf']") ? 
+                document.querySelector("meta[name='_csrf']").getAttribute("content") : '';
+  const header = document.querySelector("meta[name='_csrf_header']") ? 
+                document.querySelector("meta[name='_csrf_header']").getAttribute("content") : '';
 
   console.log(`세션 데이터 로드 요청: ${sessionId}`);
 
@@ -406,6 +468,15 @@ function loadSessionData(forceRestore = false) {
           console.log("도장 데이터 복원됨");
         } catch (e) {
           console.error("도장 데이터 파싱 오류:", e);
+        }
+      }
+      
+      if (data.signatureData) {
+        try {
+          signatureDataPerPage = JSON.parse(data.signatureData);
+          console.log("서명 데이터 복원됨");
+        } catch (e) {
+          console.error("서명 데이터 파싱 오류:", e);
         }
       }
       

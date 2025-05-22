@@ -274,6 +274,22 @@ function subscribeToTopics() {
     }
   });
   
+  // 페이지 동기화 이벤트 구독
+  stompClient.subscribe(`/topic/room/${sessionId}/page`, function(message) {
+    try {
+      const pageData = JSON.parse(message.body);
+      console.log("페이지 동기화 데이터 수신:", pageData);
+      
+      // 본인이 보낸 메시지가 아닌 경우에만 처리
+      if (pageData.sender !== userRole) {
+        // 페이지 동기화 처리
+        handlePageSync(pageData);
+      }
+    } catch (e) {
+      console.error("페이지 동기화 데이터 처리 오류:", e);
+    }
+  });
+  
   // PDF 업로드 이벤트 구독
   stompClient.subscribe(`/topic/room/${sessionId}/pdf`, function(message) {
     try {
@@ -435,4 +451,63 @@ document.addEventListener('DOMContentLoaded', function() {
   setTimeout(() => {
     checkAndReconnectWebSocket();
   }, 1000);
-}); 
+});
+
+// 페이지 동기화 처리 함수
+function handlePageSync(pageData) {
+  if (!pageData || !pageData.page) {
+    console.error("유효하지 않은 페이지 동기화 데이터:", pageData);
+    return;
+  }
+  
+  console.log(`페이지 동기화 요청 수신: ${currentPage} → ${pageData.page}`);
+  
+  // 현재 페이지와 같으면 무시
+  if (pageData.page === currentPage) {
+    console.log("이미 같은 페이지에 있어 동기화가 필요하지 않습니다.");
+    return;
+  }
+  
+  // 현재 작업 중인 데이터 저장
+  saveDrawingData();
+  saveTextData();
+  saveStampData();
+  saveSignatureData();
+  
+  // 타겟 페이지로 이동
+  if (typeof renderPage === 'function') {
+    // 페이지 렌더링 함수가 있으면 직접 호출
+    renderPage(pageData.page);
+    
+    // 성공 메시지
+    showToast("페이지 동기화", `${pageData.page}페이지로 이동했습니다.`, "info");
+    console.log(`페이지 동기화 완료: ${pageData.page}페이지`);
+  } else {
+    console.error("페이지 렌더링 함수를 찾을 수 없습니다.");
+  }
+}
+
+// 페이지 변경 이벤트 전송 함수
+function sendPageSync(targetPage) {
+  if (!stompClient || !stompClient.connected) {
+    console.error("WebSocket 연결이 없어 페이지 동기화를 전송할 수 없습니다.");
+    return;
+  }
+  
+  try {
+    // 메시지 구조 생성
+    const message = {
+      type: 'page_sync',
+      page: targetPage,
+      sender: userRole,
+      sessionId: sessionId,
+      timestamp: Date.now()
+    };
+    
+    // 메시지 전송
+    stompClient.send(`/topic/room/${sessionId}/page`, {}, JSON.stringify(message));
+    console.log("페이지 동기화 메시지 전송 완료:", message);
+  } catch (e) {
+    console.error("페이지 동기화 메시지 전송 오류:", e);
+  }
+} 

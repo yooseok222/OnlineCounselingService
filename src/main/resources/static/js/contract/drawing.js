@@ -19,6 +19,25 @@ function initDrawing() {
   drawingCanvas.addEventListener('touchstart', handleTouchStart);
   drawingCanvas.addEventListener('touchmove', handleTouchMove);
   drawingCanvas.addEventListener('touchend', handleTouchEnd);
+
+  // PDF 페이지 로드 완료 시 이벤트 리스너 추가
+  document.addEventListener('pdfPageLoaded', function(e) {
+    console.log('PDF 페이지 로드 완료 이벤트 감지:', e.detail.page);
+    // 현재 페이지의 데이터 복원
+    if (typeof restoreDrawingData === 'function') restoreDrawingData();
+    if (typeof restoreTextData === 'function') restoreTextData();
+    if (typeof restoreStampData === 'function') restoreStampData();
+    if (typeof restoreSignatureData === 'function') restoreSignatureData();
+  });
+  
+  // 웹소켓 연결 완료 시 이벤트 리스너 추가
+  document.addEventListener('websocketConnected', function(e) {
+    console.log('웹소켓 연결 완료 이벤트 감지:', e.detail);
+    // 연결 성공 후 로컬 스토리지에서 데이터 복원 시도
+    if (typeof restoreSessionData === 'function') restoreSessionData();
+  });
+  
+  console.log('드로잉 초기화 완료');
 }
 
 // 페이지 로드 시 드로잉 초기화
@@ -236,12 +255,7 @@ function draw(e) {
     };
     
     // 정확한 토픽으로 메시지 전송
-    stompClient.send(`/app/sync/draw`, {}, JSON.stringify(drawingData));
-    
-    // 상담방별 토픽으로도 전송 (기존 코드와의 호환성 유지)
-    if (sessionId) {
-      stompClient.send(`/app/room/${sessionId}/draw`, {}, JSON.stringify(drawingData));
-    }
+    stompClient.send(`/topic/room/${sessionId}/draw`, {}, JSON.stringify(drawingData));
   }
   
   // 좌표 업데이트
@@ -334,12 +348,7 @@ function handleTouchMove(e) {
     };
     
     // 정확한 토픽으로 메시지 전송
-    stompClient.send(`/app/sync/draw`, {}, JSON.stringify(drawingData));
-    
-    // 상담방별 토픽으로도 전송 (기존 코드와의 호환성 유지)
-    if (sessionId) {
-      stompClient.send(`/app/room/${sessionId}/draw`, {}, JSON.stringify(drawingData));
-    }
+    stompClient.send(`/topic/room/${sessionId}/draw`, {}, JSON.stringify(drawingData));
   }
   
   lastX = currentX;
@@ -395,15 +404,7 @@ function handleTextPlacement(event) {
     };
     
     // 정확한 토픽으로 메시지 전송
-    stompClient.send(`/app/sync/text`, {}, JSON.stringify(textMessage));
-    
-    // 상담방별 토픽으로도 전송 (기존 코드와의 호환성 유지)
-    if (sessionId) {
-      stompClient.send(`/app/room/${sessionId}/text`, {}, JSON.stringify(textMessage));
-    }
-    
-    // 실시간 동기화 디버깅 메시지
-    console.log(`텍스트 데이터 전송: "${pendingText}" at (${x},${y})`);
+    stompClient.send(`/topic/room/${sessionId}/text`, {}, JSON.stringify(textMessage));
   }
   
   // 텍스트 입력 모드 초기화
@@ -428,6 +429,14 @@ function handleStampPlacement(event) {
   // 도장 스타일 설정
   const stampImage = new Image();
   stampImage.src = '/images/stamp.png';
+  
+  // 도장 이미지 로드 오류 처리
+  stampImage.onerror = function() {
+    console.error("도장 이미지 로드 실패");
+    showToast("오류", "도장 이미지를 불러올 수 없습니다.", "error");
+    // 커서 모드로 복귀
+    setCursor();
+  };
   
   // 도장 이미지가 로드되면 그리기
   stampImage.onload = function() {
@@ -458,10 +467,14 @@ function handleStampPlacement(event) {
         width: stampWidth,
         height: stampHeight,
         page: currentPage,
-        sessionId: sessionId
+        sessionId: sessionId,
+        sender: userRole
       };
       
-      stompClient.send(`/app/room/${sessionId}/stamp`, {}, JSON.stringify(stampMessage));
+      stompClient.send(`/topic/room/${sessionId}/stamp`, {}, JSON.stringify(stampMessage));
+      console.log("도장 메시지 전송:", stampMessage);
+    } else {
+      console.error("웹소켓 연결이 없어 도장 데이터를 전송할 수 없습니다.");
     }
     
     // 세션 데이터 저장
@@ -475,6 +488,8 @@ function handleStampPlacement(event) {
 
 // 서명 배치 처리
 function handleSignaturePlacement(event) {
+  if (mode !== 'signature') return;
+  
   const rect = drawingCanvas.getBoundingClientRect();
   const x = event.clientX - rect.left;
   const y = event.clientY - rect.top;
@@ -502,16 +517,22 @@ function handleSignaturePlacement(event) {
       x: x,
       y: y,
       page: currentPage,
-      sessionId: sessionId
+      sessionId: sessionId,
+      sender: userRole,
+      timestamp: new Date().getTime()
     };
     
-    stompClient.send(`/app/room/${sessionId}/draw`, {}, JSON.stringify(data));
+    stompClient.send(`/topic/room/${sessionId}/signature`, {}, JSON.stringify(data));
+    console.log("서명 메시지 전송:", data);
+  } else {
+    console.error("웹소켓 연결이 없어 서명 데이터를 전송할 수 없습니다.");
   }
   
   // 서명 후 커서 모드로 돌아가기
   setCursor();
   
   // 세션 데이터 저장
+  saveSignatureData();
   saveSessionData();
 }
 
@@ -536,10 +557,12 @@ function drawSignature(x, y) {
 
 // 원격 서명 처리 함수
 function handleRemoteSignature(data) {
-  // 원격 서명 그리기
-  drawSignature(data.x, data.y);
+  // 데이터 유효성 검사
+  if (!data || data.sender === userRole) return;
   
-  // 서명 데이터 저장
+  console.log("원격 서명 데이터 수신:", data);
+  
+  // 서명 데이터 저장 - 현재 페이지가 아니더라도 데이터는 저장
   if (!signatureDataPerPage[data.page]) {
     signatureDataPerPage[data.page] = [];
   }
@@ -551,6 +574,16 @@ function handleRemoteSignature(data) {
   };
   
   signatureDataPerPage[data.page].push(signatureData);
+  
+  // 현재 페이지인 경우에만 화면에 표시
+  if (data.page === currentPage) {
+    // 원격 서명 그리기
+    drawSignature(data.x, data.y);
+  }
+  
+  // 세션 데이터 저장
+  saveSessionData();
+  console.log(`원격 서명 적용 완료: (${data.x},${data.y}) 페이지 ${data.page}`);
 }
 
 // 드로잉 데이터 저장
@@ -610,7 +643,15 @@ function restoreStampData() {
 
 // 서명 데이터 저장
 function saveSignatureData() {
-  // 구현 필요 (서버에 서명 데이터 저장)
+  // 서명 데이터를 로컬 스토리지에 저장
+  try {
+    if (signatureDataPerPage[currentPage] && signatureDataPerPage[currentPage].length > 0) {
+      localStorage.setItem(`signature_${sessionId}`, JSON.stringify(signatureDataPerPage));
+      console.log("서명 데이터 저장 완료:", signatureDataPerPage);
+    }
+  } catch (e) {
+    console.error("서명 데이터 저장 오류:", e);
+  }
 }
 
 // 서명 데이터 복원
@@ -710,28 +751,106 @@ function handleRemoteText(data) {
 
 // 원격 도장 처리
 function handleRemoteStamp(data) {
-  if (data.page !== currentPage) return;
+  // 데이터 유효성 검사
+  if (!data || data.sender === userRole) return;
   
-  // 원격 도장을 현재 캔버스에 적용
-  const stampImage = new Image();
-  stampImage.src = '/images/stamp.png';
+  console.log("원격 도장 데이터 수신:", data);
   
-  stampImage.onload = function() {
-    drawingContext.drawImage(stampImage, data.x, data.y, data.width, data.height);
+  // 도장 데이터 저장 - 현재 페이지가 아니더라도 데이터는 저장
+  if (!stampDataPerPage[data.page]) {
+    stampDataPerPage[data.page] = [];
+  }
+  
+  stampDataPerPage[data.page].push({
+    x: data.x,
+    y: data.y,
+    width: data.width,
+    height: data.height
+  });
+  
+  // 현재 페이지인 경우에만 화면에 표시
+  if (data.page === currentPage) {
+    // 원격 도장을 현재 캔버스에 적용
+    const stampImage = new Image();
+    stampImage.src = '/images/stamp.png';
     
-    // 도장 데이터 저장
-    if (!stampDataPerPage[currentPage]) {
-      stampDataPerPage[currentPage] = [];
+    // 이미지 로드 오류 처리
+    stampImage.onerror = function() {
+      console.error("원격 도장 이미지 로드 실패");
+      showToast("오류", "도장 이미지를 불러올 수 없습니다.", "error");
+    };
+    
+    stampImage.onload = function() {
+      drawingContext.drawImage(stampImage, data.x, data.y, data.width, data.height);
+      console.log(`원격 도장 이미지 그리기 완료: (${data.x}, ${data.y})`);
+      
+      // 도장 데이터 저장
+      saveStampData();
+    };
+  }
+  
+  // 세션 데이터 저장
+  saveSessionData();
+  console.log(`원격 도장 적용 완료: (${data.x},${data.y}) 페이지 ${data.page}`);
+}
+
+// 세션 데이터 저장
+function saveSessionData() {
+  try {
+    // 브라우저 스토리지에 각 페이지의 데이터 저장
+    localStorage.setItem(`drawing_${sessionId}`, JSON.stringify(drawingDataPerPage));
+    localStorage.setItem(`text_${sessionId}`, JSON.stringify(textDataPerPage));
+    localStorage.setItem(`stamp_${sessionId}`, JSON.stringify(stampDataPerPage));
+    localStorage.setItem(`signature_${sessionId}`, JSON.stringify(signatureDataPerPage));
+    
+    // 현재 페이지 번호 저장
+    localStorage.setItem(`currentPage_${sessionId}`, currentPage.toString());
+    
+    console.log("세션 데이터 저장 완료:", currentPage);
+  } catch (e) {
+    console.error("세션 데이터 저장 오류:", e);
+  }
+}
+
+// 세션 데이터 복원
+function restoreSessionData() {
+  try {
+    // 저장된 데이터가 있으면 복원
+    const savedDrawingData = localStorage.getItem(`drawing_${sessionId}`);
+    const savedTextData = localStorage.getItem(`text_${sessionId}`);
+    const savedStampData = localStorage.getItem(`stamp_${sessionId}`);
+    const savedSignatureData = localStorage.getItem(`signature_${sessionId}`);
+    
+    if (savedDrawingData) {
+      drawingDataPerPage = JSON.parse(savedDrawingData);
     }
     
-    stampDataPerPage[currentPage].push({
-      x: data.x,
-      y: data.y,
-      width: data.width,
-      height: data.height
-    });
+    if (savedTextData) {
+      textDataPerPage = JSON.parse(savedTextData);
+    }
     
-    // 도장 데이터 저장
-    saveStampData();
-  };
+    if (savedStampData) {
+      stampDataPerPage = JSON.parse(savedStampData);
+    }
+    
+    if (savedSignatureData) {
+      signatureDataPerPage = JSON.parse(savedSignatureData);
+    }
+    
+    // 저장된 현재 페이지 복원
+    const savedCurrentPage = localStorage.getItem(`currentPage_${sessionId}`);
+    if (savedCurrentPage) {
+      currentPage = parseInt(savedCurrentPage);
+    }
+    
+    console.log("세션 데이터 복원 완료:", currentPage);
+    
+    // 현재 페이지의 모든 데이터 복원
+    restoreDrawingData();
+    restoreTextData();
+    restoreStampData();
+    restoreSignatureData();
+  } catch (e) {
+    console.error("세션 데이터 복원 오류:", e);
+  }
 } 
