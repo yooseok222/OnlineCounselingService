@@ -555,24 +555,31 @@
     function setupUnderline(sectionId, cardSelector) {
       const sectionTitle = document.getElementById(sectionId);
       const cards = document.querySelectorAll(cardSelector);
+      const underlineWidth = 50; // 밑줄 너비
+      const cardCount = cards.length; // 섹션의 카드 수
+      
       // 초기값 세팅
       sectionTitle.style.setProperty('--underline-left', '0px');
-      sectionTitle.style.setProperty('--underline-width', '50px');
+      sectionTitle.style.setProperty('--underline-width', underlineWidth + 'px');
+      
       cards.forEach((el) => {
         el.addEventListener('mouseenter', function() {
-          const rect = el.getBoundingClientRect();
-          const groupRect = sectionTitle.getBoundingClientRect();
           const titleWidth = sectionTitle.offsetWidth;
-          const underlineWidth = 50;
-          // 카드 중앙이 타이틀 내부에 있을 때만 이동, 아니면 clamp
-          let left = rect.left - groupRect.left + rect.width/2 - underlineWidth/2;
+          const index = parseInt(el.getAttribute('data-index'));
+          const segmentWidth = titleWidth / cardCount; // 카드 수에 따라 세그먼트 너비 계산
+          
+          // 각 세그먼트의 중앙에 밑줄 위치시킴
+          let left = (segmentWidth * index) + (segmentWidth / 2) - (underlineWidth / 2);
+          
+          // 범위를 벗어나지 않도록 조정
           left = Math.max(0, Math.min(left, titleWidth - underlineWidth));
+          
           sectionTitle.style.setProperty('--underline-left', left + 'px');
-          sectionTitle.style.setProperty('--underline-width', underlineWidth + 'px');
         });
+        
         el.addEventListener('mouseleave', function() {
+          // 원래 위치로 돌아가기
           sectionTitle.style.setProperty('--underline-left', '0px');
-          sectionTitle.style.setProperty('--underline-width', '50px');
         });
       });
     }
