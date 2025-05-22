@@ -82,15 +82,46 @@ function openTextPopup() {
   updateToolbarButtons('textBtn');
 
   // 팝업 초기화 및 표시
-  document.getElementById('textInput').value = '';
+  const textPopup = document.getElementById('textPopup');
+  const textInput = document.getElementById('textInput');
+  
+  // 팝업 위치 조정 (가운데 정렬)
+  textPopup.style.display = 'block';
+  textPopup.style.position = 'fixed';
+  textPopup.style.top = '50%';
+  textPopup.style.left = '50%';
+  textPopup.style.transform = 'translate(-50%, -50%)';
+  textPopup.style.zIndex = '1000';
+  
+  // 기존 텍스트 초기화 및 입력 필드에 포커스
+  textInput.value = '';
   pendingText = null;
-  document.getElementById('textPopup').style.display = 'block';
+  
+  // 텍스트 입력 필드에 자동 포커스
+  setTimeout(() => {
+    textInput.focus();
+  }, 100);
+  
+  // ESC 키로 닫기 이벤트 리스너 추가
+  document.addEventListener('keydown', closeTextPopupOnEsc);
+}
+
+// ESC 키로 텍스트 팝업 닫기
+function closeTextPopupOnEsc(e) {
+  if (e.key === 'Escape') {
+    closeTextPopup();
+  }
 }
 
 // 텍스트 팝업 닫기
 function closeTextPopup() {
   document.getElementById('textPopup').style.display = 'none';
-  setCursor(); // 커서 모드로 돌아가기
+  document.removeEventListener('keydown', closeTextPopupOnEsc);
+  
+  // 텍스트가 입력되지 않았을 경우 커서 모드로 돌아가기
+  if (!pendingText) {
+    setCursor();
+  }
 }
 
 // 텍스트 확인 및 추가
@@ -107,6 +138,13 @@ function confirmText() {
 
   // 사용자에게 안내 메시지 표시
   showToast("위치 선택", "텍스트를 추가할 위치를 클릭하세요.", "info");
+  
+  // Enter 키 이벤트 리스너 추가 (Enter 키를 누르면 텍스트 확인)
+  document.getElementById('textInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      confirmText();
+    }
+  });
 }
 
 // 도구 모음 버튼 업데이트
@@ -193,10 +231,17 @@ function draw(e) {
       currentX: currentX,
       currentY: currentY,
       page: currentPage,
-      sessionId: sessionId
+      sessionId: sessionId,
+      sender: userRole // 발신자 정보 추가
     };
     
-    stompClient.send(`/app/room/${sessionId}/draw`, {}, JSON.stringify(drawingData));
+    // 정확한 토픽으로 메시지 전송
+    stompClient.send(`/app/sync/draw`, {}, JSON.stringify(drawingData));
+    
+    // 상담방별 토픽으로도 전송 (기존 코드와의 호환성 유지)
+    if (sessionId) {
+      stompClient.send(`/app/room/${sessionId}/draw`, {}, JSON.stringify(drawingData));
+    }
   }
   
   // 좌표 업데이트
@@ -284,10 +329,17 @@ function handleTouchMove(e) {
       currentX: currentX,
       currentY: currentY,
       page: currentPage,
-      sessionId: sessionId
+      sessionId: sessionId,
+      sender: userRole // 발신자 정보 추가
     };
     
-    stompClient.send(`/app/room/${sessionId}/draw`, {}, JSON.stringify(drawingData));
+    // 정확한 토픽으로 메시지 전송
+    stompClient.send(`/app/sync/draw`, {}, JSON.stringify(drawingData));
+    
+    // 상담방별 토픽으로도 전송 (기존 코드와의 호환성 유지)
+    if (sessionId) {
+      stompClient.send(`/app/room/${sessionId}/draw`, {}, JSON.stringify(drawingData));
+    }
   }
   
   lastX = currentX;
@@ -338,10 +390,20 @@ function handleTextPlacement(event) {
       x: x,
       y: y,
       page: currentPage,
-      sessionId: sessionId
+      sessionId: sessionId,
+      sender: userRole // 발신자 정보 추가
     };
     
-    stompClient.send(`/app/room/${sessionId}/text`, {}, JSON.stringify(textMessage));
+    // 정확한 토픽으로 메시지 전송
+    stompClient.send(`/app/sync/text`, {}, JSON.stringify(textMessage));
+    
+    // 상담방별 토픽으로도 전송 (기존 코드와의 호환성 유지)
+    if (sessionId) {
+      stompClient.send(`/app/room/${sessionId}/text`, {}, JSON.stringify(textMessage));
+    }
+    
+    // 실시간 동기화 디버깅 메시지
+    console.log(`텍스트 데이터 전송: "${pendingText}" at (${x},${y})`);
   }
   
   // 텍스트 입력 모드 초기화
@@ -564,7 +626,16 @@ function restoreSignatureData() {
 
 // 원격 드로잉 처리 (WebSocket으로 수신한 드로잉 데이터 처리)
 function handleRemoteDrawing(data) {
-  if (data.page !== currentPage) return;
+  // 본인이 보낸 메시지는 처리하지 않음 (중복 그리기 방지)
+  if (data.sender === userRole) return;
+  
+  // 페이지 번호 확인 (page 또는 pageNumber 필드 모두 처리)
+  const dataPage = data.page || data.pageNumber;
+  
+  // 다른 페이지의 데이터는 처리하지 않음
+  if (dataPage !== currentPage) return;
+  
+  console.log("원격 드로잉 데이터 처리:", data);
   
   // 원격 드로잉을 현재 캔버스에 적용
   if (data.type === 'highlight') {
@@ -580,18 +651,36 @@ function handleRemoteDrawing(data) {
   drawingContext.lineJoin = 'round';
   drawingContext.lineCap = 'round';
   
+  // 좌표 확인 (lastX/Y와 currentX/Y 또는 x/y 필드 모두 처리)
+  const startX = data.lastX !== undefined ? data.lastX : (data.x || 0);
+  const startY = data.lastY !== undefined ? data.lastY : (data.y || 0);
+  const endX = data.currentX !== undefined ? data.currentX : (data.x || 0);
+  const endY = data.currentY !== undefined ? data.currentY : (data.y || 0);
+  
   drawingContext.beginPath();
-  drawingContext.moveTo(data.lastX, data.lastY);
-  drawingContext.lineTo(data.currentX, data.currentY);
+  drawingContext.moveTo(startX, startY);
+  drawingContext.lineTo(endX, endY);
   drawingContext.stroke();
   
   // 드로잉 데이터 저장
   saveDrawingData();
+  
+  // 실시간 동기화 디버깅 메시지
+  console.log(`원격 드로잉 적용 완료: ${data.type} (${startX},${startY}) -> (${endX},${endY})`);
 }
 
 // 원격 텍스트 처리
 function handleRemoteText(data) {
-  if (data.page !== currentPage) return;
+  // 본인이 보낸 메시지는 처리하지 않음 (중복 적용 방지)
+  if (data.sender === userRole) return;
+  
+  // 페이지 번호 확인 (page 또는 pageNumber 필드 모두 처리)
+  const dataPage = data.page || data.pageNumber;
+  
+  // 다른 페이지의 데이터는 처리하지 않음
+  if (dataPage !== currentPage) return;
+  
+  console.log("원격 텍스트 데이터 처리:", data);
   
   // 원격 텍스트를 현재 캔버스에 적용
   drawingContext.font = '16px Arial';
@@ -614,6 +703,9 @@ function handleRemoteText(data) {
   
   // 텍스트 데이터 저장
   saveTextData();
+  
+  // 실시간 동기화 디버깅 메시지
+  console.log(`원격 텍스트 적용 완료: "${data.text}" at (${data.x},${data.y})`);
 }
 
 // 원격 도장 처리

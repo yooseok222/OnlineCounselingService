@@ -186,11 +186,45 @@ function subscribeToTopics() {
   
   console.log("메시지 토픽 구독 시작:", sessionId);
   
-  // 드로잉 이벤트 구독
+  // 전역 드로잉 이벤트 구독 (모든 방 공통)
+  stompClient.subscribe('/topic/draw', function(message) {
+    try {
+      const drawData = JSON.parse(message.body);
+      
+      // 같은 세션 ID의 메시지만 처리 (세션 ID가 없으면 모든 메시지 처리)
+      if (drawData.sessionId === sessionId || !drawData.sessionId) {
+        console.log("전역 드로잉 데이터 수신:", drawData);
+        
+        // 데이터 유형에 따라 적절한 핸들러 호출
+        if (drawData.type === 'highlight' || drawData.type === 'pen') {
+          handleRemoteDrawing(drawData);
+        }
+      }
+    } catch (e) {
+      console.error("전역 드로잉 데이터 처리 오류:", e, message.body);
+    }
+  });
+  
+  // 전역 텍스트 이벤트 구독 (모든 방 공통)
+  stompClient.subscribe('/topic/text', function(message) {
+    try {
+      const textData = JSON.parse(message.body);
+      
+      // 같은 세션 ID의 메시지만 처리 (세션 ID가 없으면 모든 메시지 처리)
+      if (textData.sessionId === sessionId || !textData.sessionId) {
+        console.log("전역 텍스트 데이터 수신:", textData);
+        handleRemoteText(textData);
+      }
+    } catch (e) {
+      console.error("전역 텍스트 데이터 처리 오류:", e, message.body);
+    }
+  });
+  
+  // 방 단위 드로잉 이벤트 구독
   stompClient.subscribe(`/topic/room/${sessionId}/draw`, function(message) {
     try {
       const drawData = JSON.parse(message.body);
-      console.log("드로잉 데이터 수신:", drawData);
+      console.log("방 단위 드로잉 데이터 수신:", drawData);
       
       // 데이터 유형에 따라 적절한 핸들러 호출
       if (drawData.type === 'highlight' || drawData.type === 'pen') {
@@ -203,18 +237,18 @@ function subscribeToTopics() {
         handleRemoteSignature(drawData);
       }
     } catch (e) {
-      console.error("드로잉 데이터 처리 오류:", e);
+      console.error("방 단위 드로잉 데이터 처리 오류:", e);
     }
   });
   
-  // 텍스트 이벤트 구독
+  // 방 단위 텍스트 이벤트 구독
   stompClient.subscribe(`/topic/room/${sessionId}/text`, function(message) {
     try {
       const textData = JSON.parse(message.body);
-      console.log("텍스트 데이터 수신:", textData);
+      console.log("방 단위 텍스트 데이터 수신:", textData);
       handleRemoteText(textData);
     } catch (e) {
-      console.error("텍스트 데이터 처리 오류:", e);
+      console.error("방 단위 텍스트 데이터 처리 오류:", e);
     }
   });
   
