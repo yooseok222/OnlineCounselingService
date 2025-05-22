@@ -1,26 +1,26 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper
-	namespace="kr.or.kosa.visang.domain.contract.repository.ContractMapper">
+        namespace="kr.or.kosa.visang.domain.contract.repository.ContractMapper">
 
-	<resultMap id="contractResultMap"
-		type="kr.or.kosa.visang.domain.contract.model.Contract">
-		<result column="contract_id" property="contractId" />
-		<result column="status" property="status" />
-		<result column="created_at" property="createdAt" />
-		<result column="contract_time" property="contractTime" />
-		<result column="client_id" property="clientId" />
-		<result column="agent_id" property="agentId" />
-		<result column="contract_template_id"
-			property="contractTemplateId" />
-		<result column="memo" property="memo" />
-	</resultMap>
-<!--<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="kr.or.kosa.visang.domain.contract.repository.ContractMapper">-->
+    <resultMap id="contractResultMap" type="kr.or.kosa.visang.domain.contract.model.Contract">
+        <result column="contract_id" property="contractId"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="contract_time" property="contractTime"/>
+        <result column="client_id" property="clientId"/>
+        <result column="agent_id" property="agentId"/>
+        <result column="contract_template_id"
+                property="contractTemplateId"/>
+        <result column="memo" property="memo"/>
+        <result column="client_name" property="clientName"/>
+    </resultMap>
+    <!--<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+            "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    <mapper namespace="kr.or.kosa.visang.domain.contract.repository.ContractMapper">-->
     <resultMap id="ContractResultMap" type="kr.or.kosa.visang.domain.contract.model.Contract">
         <id column="contract_id" property="contractId" jdbcType="NUMERIC"/>
         <result column="status" property="status" jdbcType="VARCHAR"/>
@@ -32,151 +32,138 @@
         <result column="memo" property="memo" jdbcType="CLOB"/>
     </resultMap>
 
-	<resultMap id="scheduleResultMap"
-		type="kr.or.kosa.visang.domain.contract.model.Schedule">
-		<result column="contract_id" property="contractId" />
-		<result column="created_at" property="createdAt" />
-		<result column="status" property="status" />
-		<result column="contract_time" property="contractTime" />
-		<result column="client_id" property="clientId" />
-		<result column="agent_id" property="agentId" />
-		<result column="memo" property="memo" />
-		<result column="email" property="email" />
-		<result column="name" property="clientName" />
-		<result column="phone_number" property="phoneNumber" />
+    <resultMap id="scheduleResultMap"
+               type="kr.or.kosa.visang.domain.contract.model.Schedule">
+        <result column="contract_id" property="contractId"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="status" property="status"/>
+        <result column="contract_time" property="contractTime"/>
+        <result column="client_id" property="clientId"/>
+        <result column="agent_id" property="agentId"/>
+        <result column="memo" property="memo"/>
+        <result column="email" property="email"/>
+        <result column="name" property="clientName"/>
+        <result column="phone_number" property="phoneNumber"/>
 
-		<result column="time" property="time" />
-		<result column="invitation_code" property="invitationCode" />
-	</resultMap>
+        <result column="time" property="time"/>
+        <result column="invitation_code" property="invitationCode"/>
+    </resultMap>
 
-	<insert id="insertSchedule"
-		parameterType="kr.or.kosa.visang.domain.contract.model.Contract">
-		<selectKey keyProperty="contractId" order="BEFORE"
-			resultType="long">
-			SELECT contract_seq.NEXTVAL FROM DUAL
-		</selectKey>
-		INSERT INTO contract
-		(contract_id,
-		status,
-		created_at,
-		contract_time,
-		client_id,
-		agent_id,
-		memo)
-		VALUES
-		(
-		#{contractId, jdbcType=NUMERIC},
-		#{status, jdbcType=VARCHAR},
-		#{createdAt, jdbcType=TIMESTAMP},
-		#{contractTime, jdbcType=TIMESTAMP},
-		#{clientId, jdbcType=NUMERIC},
-		#{agentId, jdbcType=NUMERIC},
-		#{memo, jdbcType=CLOB}
-		)
-	</insert>
+    <insert id="insertSchedule"
+            parameterType="kr.or.kosa.visang.domain.contract.model.Contract">
+        <selectKey keyProperty="contractId" order="BEFORE"
+                   resultType="long">
+            SELECT contract_seq.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO contract (
+        contract_id, status, created_at, contract_time, client_id, agent_id, memo
+        ) VALUES (
+        #{contractId},
+        #{status},
+        TO_DATE(#{createdAt}, 'YYYY-MM-DD HH24:MI:SS'),
+        TO_DATE(#{contractTime}, 'YYYY-MM-DD HH24:MI'),
+        #{clientId},
+        #{agentId},
+        #{memo, jdbcType=CLOB}
+        )
+    </insert>
 
-	<select id="selectSchedulesByAgent" parameterType="long"
-		resultMap="scheduleResultMap">
-		SELECT
-		c.contract_id,
-		c.created_at,
-		c.status,
-		c.contract_time,
-		c.client_id,
-		c.agent_id,
-		c.memo,
-		cl.email,
-		cl.name,
-		cl.phone_number
-		FROM
-		contract c
-		JOIN client cl ON c.client_id = cl.client_id
-		WHERE c.agent_id
-		= #{agentId}
-		ORDER BY c.contract_time
-	</select>
+    <select id="selectSchedulesByAgent" parameterType="long"
+            resultMap="scheduleResultMap">
+        SELECT
+        c.contract_id,
+        c.created_at,
+        c.status,
+        c.contract_time,
+        c.client_id,
+        c.agent_id,
+        c.memo,
+        cl.email,
+        cl.name,
+        cl.phone_number
+        FROM
+        contract c
+        JOIN client cl ON c.client_id = cl.client_id
+        WHERE c.agent_id
+        = #{agentId}
+        ORDER BY c.contract_time
+    </select>
 
-	<select id="countByClientAndTime" parameterType="map"
-		resultType="int">
-		SELECT COUNT(*)
-		FROM contract
-		WHERE client_id = #{clientId}
-		AND contract_time = #{contractTime}
-	</select>
+    <select id="countByClientAndTime" parameterType="map"
+            resultType="int">
+        SELECT COUNT(*)
+        FROM contract
+        WHERE client_id = #{clientId}
+        AND contract_time = #{contractTime}
+    </select>
 
-	<select id="countByAgentAndTime" resultType="int"
-		parameterType="map">
-		SELECT COUNT(*)
-		FROM contract
-		WHERE agent_id = #{agentId}
-		AND contract_time = #{contractTime}
-	</select>
+    <select id="countByAgentAndTime" resultType="int"
+            parameterType="map">
+        SELECT COUNT(*)
+        FROM contract
+        WHERE agent_id = #{agentId}
+        AND contract_time = #{contractTime}
+    </select>
 
 
-	<select id="countByClientAndTimeExcept" resultType="int">
-		SELECT
-		COUNT(*)
-		FROM contract
-		WHERE client_id = #{clientId}
-		AND contract_time =
-		#{contractTime}
-		AND contract_id != #{excludeContractId}
-	</select>
+    <select id="countByClientAndTimeExcept" resultType="int">
+        SELECT
+        COUNT(*)
+        FROM contract
+        WHERE client_id = #{clientId}
+        AND contract_time =
+        #{contractTime}
+        AND contract_id != #{excludeContractId}
+    </select>
 
-	<select id="countByAgentAndTimeExcept" resultType="int">
-		SELECT
-		COUNT(*)
-		FROM contract
-		WHERE agent_id = #{agentId}
-		AND contract_time =
-		#{contractTime}
-		AND contract_id != #{excludeContractId}
-	</select>
+    <select id="countByAgentAndTimeExcept" resultType="int">
+        SELECT
+        COUNT(*)
+        FROM contract
+        WHERE agent_id = #{agentId}
+        AND contract_time =
+        #{contractTime}
+        AND contract_id != #{excludeContractId}
+    </select>
 
-	<update id="updateSchedule">
-		UPDATE contract
-		SET contract_time = #{contractTime},
-		memo = #{memo}
-		WHERE contract_id = #{contractId}
-	</update>
+    <update id="updateSchedule">
+        UPDATE contract
+        SET contract_time = #{contractTime},
+        memo = #{memo},
+        status = #{status}
+        WHERE contract_id = #{contractId}
+    </update>
 
-	<delete id="deleteSchedule" parameterType="long">
-		DELETE FROM contract
-		WHERE contract_id = #{contractId}
-	</delete>
+    <select id="findTodayContracts" parameterType="map" resultMap="scheduleResultMap">
+        SELECT
+        c.contract_id,
+        c.created_at,
+        c.status,
+        c.contract_time,
+        TO_CHAR(c.contract_time, 'HH24:MI') AS time,
+        i.invitation_code,
+        cl.client_id,
+        cl.name,
+        cl.email,
+        cl.phone_number
+        FROM contract c
+        JOIN
+        client cl ON c.client_id = cl.client_id
+        LEFT JOIN invitation i ON
+        i.contract_id = c.contract_id
+        WHERE
+        TRUNC(c.contract_time) =
+        TO_DATE(#{date}, 'YYYY-MM-DD')
+        AND c.agent_id = #{agentId}
+        AND c.status = 'PENDING'
+        ORDER BY
+        c.contract_time
+    </select>
 
-
-	<select id="findTodayContracts" parameterType="map"
-		resultMap="scheduleResultMap">
-		SELECT
-		c.contract_id,
-		c.created_at,
-		c.status,
-		c.contract_time,
-		TO_CHAR(c.contract_time, 'HH24:MI') AS time,
-		i.invitation_code,
-		cl.client_id,
-		cl.name,
-		cl.email,
-		cl.phone_number
-		FROM contract c
-		JOIN
-		client cl ON c.client_id = cl.client_id
-		LEFT JOIN invitation i ON
-		i.contract_id = c.contract_id
-		WHERE
-		TRUNC(c.contract_time) =
-		TO_DATE(#{date}, 'YYYY-MM-DD')
-		AND c.agent_id =
-		#{agentId}
-		ORDER BY
-		c.contract_time
-	</select>
-
-	<select id="findById" parameterType="long"
-		resultType="kr.or.kosa.visang.domain.contract.model.Contract">
-		SELECT * FROM contract WHERE contract_id = #{contractId}
-	</select>
+    <select id="findById" parameterType="long"
+            resultType="kr.or.kosa.visang.domain.contract.model.Contract">
+        SELECT * FROM contract WHERE contract_id = #{contractId}
+    </select>
 
     <select id="selectContractByStatus" resultMap="ContractResultMap">
         SELECT *
@@ -187,22 +174,22 @@
 
     <!-- 모든 계약 조회 -->
     <select id="selectAllContracts" resultMap="ContractResultMap">
-        SELECT <include refid="baseColumns" />,
-               TO_CHAR(created_at, 'YYYY-MM-DD') as created_at,
-               TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
+        SELECT<include refid="baseColumns"/>,
+        TO_CHAR(created_at, 'YYYY-MM-DD') as created_at,
+        TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
         FROM contract
         ORDER BY created_at DESC
     </select>
 
     <select id="selectMonthlyScheduleByAgentId" resultMap="ContractResultMap">
         SELECT contract_id, status, TO_CHAR(created_at, 'YYYY-MM-DD') as created_at,
-               TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time,
-               client_id, agent_id, memo
+        TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time,
+        client_id, agent_id, memo
         FROM contract
         WHERE agent_id = #{id}
-          AND contract_time BETWEEN
-            TO_DATE(#{year} || '-'|| LPAD(#{month}, 2, '0'), 'YYYY-MM')
-            AND LAST_DAY(TO_DATE(#{year}|| '-'|| LPAD(#{month}, 2, '0'), 'YYYY-MM')) + (1 - 1/86400)
+        AND contract_time BETWEEN
+        TO_DATE(#{year} || '-'|| LPAD(#{month}, 2, '0'), 'YYYY-MM')
+        AND LAST_DAY(TO_DATE(#{year}|| '-'|| LPAD(#{month}, 2, '0'), 'YYYY-MM')) + (1 - 1/86400)
         ORDER BY contract_time
     </select>
 
@@ -213,18 +200,18 @@
 
     <!-- 계약 조회 -->
     <select id="selectContractById" resultMap="ContractResultMap">
-        SELECT <include refid="baseColumns" />,
-               TO_CHAR(created_at, 'YYYY-MM-DD') as created_at,
-               TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
+        SELECT<include refid="baseColumns"/>,
+        TO_CHAR(created_at, 'YYYY-MM-DD') as created_at,
+        TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
         FROM contract
         WHERE contract_id = #{contractId}
     </select>
 
     <!-- 고객 ID로 계약 목록 조회 -->
     <select id="selectContractsByClientId" resultMap="ContractResultMap">
-        SELECT <include refid="baseColumns" />,
-               TO_CHAR(created_at, 'YYYY-MM-DD') as created_at,
-               TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
+        SELECT<include refid="baseColumns"/>,
+        TO_CHAR(created_at, 'YYYY-MM-DD') as created_at,
+        TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
         FROM contract
         WHERE client_id = #{clientId}
         ORDER BY created_at DESC
@@ -232,9 +219,9 @@
 
     <!-- 상담사 ID로 계약 목록 조회 -->
     <select id="selectContractsByAgentId" resultMap="ContractResultMap">
-        SELECT <include refid="baseColumns" />,
-               TO_CHAR(created_at, 'YYYY-MM-DD') as created_at,
-               TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
+        SELECT<include refid="baseColumns"/>,
+        TO_CHAR(created_at, 'YYYY-MM-DD') as created_at,
+        TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
         FROM contract
         WHERE agent_id = #{agentId}
         ORDER BY created_at DESC
@@ -242,9 +229,9 @@
 
     <!-- 계약 상태별 조회 -->
     <select id="selectContractsByStatus" resultMap="ContractResultMap">
-        SELECT <include refid="baseColumns" />,
-               TO_CHAR(created_at, 'YYYY-MM-DD') as created_at,
-               TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
+        SELECT<include refid="baseColumns"/>,
+        TO_CHAR(created_at, 'YYYY-MM-DD') as created_at,
+        TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
         FROM contract
         WHERE status = #{status}
         ORDER BY created_at DESC
@@ -256,9 +243,9 @@
             SELECT NVL(MAX(contract_id), 0) + 1 FROM contract
         </selectKey>
         INSERT INTO contract (
-            contract_id, status, created_at, client_id, agent_id, memo
+        contract_id, status, created_at, client_id, agent_id, memo
         ) VALUES (
-            #{contractId}, #{status}, TO_DATE(#{createdAt}, 'YYYY-MM-DD HH24:MI:SS'), #{clientId}, #{agentId}, #{memo}
+        #{contractId}, #{status}, TO_DATE(#{createdAt}, 'YYYY-MM-DD HH24:MI:SS'), #{clientId}, #{agentId}, #{memo}
         )
     </insert>
 
@@ -276,5 +263,43 @@
         WHERE contract_id = #{param1}
     </update>
 
+
+    <select id="selectContractsByAgentIdAndStatusPaged"
+            resultMap="contractResultMap"
+            parameterType="map">
+        <bind name="endIndex" value="offset + pageSize"/>
+        SELECT *
+        FROM (
+        SELECT
+        c.*,
+        cl.name    AS client_name,
+        cl.email   AS client_email,
+        ROW_NUMBER() OVER (
+        ORDER BY
+        <choose>
+            <when test="sort == 'ASC'">
+                c.contract_time ASC
+            </when>
+            <otherwise>
+                c.contract_time DESC
+            </otherwise>
+        </choose>
+        ) AS rn
+        FROM contract c
+        JOIN client cl
+        ON c.client_id = cl.client_id
+        WHERE c.agent_id = #{agentId}
+        AND c.status   = #{status}
+        ) sub
+        WHERE sub.rn &gt; #{offset}
+        AND sub.rn &lt;= #{endIndex}
+    </select>
+
+    <select id="countContractsByAgentAndStatus" resultType="int">
+        SELECT COUNT(*)
+        FROM contract
+        WHERE agent_id = #{agentId}
+        AND status = #{status}
+    </select>
 
 </mapper>

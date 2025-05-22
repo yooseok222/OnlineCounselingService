@@ -140,7 +140,11 @@ public class SecurityConfig {
             )
             .csrf(csrf -> csrf
                 // H2 콘솔 및 API는 CSRF 비활성화
-                .ignoringRequestMatchers("/h2-console/**", "/api/**")
+                .ignoringRequestMatchers(     "/h2-console/**",
+                        "/api/**",
+                        "/agent/schedule/update",
+                        "/agent/schedule/add",
+                        "/agent/schedule/delete")
             )
             // H2 콘솔 사용을 위한 설정
             .headers(headers -> headers

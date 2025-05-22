@@ -36,12 +36,13 @@
         FROM agent
         WHERE agent_id = #{id}
     </select>
-    
+
     <select id="findByEmail" resultMap="AgentResultMap">
         SELECT agent_id, company_id, name, email, password, phone_number, address, role, state, created_at, profile_image_url, email_verified
         FROM agent
         WHERE email = #{email}
     </select>
+
 
     <select id="selectAgentByCondition" resultMap="AgentResultMap">
         SELECT agent_id, company_id, name, phone_number, state, email, address, role, created_at, profile_image_url, email_verified
@@ -108,14 +109,13 @@
         WHERE email = #{email}
     </update>
 
-    <select id="findRecentCompletedContracts" parameterType="long" resultMap="AgentResultMap">
-        SELECT c.*, cl.name AS client_name, cl.email
-        FROM contract c
-        JOIN client cl ON c.client_id = cl.client_id
-        WHERE c.agent_id = #{agentId}
-        AND c.status = '완료'
-        ORDER BY c.contract_time DESC
-        FETCH FIRST 5 ROWS ONLY
+    <select id="countContractByStatus" parameterType="long" resultType="map">
+        SELECT
+            status,
+            COUNT(*) AS count
+        FROM contract
+        WHERE agent_id = #{agentId}
+        GROUP BY status
     </select>
 
 </mapper>

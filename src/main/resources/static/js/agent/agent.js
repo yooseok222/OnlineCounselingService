@@ -1,20 +1,6 @@
-  let stompClient = null;
-  let contractId = '11';
-  let senderType = 'AGENT';
-  let senderName = '홍길동';
-
-  function connectChat() {
-  	const socket = new SockJS('/ws');
-  	stompClient = Stomp.over(socket);
-  	stompClient.connect({}, () => {
-  		console.log('✅ 채팅 서버 연결됨!');
-  		stompClient.subscribe(`/topic/chat/${contractId}`, msg => {
-  			const body = JSON.parse(msg.body);
-  			showChatMessage(body);
-  		});
-  	});
-  }
-
+let currentPage = 1;
+let currentStatus = 'PENDING';
+let currentSortOrder = 'DESC';
 
 document.addEventListener('DOMContentLoaded', function() {
 	const calendarEl = document.getElementById('calendar');
@@ -23,11 +9,12 @@ document.addEventListener('DOMContentLoaded', function() {
 	const dateRangeEl = document.getElementById('dateRange');
 	const scheduleForm = document.getElementById('scheduleForm');
 	const saveBtn = document.getElementById('saveBtn');
-	connectChat();
+	const contractStatusSelect = scheduleForm.querySelector('[name="contractStatus"]');
 
 	let selectedEvent = null;
 
-
+	loadStatusCounts();
+    showFilteredContracts(currentStatus);
 
 	// 랜덤 파스텔 컬러 생성
 	function getRandomColor() {
@@ -156,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function() {
 					form.date.value = ev.startStr.split('T')[0];
 					form.time.value = ev.startStr.split('T')[1].slice(0, 5);
 					form.clientName.value = ev.title.replace(' 고객', '');
-					form.contractStatus.value = ev.extendedProps.contractStatus || '';
+                    form.contractStatus.value = ev.extendedProps.contractStatus || 'PENDING';
 					form.memo.value = ev.extendedProps.memo || '';
 					form.email.value = ev.extendedProps.email || '';
 					form.phone.value = ev.extendedProps.phone || '';
@@ -164,7 +151,6 @@ document.addEventListener('DOMContentLoaded', function() {
 					// 버튼 토글
 					document.getElementById('saveBtn').classList.add('d-none');
 					document.getElementById('updateBtn').classList.remove('d-none');
-					document.getElementById('deleteBtn').classList.remove('d-none');
 
 					// 모달 열기
 					new bootstrap.Modal(document.getElementById('scheduleModal')).show();
@@ -204,9 +190,16 @@ document.addEventListener('DOMContentLoaded', function() {
 				click: () => {
 					selectedEvent = null;
 					scheduleForm.reset();
+
+					document.getElementById('emailFeedback')?.remove();
+
+					document.querySelector('#scheduleModal .modal-title').textContent = '스케줄 추가';
+
+					contractStatusSelect.value = 'PENDING';
+                    contractStatusSelect.closest('.mb-3').style.display = 'none';
+
 					document.getElementById('saveBtn').classList.remove('d-none');
 					document.getElementById('updateBtn').classList.add('d-none');
-					document.getElementById('deleteBtn').classList.add('d-none');
 					new bootstrap.Modal(document.getElementById('scheduleModal')).show();
 				}
 			}
@@ -221,13 +214,24 @@ document.addEventListener('DOMContentLoaded', function() {
 			form.date.value = ev.startStr.split('T')[0];
 			form.time.value = ev.startStr.split('T')[1].slice(0, 5);
 			form.clientName.value = ev.title.replace(' 고객', '');
-			form.contractStatus.value = ev.extendedProps.contractStatus || '';
 			form.memo.value = ev.extendedProps.memo || '';
 			form.email.value = ev.extendedProps.email || '';
 			form.phone.value = ev.extendedProps.phone || '';
+			document.getElementById('emailFeedback')?.remove();
+
+			document.querySelector('#scheduleModal .modal-title').textContent = '스케줄 수정';
+
+	            contractStatusSelect.closest('.mb-3').style.display = 'block';
+                const statusValue = ev.extendedProps.contractStatus;
+                if (statusValue === 'PENDING' || statusValue === 'CANCELLED') {
+                    contractStatusSelect.value = statusValue;
+                } else {
+                    contractStatusSelect.value = 'PENDING';
+                }
+
+            document.querySelector('#scheduleModal .modal-title').textContent = '스케줄 수정';
 			document.getElementById('saveBtn').classList.add('d-none');
 			document.getElementById('updateBtn').classList.remove('d-none');
-			document.getElementById('deleteBtn').classList.remove('d-none');
 			new bootstrap.Modal(document.getElementById('scheduleModal')).show();
 		},
 
@@ -285,20 +289,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	renderContractsDate();
 	loadTodayContracts();
-	// ====오늘의 계약====
-	loadRecentCompletedContracts();
 
 	// 전체 스케줄 로드
 	async function loadSchedules() {
 		try {
-			const agentId = Number(document.querySelector('input[name="agentId"]').value);
-			const res = await fetch(`/agent/schedule/list?agentId=${agentId}`);
-			if (!res.ok) throw new Error('스케줄 로드 실패');
-			const schedules = await res.json();
+            const agentInput = document.querySelector('input[name="agentId"]');
+            const agentId = agentInput ? Number(agentInput.value) : null;
 
+			if (!agentId || isNaN(agentId)) {
+            		throw new Error('agentId가 유효하지 않습니다: ' + agentId);
+                }
+
+            	const res = await fetch(`/agent/schedule/list?agentId=${agentId}`);
+            	if (!res.ok) {
+            		const errText = await res.text();
+            		throw new Error(`스케줄 로드 실패: ${res.status} ${errText}`);
+            	}
+
+			const schedules = await res.json();
 			calendar.getEvents().forEach(ev => ev.remove());
 
 			schedules.forEach(c => {
+			    if (c.status !== 'PENDING') return;
 				calendar.addEvent({
 					id: String(c.contractId),
 					title: `${c.memo ? '' : ''}${c.clientName || ''} 고객`,
@@ -337,6 +349,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			const res = await fetch(
 				`/agent/today-contracts?agentId=${agentId}&date=${iso}`
 			);
+
 			if (!res.ok) throw new Error('오늘 계약 로드 실패');
 			const list = await res.json();
 
@@ -380,7 +393,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 		let fb = document.getElementById(feedbackId);
 		if (!fb) {
-
 			fb = document.createElement('div');
 			fb.id = feedbackId;
 
@@ -388,6 +400,8 @@ document.addEventListener('DOMContentLoaded', function() {
 			formGroup.appendChild(fb);
 			fb.className = 'form-text mt-1';
 		}
+		fb.style.display = 'block';
+
 		if (!email) {
 			fb.textContent = '이메일을 입력해주세요.';
 			fb.style.color = 'red';
@@ -401,18 +415,16 @@ document.addEventListener('DOMContentLoaded', function() {
 			clientNameInput.value = client.name;
 			phoneInput.value = client.phoneNumber;
 			clientIdInput.value = client.clientId;
-
-
 			document.getElementById('clientIdInput').value = client.clientId;
 
 			fb.textContent = '고객 정보를 불러왔습니다.';
 			fb.style.color = 'green';
+			fb.style.display = 'block';
 
 			// 중복 예약 체크
 			const date = scheduleForm.date.value;
 			const time = scheduleForm.time.value;
 
-			// → 기존 코드 중 "중복 예약 체크" 블록 전체를 이걸로 대체
 			if (date && time) {
 				const ct = `${date}T${time}`;
 
@@ -426,7 +438,7 @@ document.addEventListener('DOMContentLoaded', function() {
 					fb.classList.remove('text-success');
 					fb.classList.add('text-danger');
 					saveBtn.disabled = true;
-					return;  // 여기서 끝
+					return;
 				}
 
 				// 2) 동일 상담사 중복 체크
@@ -487,17 +499,22 @@ document.addEventListener('DOMContentLoaded', function() {
 		const form = document.getElementById('scheduleForm');
 		const fd = new FormData(form);
 
-		console.log('▶ FormData.clientId =', fd.get('clientId'));
+        const date = fd.get('date');
+        const time = fd.get('time');
 
+        if (!date || !time) {
+            alert('날짜와 시간을 모두 입력해주세요.');
+            return;
+        }
 
 		const payload = {
 			email: fd.get('email'),
 			contractTime: `${fd.get('date')}T${fd.get('time')}`,
 			clientId: Number(fd.get('clientId')),
 			agentId: Number(fd.get('agentId')),
-			contractTemplateId: Number(fd.get('contractTemplateId')),
 			clientName: fd.get('clientName'),
-			memo: fd.get('memo')
+			memo: fd.get('memo'),
+			status: 'PENDING'
 		};
 
 		const csrfToken = getCookie('XSRF-TOKEN');
@@ -515,9 +532,40 @@ document.addEventListener('DOMContentLoaded', function() {
 			});
 
 			const result = await res.json();
+			const list = result.contracts ?? [];
+            const totalPages = result.totalPages ?? 1;
+            const ul = document.getElementById('filteredContractsList');
+
+            if (list.length === 0) {
+              ul.innerHTML = '<li class="list-group-item text-muted text-center">계약이 없습니다.</li>';
+            } else {
+              ul.innerHTML = '';
+              list.forEach(contract => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item';
+                li.textContent = `${contract.clientName} — ${contract.contractTime}`;
+                ul.appendChild(li);
+              });
+              renderPagination(totalPages);
+            }
+
+
 			if (!res.ok) throw new Error(result.error || '저장 실패');
 
-			alert(`스케줄이 등록되었습니다.\n초대코드: ${result.invitationCode}`);
+            await Swal.fire({
+                  icon: 'success',
+                  title: '일정 등록 완료',
+                  html: `초대코드: <strong>${result.invitationCode}</strong>`,
+                  confirmButtonText: '확인'
+            });
+
+
+            loadStatusCounts();
+            showFilteredContracts(currentStatus);
+            loadSchedules();
+
+            bootstrap.Modal.getInstance(scheduleModal).hide();
+            scheduleForm.reset();
 
 			// 캘린더에 이벤트 추가
 			calendar.addEvent({
@@ -539,14 +587,11 @@ document.addEventListener('DOMContentLoaded', function() {
 				renderWeeklyTimetable(calendar.view.currentStart);
 			}
 
-			loadTodayContracts();
-
 			const modalEl = document.getElementById('scheduleModal');
 			bootstrap.Modal.getInstance(modalEl).hide();
 			form.reset();
 		} catch (err) {
-			console.error('스케줄 저장 에러:', err);
-			alert(err.message);
+            Swal.fire({ icon: 'error', title: '저장 실패', text: err.message });
 		}
 	});
 
@@ -567,10 +612,12 @@ document.addEventListener('DOMContentLoaded', function() {
 			clientId: Number(fd.get('clientId')),
 			agentId: Number(fd.get('agentId')),
 			contractTime: newStart,
-			memo: newMemo
+			memo: newMemo,
+			status: fd.get('contractStatus')
 		};
 
 		const csrfToken = getCookie('XSRF-TOKEN');
+
 
 		try {
 			const res = await fetch('/agent/schedule/update', {
@@ -585,7 +632,18 @@ document.addEventListener('DOMContentLoaded', function() {
 			const result = await res.json();
 			if (!res.ok) throw new Error(result.error || '수정 실패');
 
-			alert('일정이 수정되었습니다.');
+			await Swal.fire({
+                  icon: 'success',
+                  title: '일정 수정 완료',
+                  confirmButtonText: '확인'
+            });
+
+            loadStatusCounts();
+            showFilteredContracts(currentStatus);
+            loadSchedules();
+
+            bootstrap.Modal.getInstance(scheduleModal).hide();
+            scheduleForm.reset();
 
 			selectedEvent.setStart(newStart);
 			selectedEvent.setProp('title', `${newClient} 고객`);
@@ -602,121 +660,116 @@ document.addEventListener('DOMContentLoaded', function() {
 			bootstrap.Modal.getInstance(modalEl).hide();
 			form.reset();
 		} catch (err) {
-			alert(err.message);
+             Swal.fire({ icon: 'error', title: '수정 실패', text: err.message });
 		}
 	});
 
-	document.getElementById('deleteBtn').addEventListener('click', async e => {
-		e.preventDefault();
-		if (!selectedEvent) return;
-
-		if (!confirm('정말 이 일정을 삭제하시겠습니까?')) return;
-
-		const contractId = selectedEvent.id;
-		const csrfToken = getCookie('XSRF-TOKEN');
-
-		try {
-			const res = await fetch(`/agent/schedule/delete?contractId=${contractId}`, {
-				method: 'DELETE',
-				headers: {
-					'X-XSRF-TOKEN': csrfToken
-				}
-			});
-			const result = await res.json();
-			if (!res.ok) throw new Error(result.error || '삭제 실패');
-
-			selectedEvent.remove();
-			updateEventCountBadges();
-			loadSchedules();
-			if (calendar.view.type === 'listWeek') {
-				renderWeeklyTimetable(calendar.view.currentStart);
-			}
-
-			loadTodayContracts();
-
-			// 모달 닫기
-			const modalEl = document.getElementById('scheduleModal');
-			bootstrap.Modal.getInstance(modalEl).hide();
-			scheduleForm.reset();
-			alert('일정이 삭제되었습니다.');
-		} catch (err) {
-			alert(err.message);
-		}
-	});
-
-    // 최근 완료된 계약
-    async function loadRecentCompletedContracts() {
-    	const agentId = Number(document.querySelector('input[name="agentId"]').value);
-    	console.log('[로그] 상담사 ID:', agentId);
-
-    	const res = await fetch(`/agent/recent-completed?agentId=${agentId}`);
-    	console.log('[로그] fetch 상태:', res.status);
-
-    	if (!res.ok) {
-    		console.error('최근 완료된 계약 로드 실패');
-    		return;
-    	}
-
-    	const list = await res.json();
-    	console.log('[로그] 받아온 계약 리스트:', list);
-
-    	const ul = document.getElementById('recentCompletedList');
-
-        if (!ul) {
-            console.warn('[경고] recentCompletedList UL 못 찾음');
-            return;
-        }
-
-        ul.innerHTML = '';
-
-    	if (list.length === 0) {
-    	    console.log('[로그] 완료된 계약 없음');
-    		ul.innerHTML =
-    			'<li class="list-group-item text-center text-muted py-4">완료된 계약이 없습니다.</li>';
-    		return;
-    	}
-
-    	list.forEach(c => {
-    	    console.log('[로그] 계약 항목:', c);
-    		const li = document.createElement('li');
-    		li.className =
-    			'list-group-item d-flex justify-content-between align-items-center';
-    		li.innerHTML = `
-    			<div>
-    				<strong>${new Date(c.contractTime).toLocaleString()}</strong>
-    				<span class="ms-2">${c.clientName}</span>
-    				<small class="text-muted ms-2">(${c.email})</small>
-    			</div>
-    		`;
-    		ul.appendChild(li);
-    	});
-    }
-
-    /* 채팅 구현 */
-  function sendChatMessage() {
-  	const input = document.getElementById('chatInput');
-  	const msg = input.value.trim();
-  	if (!msg || !stompClient || !stompClient.connected) {
-  		alert('채팅 서버에 연결되어 있지 않습니다.');
-  		return;
-  	}
-
-  	stompClient.send(`/app/chat/${contractId}`, {}, JSON.stringify({
-  		content: msg,
-  		senderType,
-  		senderName
-  	}));
-
-  	input.value = '';
-  }
-
-  document.getElementById('sendChatBtn')?.addEventListener('click', sendChatMessage);
-
-  function showChatMessage({ senderType, senderName, content, sentTime }) {
-  	const div = document.createElement('div');
-  	div.innerHTML = `<strong>${senderType} [${senderName}]</strong>: ${content} <small>${sentTime}</small>`;
-  	document.getElementById('chatMessages').appendChild(div);
-  }
 
 
 });
+
+
+// 계약 상태에 따라 count
+async function loadStatusCounts() {
+  const res = await fetch('/agent/contract-status-counts');
+  if (!res.ok) return;
+
+  const counts = await res.json();
+  document.querySelector('#count-pending .status-value').textContent = counts.PENDING || 0;
+  document.querySelector('#count-inprogress .status-value').textContent = counts.IN_PROGRESS || 0;
+  document.querySelector('#count-completed .status-value').textContent = counts.COMPLETED || 0;
+  document.querySelector('#count-cancelled .status-value').textContent = counts.CANCELLED || 0;
+}
+
+function setSortOrder(order, button) {
+  currentSortOrder = order;
+  currentPage = 1;
+  showFilteredContracts(currentStatus);
+
+  // 버튼 UI 상태 업데이트
+  const buttons = document.querySelectorAll('#sortOrderButtons button');
+  buttons.forEach(btn => {
+    btn.classList.remove('active', 'btn-primary');
+    btn.classList.add('btn-outline-secondary');
+  });
+
+  button.classList.remove('btn-outline-secondary');
+  button.classList.add('btn-primary', 'active');
+}
+
+function getStatusColor(status) {
+  switch (status) {
+    case 'PENDING': return 'warning';     // 노랑
+    case 'IN_PROGRESS': return 'info';    // 파랑
+    case 'COMPLETED': return 'success';   // 초록
+    case 'CANCELLED': return 'danger';    // 빨강
+    default: return 'secondary';
+  }
+}
+
+async function showFilteredContracts(status) {
+  currentStatus = status;
+
+  try {
+    const res = await fetch(`/agent/contracts-by-status?status=${status}&sort=${currentSortOrder}&page=${currentPage}&size=10`);
+    if (!res.ok) throw new Error('계약 목록 조회 실패');
+
+    const result = await res.json();
+    const list = result.contracts;
+    const totalPages = result.totalPages;
+
+    const ul = document.getElementById('filteredContractsList');
+    ul.innerHTML = '';
+
+    if (!list || list.length === 0) {
+      ul.innerHTML = '<li class="list-group-item text-muted text-center">계약이 없습니다.</li>';
+      ul.innerHTML = `
+            <li class="list-group-item">
+             <div class="d-flex justify-content-center">
+                <small class="text-muted mb-0">계약이 없습니다.</small>
+              </div>
+            </li>
+          `;
+      return;
+    }
+
+    list.forEach(contract => {
+      const li = document.createElement('li');
+      li.className = 'list-group-item';
+      li.innerHTML = `
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+          <div class="mb-2 mb-md-0">
+            <strong class="text-primary">${contract.clientName}</strong> 고객
+            <br class="d-md-none" />
+            <small class="text-muted">${contract.contractTime}</small>
+          </div>
+          <span class="badge bg-${getStatusColor(contract.status)} ms-md-3">${contract.status}</span>
+        </div>
+      `;
+      ul.appendChild(li);
+    });
+
+    renderPagination(totalPages);
+
+  } catch (err) {
+    console.error('[계약 목록 조회 오류]', err);
+  }
+}
+
+function renderPagination(totalPages) {
+  const container = document.getElementById('paginationContainer');
+  container.innerHTML = '';
+
+  if (totalPages <= 1) return;
+
+  for (let i = 1; i <= totalPages; i++) {
+    const btn = document.createElement('button');
+    btn.className = `btn btn-sm me-1 ${i === currentPage ? 'btn-primary' : 'btn-outline-secondary'}`;
+    btn.textContent = i;
+    btn.addEventListener('click', () => {
+      currentPage = i;
+      showFilteredContracts(currentStatus);
+    });
+    container.appendChild(btn);
+  }
+}

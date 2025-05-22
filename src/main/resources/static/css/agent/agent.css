@@ -176,3 +176,19 @@
   color: #444;
   font-weight: bold;
 }
+
+/* 툴바 자체가 한 줄로만 표시되도록 */
+.fc .fc-toolbar.fc-header-toolbar {
+  flex-wrap: nowrap !important;
+  overflow-x: auto;       /* 화면이 작아지면 가로 스크롤 */
+}
+
+/* 툴바 챙크(왼쪽·가운데·오른쪽 영역) 내 아이템 줄 바꿈 방지 */
+.fc .fc-toolbar-chunk {
+  white-space: nowrap;
+}
+
+/* 버튼들 사이에 적당한 간격 유지 */
+.fc .fc-toolbar-chunk .fc-button {
+  margin-right: 0.5rem;
+}

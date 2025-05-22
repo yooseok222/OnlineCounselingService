@@ -26,13 +26,8 @@
             <!-- <div class="col-md-3 col-lg-2 sidebar collapse" id="sidebarMenu" th:replace="fragments/sidebar :: sidebar"></div> -->
 
             <!-- 상담 사이드바 -->
- 			<div class="col-md-3 col-lg-2 sidebar collapse" id="sidebarMenu" th:replace="agent/agentSidebar :: sidebar"></div>
+            <div class="col-md-3 col-lg-2 sidebar collapse" id="sidebarMenu" th:replace="agent/agentSidebar :: sidebar"></div>
 
-            <!-- 관리자 사이드바 -->
-            <!--<div class="col-md-3 col-lg-2 sidebar collapse" id="sidebarMenu" th:replace="admin/adminSidebar :: sidebar"></div>-->
-
-            <!-- 고객 사이드바 -->
-            <!-- <div class="col-md-3 col-lg-2 sidebar collapse" id="sidebarMenu" th:replace="client/clientSidebar :: sidebar"></div>-->
 
 <!--            &lt;!&ndash; 관리자 사이드바 &ndash;&gt;-->
 <!--            <div th:if="${#authentication.principal.role == 'ADMIN'}"-->
@@ -60,10 +55,6 @@
                <!-- <div th:replace="fragments/mainDashboard :: content"></div> -->
 				<!-- 상담보드 내용 -->
                 <div th:replace="agent/agentDashboard :: content"></div>
-                <!-- 관리자 대시보드 내용-->
-                <!--<div th:replace="admin/adminDashboard :: content"></div>-->
-                <!--고객 대시보드 내용-->
-                <!--<div th:replace="client/clientDashboard :: content"></div>-->
 
                 <!-- 관리자 -->
 <!--                <div th:if="${#authentication.principal.role == 'ADMIN'}"-->
@@ -91,11 +82,14 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- 캘린더 -->
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-    <!-- Swiper JS -->
-  	<script src="https://cdn.jsdelivr.net/npm/swiper@4.5.0/dist/js/swiper.min.js"></script>
 
+    <!-- Swiper / STOMP 등 여러 라이브러리 로드 -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@4.5.0/dist/js/swiper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- 커스텀 JavaScript -->
     <script th:src="@{/js/common/main.js}"></script>

@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface AgentMapper {
@@ -91,4 +92,8 @@ public interface AgentMapper {
     int updateEmailVerificationStatus(@Param("email") String email, @Param("verified") boolean verified);
 
     List<Contract> getRecentCompletedContracts(Long agentId);
+
+    Agent findByEmailSelect(String email);
+
+    List<Map<String, Object>> countContractByStatus(Long agentId);
 }

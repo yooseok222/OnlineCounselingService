@@ -27,4 +27,5 @@ public class CustomUserDetails extends User {
         this.agentId = agentId;
         this.companyId = companyId;
     }
+
 } 
