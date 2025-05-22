@@ -1,5 +1,6 @@
 package kr.or.kosa.visang.domain.admin.controller;
 
+import kr.or.kosa.visang.common.config.security.CustomUserDetails;
 import kr.or.kosa.visang.domain.contract.enums.ContractStatus;
 import kr.or.kosa.visang.domain.contract.model.Contract;
 import kr.or.kosa.visang.domain.contract.model.ContractDetail;
@@ -11,6 +12,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -25,16 +27,17 @@ public class AdminContractController {
     private final ContractTemplateService contractTemplateService;
 
     @GetMapping("/contract-list/{status}")
-    //public String templateList(@AuthenticationPrincipal CustomUserDetails admin,Model model) {
-    public String templateList(Model model, @PathVariable("status") String status) {
-        //Long companyId = admin.getCompanyId(); // 로그인한 사용자의 회사 ID
-        Long id = 1L; // 예시로 회사 ID를 1로 설정, 실제로는 로그인한 사용자의 회사 ID를 사용해야 함
+    public String templateList(@AuthenticationPrincipal CustomUserDetails admin,
+                               @PathVariable("status") String status,
+                               Model model
+    ) {
+        Long companyId = admin.getCompanyId(); // 로그인한 사용자의 회사 ID
 
         try {
             String enumName = status.replace("-", "_").toUpperCase();
             ContractStatus contractStatus = ContractStatus.valueOf(enumName);
-            System.out.println("contractStatus = " + contractStatus);
-            model.addAttribute("contractList", contractService.getContractByStatus(id, contractStatus.name()));
+
+            model.addAttribute("contractList", contractService.getContractByStatus(companyId, contractStatus.name()));
             model.addAttribute("pageTitle", contractStatus.name().replace("_", " "));
             model.addAttribute("status", contractStatus.name());
 
@@ -51,17 +54,19 @@ public class AdminContractController {
 
     @GetMapping("/contracts/search")
     @ResponseBody
-    public List<Contract> searchContracts(@ModelAttribute ContractSearchRequest request) {
-        System.out.println(request.toString());
+    public List<Contract> searchContracts(@AuthenticationPrincipal CustomUserDetails admin,
+                                          @ModelAttribute ContractSearchRequest request
+    ) {
+        Long companyId = admin.getCompanyId(); // 로그인한 사용자의 회사 ID
+
+        request.setCompanyId(companyId); // 검색 요청에 회사 ID 추가
         return contractService.searchContracts(request);
     }
 
     @GetMapping("/contract/{contractId}")
     @ResponseBody
     public ContractDetail contractDetail(@PathVariable Long contractId) {
-        System.out.println("contract = " + contractId);
         ContractDetail contract = contractService.getContractDetail(contractId);
-        System.out.println("contract = " + contract);
         if (contract == null) {
             throw new RuntimeException("contract not found");
         }
