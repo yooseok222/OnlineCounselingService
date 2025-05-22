@@ -58,6 +58,17 @@ function setStampMode() {
   updateToolbarButtons('stampBtn');
 }
 
+// 서명 모드 설정
+function setSignatureMode() {
+  mode = 'signature';
+  drawing = false;
+  document.getElementById('currentMode').textContent = '서명';
+  updateToolbarButtons('signatureBtn');
+  
+  // 사용자에게 안내 메시지 표시
+  showToast("서명 모드", "서명을 추가할 위치를 클릭하세요.", "info");
+}
+
 // 텍스트 입력 모드 설정 및 팝업 열기
 function openTextPopup() {
   if (mode === 'text') {
@@ -101,7 +112,7 @@ function confirmText() {
 // 도구 모음 버튼 업데이트
 function updateToolbarButtons(activeButtonId) {
   // 모든 버튼 비활성화
-  const buttons = ['highlighterBtn', 'penBtn', 'cursorBtn', 'textBtn', 'stampBtn'];
+  const buttons = ['highlighterBtn', 'penBtn', 'cursorBtn', 'textBtn', 'stampBtn', 'signatureBtn'];
   buttons.forEach(id => {
     const button = document.getElementById(id);
     if (button) {
@@ -118,7 +129,21 @@ function updateToolbarButtons(activeButtonId) {
 
 // 드로잉 시작
 function startDrawing(e) {
-  if (!mode || mode === 'text' || mode === 'stamp') return;
+  if (!mode || mode === 'text' || mode === 'stamp' || mode === 'signature') {
+    // 텍스트 모드에서 클릭 시 텍스트 추가
+    if (mode === 'text' && pendingText) {
+      handleTextPlacement(e);
+    } 
+    // 도장 모드에서 클릭 시 도장 추가
+    else if (mode === 'stamp') {
+      handleStampPlacement(e);
+    }
+    // 서명 모드에서 클릭 시 서명 추가
+    else if (mode === 'signature') {
+      handleSignaturePlacement(e);
+    }
+    return;
+  }
 
   // 마우스 좌표 계산
   const rect = drawingCanvas.getBoundingClientRect();
@@ -196,7 +221,7 @@ function stopDrawing() {
 function handleTouchStart(e) {
   e.preventDefault();
   
-  if (!mode || mode === 'text' || mode === 'stamp') {
+  if (!mode || mode === 'text' || mode === 'stamp' || mode === 'signature') {
     // 텍스트 모드에서 터치 시 텍스트 추가
     if (mode === 'text' && pendingText) {
       handleTextPlacement(e.touches[0]);
@@ -204,6 +229,10 @@ function handleTouchStart(e) {
     // 도장 모드에서 터치 시 도장 추가
     else if (mode === 'stamp') {
       handleStampPlacement(e.touches[0]);
+    }
+    // 서명 모드에서 터치 시 서명 추가
+    else if (mode === 'signature') {
+      handleSignaturePlacement(e.touches[0]);
     }
     return;
   }
@@ -382,14 +411,85 @@ function handleStampPlacement(event) {
   };
 }
 
-// 드로잉 캔버스 클릭 이벤트 (텍스트 및 도장 배치용)
-drawingCanvas.addEventListener('click', function(e) {
-  if (mode === 'text' && pendingText) {
-    handleTextPlacement(e);
-  } else if (mode === 'stamp') {
-    handleStampPlacement(e);
+// 서명 배치 처리
+function handleSignaturePlacement(event) {
+  const rect = drawingCanvas.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+  
+  // 서명 그리기 (간단한 서명 이미지를 그리거나 사용자 입력을 받을 수 있음)
+  drawSignature(x, y);
+  
+  // 서명 데이터 저장
+  if (!signatureDataPerPage[currentPage]) {
+    signatureDataPerPage[currentPage] = [];
   }
-});
+  
+  const signatureData = {
+    x: x,
+    y: y,
+    timestamp: new Date().getTime()
+  };
+  
+  signatureDataPerPage[currentPage].push(signatureData);
+  
+  // WebSocket으로 서명 데이터 전송
+  if (stompClient && stompClient.connected) {
+    const data = {
+      type: 'signature',
+      x: x,
+      y: y,
+      page: currentPage,
+      sessionId: sessionId
+    };
+    
+    stompClient.send(`/app/room/${sessionId}/draw`, {}, JSON.stringify(data));
+  }
+  
+  // 서명 후 커서 모드로 돌아가기
+  setCursor();
+  
+  // 세션 데이터 저장
+  saveSessionData();
+}
+
+// 서명 그리기 함수
+function drawSignature(x, y) {
+  // 서명 스타일 설정
+  drawingContext.font = '24px cursive';
+  drawingContext.fillStyle = '#0064E1';
+  
+  // 간단한 서명 텍스트 또는 이미지 그리기
+  const userName = sessionStorage.getItem('userName') || '서명';
+  drawingContext.fillText(userName, x, y);
+  
+  // 서명 밑줄 그리기
+  drawingContext.beginPath();
+  drawingContext.moveTo(x, y + 5);
+  drawingContext.lineTo(x + userName.length * 15, y + 5);
+  drawingContext.strokeStyle = '#0064E1';
+  drawingContext.lineWidth = 1;
+  drawingContext.stroke();
+}
+
+// 원격 서명 처리 함수
+function handleRemoteSignature(data) {
+  // 원격 서명 그리기
+  drawSignature(data.x, data.y);
+  
+  // 서명 데이터 저장
+  if (!signatureDataPerPage[data.page]) {
+    signatureDataPerPage[data.page] = [];
+  }
+  
+  const signatureData = {
+    x: data.x,
+    y: data.y,
+    timestamp: new Date().getTime()
+  };
+  
+  signatureDataPerPage[data.page].push(signatureData);
+}
 
 // 드로잉 데이터 저장
 function saveDrawingData() {
@@ -444,6 +544,22 @@ function restoreStampData() {
       drawingContext.drawImage(stampImage, item.x, item.y, item.width, item.height);
     });
   };
+}
+
+// 서명 데이터 저장
+function saveSignatureData() {
+  // 구현 필요 (서버에 서명 데이터 저장)
+}
+
+// 서명 데이터 복원
+function restoreSignatureData() {
+  // 현재 페이지의 서명 데이터가 있으면 복원
+  const pageSignatures = signatureDataPerPage[currentPage];
+  if (pageSignatures && pageSignatures.length > 0) {
+    pageSignatures.forEach(sig => {
+      drawSignature(sig.x, sig.y);
+    });
+  }
 }
 
 // 원격 드로잉 처리 (WebSocket으로 수신한 드로잉 데이터 처리)

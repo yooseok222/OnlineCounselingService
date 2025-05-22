@@ -7,7 +7,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-//import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -18,8 +18,15 @@ public class ContractRoomController {
     private ContractService contractService;
 
     @GetMapping("/contract/room")
-    public String enterContractRoom() {
-        return "contract/contractRoom";
+    public String enterContractRoom(@RequestParam(required = false) String role) {
+        // 역할에 따라 다른 페이지로 라우팅
+        if ("agent".equals(role)) {
+            return "contract/agentRoom"; // 상담원 페이지
+        } else if ("client".equals(role)) {
+            return "contract/clientRoom"; // 고객 페이지
+        } else {
+            return "contract/contractRoom"; // 기본 페이지 (기존 통합 페이지)
+        }
     }
     
     /**

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>고객 상담방</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- CSRF 토큰을 위한 메타 태그 추가 -->
+  <meta name="_csrf" th:content="${_csrf.token}"/>
+  <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+  <!-- 분리된 CSS 파일 참조 -->
+  <link rel="stylesheet" href="/css/contract/contractRoom.css">
+</head>
+<body>
+  <div class="header">
+    <h3><i class="fas fa-comments"></i> 온라인 상담 (고객)</h3>
+    <div id="userRoleDisplay"></div>
+  </div>
+  
+  <div class="container">
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <button id="cursorBtn" class="tool-btn active" onclick="setCursor()"><i class="fas fa-mouse-pointer"></i> 커서</button>
+        <button id="penBtn" class="tool-btn" onclick="setPen()"><i class="fas fa-pen"></i> 펜</button>
+        <button id="highlighterBtn" class="tool-btn" onclick="setHighlighter()"><i class="fas fa-highlighter"></i> 형광펜</button>
+      </div>
+      <div class="toolbar-group">
+        <button id="textBtn" class="tool-btn" onclick="openTextPopup()"><i class="fas fa-font"></i> 텍스트</button>
+        <button id="stampBtn" class="tool-btn" onclick="setStampMode()"><i class="fas fa-stamp"></i> 도장</button>
+        <button id="signatureBtn" class="tool-btn" onclick="setSignatureMode()"><i class="fas fa-signature"></i> 서명</button>
+      </div>
+      <div class="toolbar-group">
+        <button class="tool-btn end-consult-btn" onclick="endConsult()"><i class="fas fa-times-circle"></i> 상담 종료</button>
+      </div>
+    </div>
+    
+    <div class="status-area">
+      <i class="fas fa-info-circle"></i>
+      <span>현재 모드: <span id="currentMode">커서</span></span>
+    </div>
+    
+    <div class="content-wrapper">
+      <div class="video-container">
+        <div id="localVideoContainer" class="video-wrapper">
+          <h4>내 화면</h4>
+          <video id="localVideo" autoplay playsinline muted></video>
+          <div id="localVideoStatus" class="video-status">연결 중...</div>
+        </div>
+        <div id="remoteVideoContainer" class="video-wrapper">
+          <h4>상담원 화면</h4>
+          <video id="remoteVideo" autoplay playsinline></video>
+          <div id="remoteVideoStatus" class="video-status">연결 대기 중...</div>
+        </div>
+      </div>
+      
+      <div class="record-controls-container">
+        <div class="record-controls">
+          <button id="startRec" class="start-rec"><i class="fas fa-microphone"></i> 녹음 시작</button>
+          <button id="stopRec" class="stop-rec" disabled><i class="fas fa-stop-circle"></i> 녹음 중지</button>
+        </div>
+      </div>
+      
+      <div id="scrollWrapper">
+        <canvas id="pdfCanvas"></canvas>
+        <canvas id="drawingCanvas"></canvas>
+      </div>
+    </div>
+  </div>
+  
+  <div id="textPopup">
+    <h4>텍스트 입력</h4>
+    <input type="text" id="textInput" placeholder="입력할 텍스트...">
+    <div>
+      <button onclick="confirmText()">확인</button>
+      <button onclick="closeTextPopup()">취소</button>
+    </div>
+  </div>
+  
+  <div id="completeModal" style="display:none;">
+    <div>
+      <h3>상담이 종료되었습니다</h3>
+      <p>이용해 주셔서 감사합니다.</p>
+      <button onclick="goToHomePage()">홈으로 이동</button>
+    </div>
+  </div>
+  
+  <div id="toastContainer"></div>
+  
+  <!-- 전역 변수 선언 -->
+  <script>
+    let drawingDataPerPage = {};
+    let stampDataPerPage = {};
+    let textDataPerPage = {};
+    let signatureDataPerPage = {};
+    
+    let pdfDoc = null;
+    let currentPage = 1;
+    let renderTask = null;
+    let stompClient = null;
+    let mode = null; // 'pen' | 'highlight' | null
+    let drawing = false;
+    let pendingText = null;
+    let uploadedPdfUrl = null;
+    let userRole = 'client'; // 고정값으로 'client' 설정
+    let sessionId = null; // 상담 세션 ID 추가
+  </script>
+  
+  <!-- 분리된 JS 파일 참조 -->
+  <script src="/js/contract/ui.js"></script>
+  <script src="/js/contract/pdfViewer.js"></script>
+  <script src="/js/contract/drawing.js"></script>
+  <script src="/js/contract/websocket.js"></script>
+  <script src="/js/contract/webRTC.js"></script>
+  <script src="/js/contract/recording.js"></script>
+  <script src="/js/contract/main.js"></script>
+</body>
+</html> 

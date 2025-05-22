@@ -191,7 +191,17 @@ function subscribeToTopics() {
     try {
       const drawData = JSON.parse(message.body);
       console.log("드로잉 데이터 수신:", drawData);
-      handleRemoteDrawing(drawData);
+      
+      // 데이터 유형에 따라 적절한 핸들러 호출
+      if (drawData.type === 'highlight' || drawData.type === 'pen') {
+        handleRemoteDrawing(drawData);
+      } else if (drawData.type === 'text') {
+        handleRemoteText(drawData);
+      } else if (drawData.type === 'stamp') {
+        handleRemoteStamp(drawData);
+      } else if (drawData.type === 'signature') {
+        handleRemoteSignature(drawData);
+      }
     } catch (e) {
       console.error("드로잉 데이터 처리 오류:", e);
     }
@@ -216,6 +226,17 @@ function subscribeToTopics() {
       handleRemoteStamp(stampData);
     } catch (e) {
       console.error("도장 데이터 처리 오류:", e);
+    }
+  });
+  
+  // 서명 이벤트 구독
+  stompClient.subscribe(`/topic/room/${sessionId}/signature`, function(message) {
+    try {
+      const signatureData = JSON.parse(message.body);
+      console.log("서명 데이터 수신:", signatureData);
+      handleRemoteSignature(signatureData);
+    } catch (e) {
+      console.error("서명 데이터 처리 오류:", e);
     }
   });
   
