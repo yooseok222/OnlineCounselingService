@@ -48,7 +48,7 @@ public class PdfService {
         return pdfMapper.selectPdfsByContractId(contractId);
     }
     
-    // PDF 파일 리소스 조회 (파일 시스템에서 읽거나 메모리 캐시에서 읽음)
+    // PDF 파일 리소스 조회 (메모리 캐시에서만 읽음)
     public ResponseEntity<Resource> getPdfResource(String fileName) {
         System.out.println("PdfService.getPdfResource 호출: " + fileName);
         
@@ -64,7 +64,7 @@ public class PdfService {
             System.out.println("프리픽스 제거 후 파일명: " + fileName);
         }
         
-        // 메모리 캐시에서 먼저 확인
+        // 메모리 캐시에서 확인
         if (pdfMemoryCache.containsKey(fileName)) {
             System.out.println("메모리 캐시에서 PDF 파일 찾음: " + fileName);
             byte[] pdfData = pdfMemoryCache.get(fileName);
@@ -85,55 +85,7 @@ public class PdfService {
         }
         
         System.out.println("메모리 캐시에서 PDF 파일을 찾을 수 없음: " + fileName);
-        
-        // 메모리에 없으면 파일 시스템에서 확인 (기존 DB 저장 파일을 위한 후속 처리)
-        File file = new File(uploadDirPdf, fileName);
-        if (!file.exists()) {
-            System.err.println("파일 시스템에서도 PDF 파일을 찾을 수 없음: " + fileName);
-            return ResponseEntity.notFound().build();
-        }
-
-        System.out.println("파일 시스템에서 PDF 파일 찾음: " + fileName);
-        
-        // 파일을 메모리로 로드해서 캐싱
-        try {
-            byte[] pdfData = Files.readAllBytes(file.toPath());
-            pdfMemoryCache.put(fileName, pdfData);
-            System.out.println("파일 시스템의 PDF를 메모리 캐시에 저장: " + fileName);
-            
-            ByteArrayResource resource = new ByteArrayResource(pdfData);
-            
-            // 캐시 방지를 위한 랜덤 값
-            String etag = "\"" + UUID.randomUUID().toString() + "\"";
-            
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline;filename=" + fileName)
-                    .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate, max-age=0")
-                    .header(HttpHeaders.PRAGMA, "no-cache")
-                    .header(HttpHeaders.EXPIRES, "0")
-                    .header(HttpHeaders.ETAG, etag)
-                    .contentType(MediaType.APPLICATION_PDF)
-                    .contentLength(pdfData.length)
-                    .body(resource);
-        } catch (IOException e) {
-            System.err.println("파일 로드 중 오류 발생: " + e.getMessage());
-            e.printStackTrace();
-            
-            // 파일 로드 실패 시 직접 FileSystemResource 사용
-            FileSystemResource resource = new FileSystemResource(file);
-            
-            // 캐시 방지를 위한 랜덤 값
-            String etag = "\"" + UUID.randomUUID().toString() + "\"";
-            
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline;filename=" + fileName)
-                    .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate, max-age=0")
-                    .header(HttpHeaders.PRAGMA, "no-cache")
-                    .header(HttpHeaders.EXPIRES, "0")
-                    .header(HttpHeaders.ETAG, etag)
-                    .contentType(MediaType.APPLICATION_PDF)
-                    .body(resource);
-        }
+        return ResponseEntity.notFound().build();
     }
     
     // PDF 업로드 및 저장 (메모리 + 파일 시스템 사용)
@@ -151,7 +103,7 @@ public class PdfService {
                     // 기존 파일을 메모리 캐시에서 삭제
                     pdfMemoryCache.remove(existingPdf.getFilePath());
                     
-                    // 파일 시스템에서도 삭제
+                    // 파일 시스템에서도 삭제 - 기존 파일이 있는 경우만 삭제
                     try {
                         File existingFile = new File(uploadDirPdf, existingPdf.getFilePath());
                         if (existingFile.exists()) {
@@ -176,28 +128,9 @@ public class PdfService {
         // 파일 내용 읽기
         byte[] fileBytes = file.getBytes();
         
-        // 파일을 메모리에 저장
+        // 파일을 메모리에만 저장
         System.out.println("PDF 메모리 캐시에 저장: " + uniqueFilename + " (" + fileBytes.length + " bytes)");
         pdfMemoryCache.put(uniqueFilename, fileBytes);
-        
-        // 파일 시스템에도 저장
-        try {
-            // 디렉토리 존재 확인 및 생성
-            Path uploadPath = Paths.get(uploadDirPdf);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-                System.out.println("업로드 디렉토리 생성: " + uploadPath.toAbsolutePath());
-            }
-            
-            // 파일 저장
-            Path filePath = uploadPath.resolve(uniqueFilename);
-            Files.write(filePath, fileBytes);
-            System.out.println("PDF 파일 시스템에 저장: " + filePath.toAbsolutePath());
-        } catch (IOException e) {
-            System.err.println("파일 시스템에 저장 중 오류: " + e.getMessage());
-            e.printStackTrace();
-            // 오류가 발생해도 메모리 캐시에는 저장되어 있으므로 계속 진행
-        }
         
         // 파일 해시값 계산
         String fileHash = generateFileHash(fileBytes);
