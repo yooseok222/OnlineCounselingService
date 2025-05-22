@@ -16,6 +16,11 @@ public class ContractRoomController {
     
     @Autowired
     private ContractService contractService;
+    
+    @GetMapping("/contract")
+    public String contractEntry() {
+        return "contract/entryPage";
+    }
 
     @GetMapping("/contract/room")
     public String enterContractRoom(@RequestParam(required = false) String role) {
@@ -25,7 +30,8 @@ public class ContractRoomController {
         } else if ("client".equals(role)) {
             return "contract/clientRoom"; // 고객 페이지
         } else {
-            return "contract/contractRoom"; // 기본 페이지 (기존 통합 페이지)
+            // 역할이 지정되지 않은 경우 입장 페이지로 리다이렉트
+            return "redirect:/contract";
         }
     }
     

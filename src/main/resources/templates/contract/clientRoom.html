@@ -13,6 +13,84 @@
   <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
   <!-- 분리된 CSS 파일 참조 -->
   <link rel="stylesheet" href="/css/contract/contractRoom.css">
+  <style>
+    /* 도장/서명 관련 추가 스타일 */
+    .stamp-popup, .signature-popup {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      z-index: 1000;
+      width: 350px;
+    }
+    
+    .stamp-popup h4, .signature-popup h4 {
+      margin-top: 0;
+      color: #0064E1;
+      margin-bottom: 15px;
+    }
+    
+    .stamp-upload {
+      margin-bottom: 15px;
+    }
+    
+    .stamp-preview, .signature-canvas-container {
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      padding: 10px;
+      height: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .stamp-preview img {
+      max-width: 100%;
+      max-height: 100%;
+    }
+    
+    .popup-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    
+    .popup-buttons button {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .popup-buttons button:first-child {
+      background-color: #0064E1;
+      color: white;
+    }
+    
+    .popup-buttons button:last-child {
+      background-color: #f1f3f5;
+      color: #495057;
+    }
+    
+    #signatureCanvas {
+      border: 1px solid #ddd;
+      background-color: #fff;
+    }
+    
+    .clear-btn {
+      background-color: #f8f9fa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 5px 10px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
   <div class="header">
@@ -29,8 +107,8 @@
       </div>
       <div class="toolbar-group">
         <button id="textBtn" class="tool-btn" onclick="openTextPopup()"><i class="fas fa-font"></i> 텍스트</button>
-        <button id="stampBtn" class="tool-btn" onclick="setStampMode()"><i class="fas fa-stamp"></i> 도장</button>
-        <button id="signatureBtn" class="tool-btn" onclick="setSignatureMode()"><i class="fas fa-signature"></i> 서명</button>
+        <button id="stampBtn" class="tool-btn" onclick="openStampPopup()"><i class="fas fa-stamp"></i> 도장</button>
+        <button id="signatureBtn" class="tool-btn" onclick="openSignaturePopup()"><i class="fas fa-signature"></i> 서명</button>
       </div>
       <div class="toolbar-group">
         <button class="tool-btn end-consult-btn" onclick="endConsult()"><i class="fas fa-times-circle"></i> 상담 종료</button>
@@ -70,12 +148,46 @@
     </div>
   </div>
   
+  <!-- 텍스트 입력 팝업 -->
   <div id="textPopup">
     <h4>텍스트 입력</h4>
     <input type="text" id="textInput" placeholder="입력할 텍스트...">
     <div>
       <button onclick="confirmText()">확인</button>
       <button onclick="closeTextPopup()">취소</button>
+    </div>
+  </div>
+  
+  <!-- 도장 업로드 팝업 -->
+  <div id="stampPopup" class="stamp-popup">
+    <h4><i class="fas fa-stamp"></i> 도장 삽입</h4>
+    <div class="stamp-upload">
+      <input type="file" id="stampUpload" accept="image/*" onchange="previewStamp(this)">
+      <p>또는 기본 도장 선택:</p>
+      <div>
+        <button onclick="selectDefaultStamp('round')" class="clear-btn">둥근 도장</button>
+        <button onclick="selectDefaultStamp('square')" class="clear-btn">각인 도장</button>
+      </div>
+    </div>
+    <div class="stamp-preview" id="stampPreview">
+      <p>도장 미리보기</p>
+    </div>
+    <div class="popup-buttons">
+      <button onclick="confirmStamp()">확인</button>
+      <button onclick="closeStampPopup()">취소</button>
+    </div>
+  </div>
+  
+  <!-- 서명 팝업 -->
+  <div id="signaturePopup" class="signature-popup">
+    <h4><i class="fas fa-signature"></i> 서명 그리기</h4>
+    <div class="signature-canvas-container">
+      <canvas id="signatureCanvas" width="300" height="150"></canvas>
+    </div>
+    <button class="clear-btn" onclick="clearSignature()">지우기</button>
+    <div class="popup-buttons">
+      <button onclick="confirmSignature()">확인</button>
+      <button onclick="closeSignaturePopup()">취소</button>
     </div>
   </div>
   
@@ -106,6 +218,9 @@
     let uploadedPdfUrl = null;
     let userRole = 'client'; // 고정값으로 'client' 설정
     let sessionId = null; // 상담 세션 ID 추가
+    let customStampImage = null; // 사용자 정의 도장 이미지
+    let signatureCanvas = null; // 서명 캔버스
+    let signatureContext = null; // 서명 캔버스 컨텍스트
   </script>
   
   <!-- 분리된 JS 파일 참조 -->
@@ -116,5 +231,343 @@
   <script src="/js/contract/webRTC.js"></script>
   <script src="/js/contract/recording.js"></script>
   <script src="/js/contract/main.js"></script>
+  
+  <!-- 도장 및 서명 관련 스크립트 -->
+  <script>
+    // 페이지 로드 시 서명 캔버스 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+      signatureCanvas = document.getElementById('signatureCanvas');
+      signatureContext = signatureCanvas.getContext('2d');
+      
+      // 서명 캔버스 이벤트 설정
+      initSignatureCanvas();
+    });
+    
+    // 서명 캔버스 초기화
+    function initSignatureCanvas() {
+      let isDrawing = false;
+      let lastX = 0;
+      let lastY = 0;
+      
+      // 마우스 이벤트
+      signatureCanvas.addEventListener('mousedown', startSignature);
+      signatureCanvas.addEventListener('mousemove', drawSignature);
+      signatureCanvas.addEventListener('mouseup', endSignature);
+      signatureCanvas.addEventListener('mouseout', endSignature);
+      
+      // 터치 이벤트
+      signatureCanvas.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent('mousedown', {
+          clientX: touch.clientX,
+          clientY: touch.clientY
+        });
+        signatureCanvas.dispatchEvent(mouseEvent);
+      });
+      
+      signatureCanvas.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent('mousemove', {
+          clientX: touch.clientX,
+          clientY: touch.clientY
+        });
+        signatureCanvas.dispatchEvent(mouseEvent);
+      });
+      
+      signatureCanvas.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        const mouseEvent = new MouseEvent('mouseup', {});
+        signatureCanvas.dispatchEvent(mouseEvent);
+      });
+      
+      // 서명 시작
+      function startSignature(e) {
+        isDrawing = true;
+        const rect = signatureCanvas.getBoundingClientRect();
+        lastX = e.clientX - rect.left;
+        lastY = e.clientY - rect.top;
+      }
+      
+      // 서명 그리기
+      function drawSignature(e) {
+        if (!isDrawing) return;
+        
+        const rect = signatureCanvas.getBoundingClientRect();
+        const currentX = e.clientX - rect.left;
+        const currentY = e.clientY - rect.top;
+        
+        signatureContext.lineJoin = 'round';
+        signatureContext.lineCap = 'round';
+        signatureContext.lineWidth = 2;
+        signatureContext.strokeStyle = '#000';
+        
+        signatureContext.beginPath();
+        signatureContext.moveTo(lastX, lastY);
+        signatureContext.lineTo(currentX, currentY);
+        signatureContext.stroke();
+        
+        lastX = currentX;
+        lastY = currentY;
+      }
+      
+      // 서명 종료
+      function endSignature() {
+        isDrawing = false;
+      }
+    }
+    
+    // 도장 미리보기
+    function previewStamp(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          customStampImage = new Image();
+          customStampImage.src = e.target.result;
+          
+          customStampImage.onload = function() {
+            const previewDiv = document.getElementById('stampPreview');
+            previewDiv.innerHTML = '';
+            
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            previewDiv.appendChild(img);
+          };
+        };
+        
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+    
+    // 기본 도장 선택
+    function selectDefaultStamp(type) {
+      const stampPath = type === 'round' ? '/images/round-stamp.png' : '/images/square-stamp.png';
+      
+      customStampImage = new Image();
+      customStampImage.src = stampPath;
+      
+      customStampImage.onload = function() {
+        const previewDiv = document.getElementById('stampPreview');
+        previewDiv.innerHTML = '';
+        
+        const img = document.createElement('img');
+        img.src = stampPath;
+        previewDiv.appendChild(img);
+      };
+    }
+    
+    // 도장 팝업 열기
+    function openStampPopup() {
+      document.getElementById('stampPopup').style.display = 'block';
+      mode = 'stamp';
+      document.getElementById('currentMode').textContent = '도장';
+      updateToolbarButtons('stampBtn');
+    }
+    
+    // 도장 팝업 닫기
+    function closeStampPopup() {
+      document.getElementById('stampPopup').style.display = 'none';
+      setCursor();
+    }
+    
+    // 도장 확인
+    function confirmStamp() {
+      if (!customStampImage) {
+        alert('도장 이미지를 선택하거나 업로드해주세요.');
+        return;
+      }
+      
+      closeStampPopup();
+      
+      // 도장 모드로 설정하고 클릭 대기
+      mode = 'stamp';
+      document.getElementById('currentMode').textContent = '도장 위치 선택';
+      
+      // 사용자에게 안내 메시지 표시
+      showToast("위치 선택", "도장을 추가할 위치를 클릭하세요.", "info");
+    }
+    
+    // 서명 팝업 열기
+    function openSignaturePopup() {
+      document.getElementById('signaturePopup').style.display = 'block';
+      clearSignature(); // 서명 캔버스 초기화
+      mode = 'signature';
+      document.getElementById('currentMode').textContent = '서명';
+      updateToolbarButtons('signatureBtn');
+    }
+    
+    // 서명 팝업 닫기
+    function closeSignaturePopup() {
+      document.getElementById('signaturePopup').style.display = 'none';
+      setCursor();
+    }
+    
+    // 서명 지우기
+    function clearSignature() {
+      signatureContext.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+    }
+    
+    // 서명 확인
+    function confirmSignature() {
+      // 빈 서명인지 확인
+      const imageData = signatureContext.getImageData(0, 0, signatureCanvas.width, signatureCanvas.height);
+      const data = imageData.data;
+      let hasSignature = false;
+      
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] > 0) { // 알파 채널이 0보다 크면 그려진 픽셀이 있는 것
+          hasSignature = true;
+          break;
+        }
+      }
+      
+      if (!hasSignature) {
+        alert('서명을 그려주세요.');
+        return;
+      }
+      
+      // 서명 이미지 생성
+      const signatureImage = new Image();
+      signatureImage.src = signatureCanvas.toDataURL();
+      
+      // 서명 이미지를 전역 변수에 저장
+      customStampImage = signatureImage;
+      
+      closeSignaturePopup();
+      
+      // 서명 위치 선택 모드로 전환
+      mode = 'signature';
+      document.getElementById('currentMode').textContent = '서명 위치 선택';
+      
+      // 사용자에게 안내 메시지 표시
+      showToast("위치 선택", "서명을 추가할 위치를 클릭하세요.", "info");
+    }
+    
+    // 기존 setStampMode 함수 대체
+    function setStampMode() {
+      openStampPopup();
+    }
+    
+    // 기존 setSignatureMode 함수 대체
+    function setSignatureMode() {
+      openSignaturePopup();
+    }
+    
+    // 도장/서명 배치 처리 재정의
+    function handleStampPlacement(event) {
+      if (mode !== 'stamp') return;
+      
+      const rect = drawingCanvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      
+      if (!customStampImage) {
+        showToast("오류", "도장 이미지가 없습니다.", "error");
+        return;
+      }
+      
+      // 도장 크기 설정
+      const stampWidth = 100;
+      const stampHeight = 100;
+      
+      // 도장 그리기
+      drawingContext.drawImage(customStampImage, x - stampWidth/2, y - stampHeight/2, stampWidth, stampHeight);
+      
+      // 도장 데이터 저장
+      if (!stampDataPerPage[currentPage]) {
+        stampDataPerPage[currentPage] = [];
+      }
+      
+      const stampData = {
+        x: x - stampWidth/2,
+        y: y - stampHeight/2,
+        width: stampWidth,
+        height: stampHeight
+      };
+      
+      stampDataPerPage[currentPage].push(stampData);
+      
+      // WebSocket으로 도장 데이터 전송
+      if (stompClient && stompClient.connected) {
+        const stampMessage = {
+          type: 'stamp',
+          x: x - stampWidth/2,
+          y: y - stampHeight/2,
+          width: stampWidth,
+          height: stampHeight,
+          page: currentPage,
+          sessionId: sessionId
+        };
+        
+        stompClient.send(`/app/room/${sessionId}/stamp`, {}, JSON.stringify(stampMessage));
+      }
+      
+      // 세션 데이터 저장
+      saveStampData();
+      saveSessionData();
+      
+      // 커서 모드로 되돌리기
+      setCursor();
+    }
+    
+    // 서명 배치 처리 재정의
+    function handleSignaturePlacement(event) {
+      if (mode !== 'signature') return;
+      
+      const rect = drawingCanvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      
+      if (!customStampImage) {
+        showToast("오류", "서명 이미지가 없습니다.", "error");
+        return;
+      }
+      
+      // 서명 크기 설정
+      const signatureWidth = 200;
+      const signatureHeight = 100;
+      
+      // 서명 그리기
+      drawingContext.drawImage(customStampImage, x - signatureWidth/2, y - signatureHeight/2, signatureWidth, signatureHeight);
+      
+      // 서명 데이터 저장
+      if (!signatureDataPerPage[currentPage]) {
+        signatureDataPerPage[currentPage] = [];
+      }
+      
+      const signatureData = {
+        x: x - signatureWidth/2,
+        y: y - signatureHeight/2,
+        width: signatureWidth,
+        height: signatureHeight,
+        timestamp: new Date().getTime()
+      };
+      
+      signatureDataPerPage[currentPage].push(signatureData);
+      
+      // WebSocket으로 서명 데이터 전송
+      if (stompClient && stompClient.connected) {
+        const data = {
+          type: 'signature',
+          x: x - signatureWidth/2,
+          y: y - signatureHeight/2,
+          width: signatureWidth,
+          height: signatureHeight,
+          page: currentPage,
+          sessionId: sessionId
+        };
+        
+        stompClient.send(`/app/room/${sessionId}/signature`, {}, JSON.stringify(data));
+      }
+      
+      // 서명 후 커서 모드로 돌아가기
+      setCursor();
+      
+      // 세션 데이터 저장
+      saveSessionData();
+    }
+  </script>
 </body>
 </html> 
