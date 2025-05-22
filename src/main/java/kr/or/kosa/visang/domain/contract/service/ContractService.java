@@ -5,16 +5,19 @@ import kr.or.kosa.visang.domain.contract.model.Contract;
 import kr.or.kosa.visang.domain.contract.model.ContractDetail;
 import kr.or.kosa.visang.domain.contract.model.ContractSearchRequest;
 import kr.or.kosa.visang.domain.contract.repository.ContractMapper;
+import kr.or.kosa.visang.domain.page.model.PageRequest;
+import kr.or.kosa.visang.domain.page.model.PageResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class ContractService {
-    private final AgentMapper agentMapper;
     private final ContractMapper contractMapper;
 
     // 모든 계약 조회
@@ -23,15 +26,33 @@ public class ContractService {
     }
     // 계약관련 비즈니스 로직 구현
 
-    public List<Contract> getContractByStatus(Long companyId, String status) {
-        // 계약 상태에 따라 계약 목록을 조회하는 로직을 구현합니다.
-        return contractMapper.selectContractByStatus(companyId, status);
-    }
 
     //searchContracts
-    public List<Contract> searchContracts(ContractSearchRequest request) {
+    public PageResult<Contract> searchContracts(ContractSearchRequest request, PageRequest pageRequest) {
         // 계약 ID, 계약 월, 상담사 ID, 고객 ID, 계약서 템플릿 이름을 사용하여 계약 목록을 조회하는 로직을 구현합니다.
-        return contractMapper.searchContracts(request);
+        Map<String, Object> params = new HashMap<>();
+
+        params.put("companyId", request.getCompanyId());
+        params.put("contractId", request.getContractId());
+        params.put("contractTime", request.getContractTime());
+        params.put("agentId", request.getAgentId());
+        params.put("clientId", request.getClientId());
+        params.put("contractName", request.getContractName());
+        params.put("status", request.getStatus());
+
+        params.put("offset", pageRequest.getOffset());
+        params.put("pageSize", pageRequest.getPageSize());
+
+        List<Contract> contracts = contractMapper.searchContracts(params);
+        int totalCount = contractMapper.countContracts(params);
+
+        PageResult<Contract> pageResult = new PageResult<>();
+        pageResult.setContent(contracts);
+        pageResult.setTotalCount(totalCount);
+        pageResult.setPage(pageRequest.getPage());
+        pageResult.setPageSize(pageRequest.getPageSize());
+        pageResult.setTotalPages(pageResult.getTotalPages());
+        return pageResult;
     }
 
 
@@ -40,9 +61,6 @@ public class ContractService {
         // 에이전트 ID와 연도, 월을 사용하여 월간 스케줄을 조회하는 로직을 구현합니다.
         return contractMapper.selectMonthlyScheduleByAgentId(agentId, year, month);
     }
-
-    /*@Autowired
-    private ContractMapper contractMapper;*/
 
     // 계약 조회
     public Contract getContractById(Long contractId) {

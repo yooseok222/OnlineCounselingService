@@ -17,18 +17,16 @@ public interface ContractMapper {
     // 모든 계약 조회
     List<Contract> selectAllContracts();
 
-    List<Contract> selectContractByStatus(
-            @Param("companyId") Long companyId,
-            @Param("status")String status
-    );
-
     List<Contract> selectMonthlyScheduleByAgentId(
             @Param("id") Long agentId,
             @Param("year") String year,
             @Param("month") String month
     );
 
-    List<Contract> searchContracts(ContractSearchRequest request);
+    List<Contract> searchContracts(Map<String, Object> params);
+
+    int countContracts(Map<String, Object> params);
+
 
     // 계약 조회
     Contract selectContractById(Long contractId);

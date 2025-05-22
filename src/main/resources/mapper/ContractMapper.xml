@@ -211,41 +211,27 @@
 		SELECT * FROM contract WHERE contract_id = #{contractId}
 	</select>
 
-	<!-- 계약 상태별 계약 목록 조회 -->
-    <select id="selectContractByStatus" resultMap="contractListResultMap">
-        SELECT c.contract_id AS contract_id,
-               c.status AS status,
-               c.contract_time AS contract_time,
-               cl.client_id AS client_id,
-               cl.name AS client_name,
-               a.agent_id AS agent_id,
-               a.name AS agent_name,
-               ct.contract_template_id AS contract_template_id,
-               ct.contract_name AS contract_name
-        FROM contract c
-		LEFT JOIN client cl ON c.client_id = cl.client_id
-		LEFT JOIN agent a ON c.agent_id = a.agent_id
-		LEFT JOIN contract_templates ct ON c.contract_template_id = ct.contract_template_id
-        WHERE c.status = #{status} and c.company_id = #{companyId}
-        ORDER BY c.contract_time ASC
-    </select>
-
 	<!-- 계약 조건 조회-->
 	<select id="searchContracts" resultMap="contractListResultMap">
+		SELECT *
+		FROM (
+		SELECT a.*, ROWNUM rn
+		FROM (
 		SELECT
-		c.contract_id AS contract_id,
-		c.contract_time AS contract_time,
-		a.agent_id AS agent_id,
-		a.name AS agent_name,
-		cl.client_id AS client_id,
-		cl.name AS client_name,
-		c.status AS status,
-		t.contract_template_id AS contract_template_id,
-		t.contract_name AS contract_name
+		c.contract_id           AS contract_id,
+		c.contract_time         AS contract_time,
+		a.agent_id              AS agent_id,
+		a.name                  AS agent_name,
+		cl.client_id            AS client_id,
+		cl.name                 AS client_name,
+		c.status                AS status,
+		t.contract_template_id  AS contract_template_id,
+		t.contract_name         AS contract_name
 		FROM contract c
-		LEFT JOIN agent a ON a.agent_id  = c.agent_id
+		LEFT JOIN agent a  ON a.agent_id  = c.agent_id
 		LEFT JOIN client cl ON cl.client_id = c.client_id
-		LEFT JOIN contract_templates t ON c.contract_template_id = t.contract_template_id
+		LEFT JOIN contract_templates t
+		ON c.contract_template_id = t.contract_template_id
 		<where>
 			c.company_id = #{companyId}
 			<if test="contractId != null and contractId != ''">
@@ -268,6 +254,41 @@
 			</if>
 		</where>
 		ORDER BY c.contract_time ASC
+		) a
+		WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+		)
+		WHERE rn > #{offset}
+	</select>
+
+	<select id="countContracts" resultType="int" parameterType="map">
+		SELECT COUNT(*)
+		FROM contract c
+		<!-- contractName 필터가 필요한 경우에만 templates 조인 -->
+		<if test="contractName != null and contractName != ''">
+			LEFT JOIN contract_templates t
+			ON c.contract_template_id = t.contract_template_id
+		</if>
+		<where>
+			c.company_id = #{companyId}
+			<if test="contractId != null and contractId != ''">
+				AND c.contract_id = #{contractId}
+			</if>
+			<if test="contractTime != null and contractTime != ''">
+				AND TRUNC(c.contract_time, 'MM') = TO_DATE(#{contractTime}, 'YYYY-MM')
+			</if>
+			<if test="agentId != null and agentId != ''">
+				AND c.agent_id = #{agentId}
+			</if>
+			<if test="clientId != null and clientId != ''">
+				AND c.client_id = #{clientId}
+			</if>
+			<if test="status != null and status != ''">
+				AND c.status = #{status}
+			</if>
+			<if test="contractName != null and contractName != ''">
+				AND LOWER(t.contract_name) LIKE '%' || LOWER(#{contractName}) || '%'
+			</if>
+		</where>
 	</select>
 
     <!-- 모든 계약 조회 -->

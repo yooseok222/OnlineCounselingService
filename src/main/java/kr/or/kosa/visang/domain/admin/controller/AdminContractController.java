@@ -7,6 +7,8 @@ import kr.or.kosa.visang.domain.contract.model.ContractDetail;
 import kr.or.kosa.visang.domain.contract.model.ContractSearchRequest;
 import kr.or.kosa.visang.domain.contract.service.ContractService;
 import kr.or.kosa.visang.domain.contractTemplate.service.ContractTemplateService;
+import kr.or.kosa.visang.domain.page.model.PageRequest;
+import kr.or.kosa.visang.domain.page.model.PageResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -16,8 +18,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Controller
 @RequestMapping("/admin")
@@ -31,13 +31,10 @@ public class AdminContractController {
                                @PathVariable("status") String status,
                                Model model
     ) {
-        Long companyId = admin.getCompanyId(); // 로그인한 사용자의 회사 ID
-
         try {
             String enumName = status.replace("-", "_").toUpperCase();
             ContractStatus contractStatus = ContractStatus.valueOf(enumName);
 
-            model.addAttribute("contractList", contractService.getContractByStatus(companyId, contractStatus.name()));
             model.addAttribute("pageTitle", contractStatus.name().replace("_", " "));
             model.addAttribute("status", contractStatus.name());
 
@@ -54,13 +51,22 @@ public class AdminContractController {
 
     @GetMapping("/contracts/search")
     @ResponseBody
-    public List<Contract> searchContracts(@AuthenticationPrincipal CustomUserDetails admin,
-                                          @ModelAttribute ContractSearchRequest request
+    public PageResult<Contract> searchContracts(@AuthenticationPrincipal CustomUserDetails admin,
+                                                @ModelAttribute ContractSearchRequest request,
+                                                @RequestParam(defaultValue = "1") int page,
+                                                @RequestParam(defaultValue = "10") int size
     ) {
         Long companyId = admin.getCompanyId(); // 로그인한 사용자의 회사 ID
+        PageRequest pr = new PageRequest(page, size);
+
+        System.out.println("request = " + request);
+        System.out.println("page = " + page);
+        System.out.println("size = " + size);
 
         request.setCompanyId(companyId); // 검색 요청에 회사 ID 추가
-        return contractService.searchContracts(request);
+        PageResult<Contract> con =  contractService.searchContracts(request, pr);
+        System.out.println("con = " + con);
+        return con; // 계약 목록을 반환합니다.
     }
 
     @GetMapping("/contract/{contractId}")
