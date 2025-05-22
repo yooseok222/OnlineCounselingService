@@ -18,6 +18,20 @@
 			property="contractTemplateId" />
 		<result column="memo" property="memo" />
 	</resultMap>
+
+	<resultMap id="contractListResultMap" type="kr.or.kosa.visang.domain.contract.model.ContractListDTO">
+		<id column="contract_id" property="contractId" />
+		<result column="company_id" property="companyId" />
+		<result column="status" property="status" />
+		<result column="contract_time" property="contractTime" />
+		<result column="client_id" property="clientId" />
+		<result column="client_name" property="clientName" />
+		<result column="agent_id" property="agentId" />
+		<result column="agent_name" property="agentName" />
+		<result column="contract_template_id" property="contractTemplateId" />
+		<result column="contract_name" property="contractTemplateName" />
+	</resultMap>
+
 	<resultMap id="contractDetailResultMap" type="kr.or.kosa.visang.domain.contract.model.ContractDetail">
 		<id column="contract_id" property="contractId" />
 		<result column="status" property="status" />
@@ -93,39 +107,6 @@
 		#{memo, jdbcType=CLOB}
 		)
 	</insert>
-
-
-	<select id="searchContracts" resultMap="ContractResultMap">
-		SELECT
-		c.contract_id,
-		c.contract_time,
-		c.agent_id,
-		c.client_id,
-		c.status
-		FROM contract c
-		LEFT JOIN contract_templates t ON c.contract_template_id = t.contract_template_id
-		<where>
-			<if test="contractId != null and contractId != ''">
-				AND c.contract_id = #{contractId}
-			</if>
-			<if test="contractTime != null and contractTime != ''">
-				AND TRUNC(c.contract_time, 'MM') = TO_DATE(#{contractTime}, 'YYYY-MM')
-			</if>
-			<if test="agentId != null and agentId != ''">
-				AND c.agent_id = #{agentId}
-			</if>
-			<if test="clientId != null and clientId != ''">
-				AND c.client_id = #{clientId}
-			</if>
-			<if test="status != null and status != ''">
-				AND c.status = #{status}
-			</if>
-			<if test="contractName != null and contractName != ''">
-				AND LOWER(t.contract_name) LIKE '%' || LOWER(#{contractName}) || '%'
-			</if>
-		</where>
-		ORDER BY c.contract_time ASC
-	</select>
 
 	<select id="selectSchedulesByAgent" parameterType="long"
 		resultMap="scheduleResultMap">
@@ -230,12 +211,64 @@
 		SELECT * FROM contract WHERE contract_id = #{contractId}
 	</select>
 
-    <select id="selectContractByStatus" resultMap="ContractResultMap">
-        SELECT *
-        FROM contract
-        WHERE status = #{status} and company_id = #{companyId}
-        ORDER BY contract_time ASC
+	<!-- 계약 상태별 계약 목록 조회 -->
+    <select id="selectContractByStatus" resultMap="contractListResultMap">
+        SELECT c.contract_id AS contract_id,
+               c.status AS status,
+               c.contract_time AS contract_time,
+               cl.client_id AS client_id,
+               cl.name AS client_name,
+               a.agent_id AS agent_id,
+               a.name AS agent_name,
+               ct.contract_template_id AS contract_template_id,
+               ct.contract_name AS contract_name
+        FROM contract c
+		LEFT JOIN client cl ON c.client_id = cl.client_id
+		LEFT JOIN agent a ON c.agent_id = a.agent_id
+		LEFT JOIN contract_templates ct ON c.contract_template_id = ct.contract_template_id
+        WHERE c.status = #{status} and c.company_id = #{companyId}
+        ORDER BY c.contract_time ASC
     </select>
+
+	<!-- 계약 조건 조회-->
+	<select id="searchContracts" resultMap="contractListResultMap">
+		SELECT
+		c.contract_id AS contract_id,
+		c.contract_time AS contract_time,
+		a.agent_id AS agent_id,
+		a.name AS agent_name,
+		cl.client_id AS client_id,
+		cl.name AS client_name,
+		c.status AS status,
+		t.contract_template_id AS contract_template_id,
+		t.contract_name AS contract_name
+		FROM contract c
+		LEFT JOIN agent a ON a.agent_id  = c.agent_id
+		LEFT JOIN client cl ON cl.client_id = c.client_id
+		LEFT JOIN contract_templates t ON c.contract_template_id = t.contract_template_id
+		<where>
+			c.company_id = #{companyId}
+			<if test="contractId != null and contractId != ''">
+				AND c.contract_id = #{contractId}
+			</if>
+			<if test="contractTime != null and contractTime != ''">
+				AND TRUNC(c.contract_time, 'MM') = TO_DATE(#{contractTime}, 'YYYY-MM')
+			</if>
+			<if test="agentId != null and agentId != ''">
+				AND c.agent_id = #{agentId}
+			</if>
+			<if test="clientId != null and clientId != ''">
+				AND c.client_id = #{clientId}
+			</if>
+			<if test="status != null and status != ''">
+				AND c.status = #{status}
+			</if>
+			<if test="contractName != null and contractName != ''">
+				AND LOWER(t.contract_name) LIKE '%' || LOWER(#{contractName}) || '%'
+			</if>
+		</where>
+		ORDER BY c.contract_time ASC
+	</select>
 
     <!-- 모든 계약 조회 -->
     <select id="selectAllContracts" resultMap="ContractResultMap">

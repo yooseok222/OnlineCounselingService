@@ -32,8 +32,11 @@
                     <th>#</th>
                     <th>계약 ID</th>
                     <th>상담 계약 시간</th>
-                    <th>상담사 ID</th>
-                    <th>고객 ID</th>
+                    <th>상담사</th>
+                    <th>고객</th>
+                    <th>템플릿 ID</th>
+                    <th>템플릿명</th>
+                    <th>상태</th>
                 </tr>
                 </thead>
                 <tbody id="contractTableBody">
@@ -41,8 +44,16 @@
                     <td th:text="${iterStat.count}">1</td>
                     <td th:text="${contract.contractId}">C123</td>
                     <td th:text="${contract.contractTime}">2025-06-01 14:00</td>
-                    <td th:text="${contract.agentId}">A123</td>
-                    <td th:text="${contract.clientId}">C456</td>
+                    <td th:text ="|${contract.agentName}(ID : ${contract.agentId})|">(ID : A123)></td>
+                    <td th:text ="|${contract.clientName}(ID : ${contract.clientId})|">(ID : A123)></td>
+                    <td th:text="${contract.contractTemplateId}" class="text-center">T789</td>
+                    <td th:text="${contract.contractTemplateName}">계약서 템플릿</td>
+
+                    <!-- 진행중 ->IN_PROGRESS, 진행전 PENDING, 완료됨 COMPLETED, 취소됨 CANCELED -->
+                    <td class="text-center" th:if="${contract.status == 'IN_PROGRESS'}"><span class="badge bg-warning">진행중</span></td>
+                    <td class="text-center" th:if="${contract.status == 'PENDING'}" ><span class="badge bg-secondary">진행전</span></td>
+                    <td class="text-center" th:if="${contract.status == 'COMPLETED'}" ><span class="badge bg-success">완료됨</span></td>
+                    <td class="text-center" th:if="${contract.status == 'CANCELED'}" ><span class="badge bg-danger">취소됨</span></td>
                 </tr>
                 </tbody>
             </table>
@@ -116,7 +127,7 @@
                 detailRow.className = "contract-detail-row";
 
                 const td = document.createElement("td");
-                td.colSpan = 5;
+                td.colSpan = 8;
                 td.innerHTML = `
                     <div class="text-center py-3">
                         <div class="spinner-border text-primary" role="status"></div>
@@ -143,7 +154,7 @@
 
                                     <div class="mb-3">
                                         <p class="mb-1"><strong>계약서 템플릿</strong>: ${data.contractName}</p>
-                                        <div class="d-flex gap-2">
+                                        <div class="d-flex gap-2" style="margin-top: 10px;">
                                             <a href="/admin/files/${data.contractTemplateId}/download" class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-download"></i> 다운로드
                                             </a>
@@ -212,19 +223,44 @@
                 tableBody.innerHTML = "";
                 if (!contractList.length) {
                     const row = document.createElement("tr");
-                    row.innerHTML = `<td colspan="5" class="text-center">검색 결과가 없습니다.</td>`;
+                    row.classList.add("align-middle");
+
+                    row.innerHTML = `<td colspan="8" class="text-center">검색 결과가 없습니다.</td>`;
                     tableBody.appendChild(row);
                     return;
                 }
 
                 contractList.forEach((c, index) => {
                     const row = document.createElement("tr");
+
+                    row.classList.add("align-middle");
+                    row.style.cursor="pointer";
+                    row.dataset.id= c.contractId;
+                    // badge 렌더링
+                    let statusBadge;
+                    switch (c.status) {
+                        case "IN_PROGRESS":
+                            statusBadge = '<span class="badge bg-warning">진행중</span>'; break;
+                        case "PENDING":
+                            statusBadge = '<span class="badge bg-secondary">진행전</span>'; break;
+                        case "COMPLETED":
+                            statusBadge = '<span class="badge bg-success">완료됨</span>'; break;
+                        case "CANCELED":
+                            statusBadge = '<span class="badge bg-danger">취소됨</span>'; break;
+                        default:
+                            statusBadge = `<span class="badge bg-light text-dark">${c.status}</span>`;
+                    }
+
                     row.innerHTML = `
                         <td>${index + 1}</td>
                         <td>${c.contractId}</td>
                         <td>${c.contractTime || '-'}</td>
-                        <td>${c.agentId}</td>
-                        <td>${c.clientId}</td>`;
+                        <td>${c.agentName}(ID : ${c.agentId})</td>
+                        <td>${c.clientName}(ID : ${c.clientId})</td>
+                        <td class="text-center">${c.contractTemplateId}</td>
+                        <td>${c.contractTemplateName}</td>
+                        <td class="text-center">${statusBadge}</td>
+                        `;
                     tableBody.appendChild(row);
                 });
             }

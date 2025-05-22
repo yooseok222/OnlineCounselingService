@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class ContractSearchRequest {
+    private Long companyId; // 회사 ID
     private Long contractId; // 계약 ID
     private String contractTime; // 계약 월 (YYYY-MM 형식)
     private Long agentId; // 상담사 ID

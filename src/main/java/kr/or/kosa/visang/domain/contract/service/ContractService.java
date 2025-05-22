@@ -25,9 +25,7 @@ public class ContractService {
 
     public List<Contract> getContractByStatus(Long companyId, String status) {
         // 계약 상태에 따라 계약 목록을 조회하는 로직을 구현합니다.
-        List<Contract> conn = contractMapper.selectContractByStatus(companyId, status);
-        conn.forEach(System.out::println);
-        return conn;
+        return contractMapper.selectContractByStatus(companyId, status);
     }
 
     //searchContracts
