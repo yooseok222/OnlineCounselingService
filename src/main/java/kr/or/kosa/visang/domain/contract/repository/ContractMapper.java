@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+import kr.or.kosa.visang.domain.contract.model.ContractDetail;
 import kr.or.kosa.visang.domain.contract.model.ContractSearchRequest;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -31,6 +32,9 @@ public interface ContractMapper {
 
     // 계약 조회
     Contract selectContractById(Long contractId);
+
+    // 계약 상세 조회
+    ContractDetail selectContractDetail(Long contractId);
 
     // 고객 ID로 계약 목록 조회
     List<Contract> selectContractsByClientId(Long clientId);

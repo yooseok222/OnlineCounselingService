@@ -18,9 +18,28 @@
 			property="contractTemplateId" />
 		<result column="memo" property="memo" />
 	</resultMap>
-<!--<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="kr.or.kosa.visang.domain.contract.repository.ContractMapper">-->
+	<resultMap id="contractDetailResultMap" type="kr.or.kosa.visang.domain.contract.model.ContractDetail">
+		<id column="contract_id" property="contractId" />
+		<result column="status" property="status" />
+		<result column="created_at" property="createdAt" />
+		<result column="contract_time" property="contractTime" />
+		<result column="client_id" property="clientId" />
+		<result column="agent_id" property="agentId" />
+		<result column="memo" property="memo" />
+		<result column="client_name" property="clientName" />
+		<result column="client_email" property="clientEmail" />
+		<result column="client_phone_number" property="clientPhoneNumber" />
+		<result column="client_address" property="clientAddress" />
+		<result column="agent_name" property="agentName" />
+		<result column="agent_email" property="agentEmail" />
+		<result column="agent_phone_number" property="agentPhoneNumber" />
+		<result column="agent_address" property="agentAddress" />
+		<result column="client_profile_image_url" property="clientProfileImageUrl" />
+		<result column="agent_profile_image_url" property="agentProfileImageUrl" />
+		<result column="contract_template_id" property="contractTemplateId" />
+		<result column="contract_name" property="contractName" />
+	</resultMap>
+
     <resultMap id="ContractResultMap" type="kr.or.kosa.visang.domain.contract.model.Contract">
         <id column="contract_id" property="contractId" jdbcType="NUMERIC"/>
         <result column="status" property="status" jdbcType="VARCHAR"/>
@@ -309,5 +328,18 @@
         WHERE contract_id = #{param1}
     </update>
 
-
+	<!-- 계약 상세조회 -->
+	<select id="selectContractDetail" resultMap="contractDetailResultMap">
+		SELECT
+			c.contract_id, c.status, c.created_at, c.contract_time, c.client_id, c.agent_id, c.memo,
+			cl.name AS client_name, cl.email AS client_email, cl.phone_number AS client_phone_number, cl.address AS client_address,
+			a.name AS agent_name, a.email AS agent_email, a.phone_number AS agent_phone_number, a.address AS agent_address
+			, cl.profile_image_url AS client_profile_image_url, a.profile_image_url AS agent_profile_image_url
+			, ct.contract_name AS contract_name, ct.contract_template_id AS contract_template_id
+		FROM contract c
+				 JOIN client cl ON c.client_id = cl.client_id
+				 JOIN agent a ON c.agent_id = a.agent_id
+				 JOIN contract_templates ct ON c.contract_template_id = ct.contract_template_id
+		WHERE c.contract_id = #{contractId}
+	</select>
 </mapper>

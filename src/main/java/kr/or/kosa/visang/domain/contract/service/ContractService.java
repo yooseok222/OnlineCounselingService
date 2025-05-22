@@ -2,6 +2,7 @@ package kr.or.kosa.visang.domain.contract.service;
 
 import kr.or.kosa.visang.domain.agent.repository.AgentMapper;
 import kr.or.kosa.visang.domain.contract.model.Contract;
+import kr.or.kosa.visang.domain.contract.model.ContractDetail;
 import kr.or.kosa.visang.domain.contract.model.ContractSearchRequest;
 import kr.or.kosa.visang.domain.contract.repository.ContractMapper;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +49,13 @@ public class ContractService {
     // 계약 조회
     public Contract getContractById(Long contractId) {
         return contractMapper.selectContractById(contractId);
+    }
+
+    // 계약 상세 조회
+    public ContractDetail getContractDetail(Long contractId) {
+        ContractDetail cont = contractMapper.selectContractDetail(contractId);
+        System.out.println(cont);
+        return cont;
     }
 
     // 고객 ID로 계약 목록 조회

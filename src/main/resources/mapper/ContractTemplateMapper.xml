@@ -17,6 +17,11 @@
         SELECT CONTRACT_TEMPLATE_SEQ.NEXTVAL FROM dual
     </select>
 
+    <select id="getPath" resultType="string">
+        SELECT file_path FROM contract_templates
+        WHERE contract_template_id = #{contractTemplateId}
+    </select>
+
     <select id="selectTemplateById" resultMap="ContractTemplateResultMap">
         SELECT contract_template_id, company_id, contract_name, descript, file_path, version, created_at, updated_at
         FROM contract_templates
