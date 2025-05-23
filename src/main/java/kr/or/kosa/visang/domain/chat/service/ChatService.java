@@ -1,8 +1,109 @@
 package kr.or.kosa.visang.domain.chat.service;
 
+import kr.or.kosa.visang.domain.chat.model.Chat;
+import kr.or.kosa.visang.domain.chat.model.ChatMessage;
+import kr.or.kosa.visang.domain.chat.repository.ChatMapper;
+import org.apache.ibatis.annotations.Param;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class ChatService {
 
+    private final ChatMapper chatMapper;
+    private final RedisTemplate<String, ChatMessage> redis;
+
+    public ChatService(
+            ChatMapper chatMapper,
+            @Qualifier("chatRedisTemplate") RedisTemplate<String, ChatMessage> redisTemplate
+    ) {
+        this.chatMapper = chatMapper;
+        this.redis = redisTemplate;
+    }
+
+    @Transactional
+    public List<ChatMessage> getHistory(Long roomId) {
+        return chatMapper.findByContractId(roomId);
+    }
+
+    public void saveMessageToRedis(ChatMessage msg) {
+        String key = "chat:room:" + msg.getRoomId();
+        redis.opsForList().rightPush(key, msg);
+    }
+
+    /* Redis에서 대화 이력 꺼내고 삭제하기*/
+    public List<ChatMessage> deleteFromRedis(Long roomId) {
+        String key = "chat:room:" + roomId;
+
+        List<ChatMessage> msgs = redis.opsForList().range(key, 0, -1);
+        redis.delete(key);
+        return msgs != null ? msgs : Collections.emptyList();
+
+    }
+
+    /* 파일로 내보내고, 파일 경로 반환 */
+    public String exportFile(Long roomId, List<ChatMessage> msgHistory) {
+        String fileNmae = "chat_" + roomId + "_" + System.currentTimeMillis() + ".txt";
+
+        //폴더 경로
+        Path dir = Paths.get("data", "chats");
+
+        //파일 경로
+        Path path = dir.resolve(fileNmae);
+
+        try {
+            // 없으면 생성
+            Files.createDirectories(dir);
+
+            // 파일에 쓰기
+            try (BufferedWriter writer = Files.newBufferedWriter(path)) {
+                for (ChatMessage msg : msgHistory) {
+                    writer.write(String.format("[%s] %s: %s",
+                            msg.getSendTime(),
+                            msg.getSender(),
+                            msg.getContent()));
+                    writer.newLine();
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("상담 기록 파일 생성 실패: " + path, e);
+        }
+        return path.toAbsolutePath().toString();
+    }
+
+
+    public void endAndExport(Long roomId, String username) {
+
+        // 1) Redis 내역 꺼내기
+        List<ChatMessage> history = deleteFromRedis(roomId);
+
+        // 2) 파일 생성
+        String filePath = exportFile(roomId, history);
+
+        // 3) chat 테이블의 최신 END 경로 업데이트
+        Map<String, Object> params = Map.of(
+                "roomId" , roomId,
+                "filePath", filePath
+        );
+        chatMapper.updateExportPath(params);
+    }
+
+    /* 다운로드 링크 만들 때 호출 */
+    public String getExportPath(Long roomId) {
+        return chatMapper.getExportPath(roomId);
+    }
 }
+
