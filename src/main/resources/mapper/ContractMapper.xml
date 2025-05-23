@@ -6,6 +6,52 @@
 <mapper
         namespace="kr.or.kosa.visang.domain.contract.repository.ContractMapper">
 
+    <resultMap id="monthlyStatusCountsResultMap"
+               type="kr.or.kosa.visang.domain.contract.model.ContractStatusCountsByMonthDTO">
+        <result column="total_count"      property="totalCount"/>
+        <result column="inProgress_count" property="inProgressCount"/>
+        <result column="completed_count"  property="completedCount"/>
+        <result column="canceled_count"   property="canceledCount"/>
+        <result column="pending_count"    property="pendingCount"/>
+    </resultMap>
+
+    <resultMap id="contractDetailResultMap"
+               type="kr.or.kosa.visang.domain.contract.model.ContractDetail">
+        <result column="contract_id"               property="contractId"/>
+        <result column="status"                    property="status"/>
+        <result column="created_at"                property="createdAt"/>
+        <result column="contract_time"             property="contractTime"/>
+        <result column="client_id"                 property="clientId"/>
+        <result column="agent_id"                  property="agentId"/>
+        <result column="memo"                      property="memo"/>
+        <result column="client_name"               property="clientName"/>
+        <result column="client_email"              property="clientEmail"/>
+        <result column="client_phone_number"       property="clientPhoneNumber"/>
+        <result column="client_address"            property="clientAddress"/>
+        <result column="agent_name"                property="agentName"/>
+        <result column="agent_email"               property="agentEmail"/>
+        <result column="agent_phone_number"        property="agentPhoneNumber"/>
+        <result column="agent_address"             property="agentAddress"/>
+        <result column="client_profile_image_url"  property="clientProfileImageUrl"/>
+        <result column="agent_profile_image_url"   property="agentProfileImageUrl"/>
+        <result column="contract_name"             property="contractName"/>
+        <result column="contract_template_id"      property="contractTemplateId"/>
+    </resultMap>
+
+    <!-- searchContracts 전용 매핑 -->
+    <resultMap id="contractListResultMap"
+               type="kr.or.kosa.visang.domain.contract.model.ContractListDTO">
+        <result column="contract_id"             property="contractId"/>
+        <result column="contract_time"           property="contractTime"/>
+        <result column="agent_id"                property="agentId"/>
+        <result column="agent_name"              property="agentName"/>
+        <result column="client_id"               property="clientId"/>
+        <result column="client_name"             property="clientName"/>
+        <result column="status"                  property="status"/>
+        <result column="contract_template_id"    property="contractTemplateId"/>
+        <result column="contract_name"           property="contractTemplateName"/>
+    </resultMap>
+
     <resultMap id="contractResultMap" type="kr.or.kosa.visang.domain.contract.model.Contract">
         <result column="contract_id" property="contractId"/>
         <result column="status" property="status"/>
@@ -30,6 +76,14 @@
         <result column="client_id" property="clientId" jdbcType="VARCHAR"/>
         <result column="contract_template_id" property="templateId" jdbcType="VARCHAR"/>
         <result column="memo" property="memo" jdbcType="CLOB"/>
+    </resultMap>
+
+    <!-- mapper 최상단에 추가 -->
+    <resultMap id="recentCompletedContractResultMap"
+               type="kr.or.kosa.visang.domain.contract.model.RecentCompletedContract">
+        <result column="contract_time" property="contractTime"/>
+        <result column="client_name"   property="clientName"/>
+        <result column="agent_name"    property="agentName"/>
     </resultMap>
 
 	<resultMap id="scheduleResultMap"
@@ -70,7 +124,7 @@
 <!--		ORDER BY c.contract_time DESC-->
 <!--		FETCH FIRST 5 ROWS ONLY-->
 <!--	</select> Oracle 12c 이상 문법 -->
-	<select id="selectRecentCompletedContract" resultMap="selectRecentCompletedContract">
+	<select id="selectRecentCompletedContract" resultMap="recentCompletedContractResultMap">
 		SELECT *
 		FROM (
 		SELECT
@@ -84,10 +138,10 @@
 		AND c.status     = 'COMPLETED'
 		ORDER BY c.contract_time DESC
 		)
-		WHERE ROWNUM &lt;= 5
+		WHERE ROWNUM &lt; = 5
 	</select>
 
-	<select id="selectInProgressContract" resultMap="selectRecentCompletedContract">
+	<select id="selectInProgressContract" resultMap="recentCompletedContractResultMap">
 		SELECT *
 		FROM (
 				 SELECT
@@ -143,32 +197,6 @@
 			AND TO_DATE(#{year} || '-' || LPAD(#{month},2,'0'), 'YYYY-MM')
 </select>
 
-
-	<insert id="insertSchedule"
-		parameterType="kr.or.kosa.visang.domain.contract.model.Contract">
-		<selectKey keyProperty="contractId" order="BEFORE"
-			resultType="long">
-			SELECT contract_seq.NEXTVAL FROM DUAL
-		</selectKey>
-		INSERT INTO contract
-		(contract_id,
-		status,
-		created_at,
-		contract_time,
-		client_id,
-		agent_id,
-		memo)
-		VALUES
-		(
-		#{contractId, jdbcType=NUMERIC},
-		#{status, jdbcType=VARCHAR},
-		#{createdAt, jdbcType=TIMESTAMP},
-		#{contractTime, jdbcType=TIMESTAMP},
-		#{clientId, jdbcType=NUMERIC},
-		#{agentId, jdbcType=NUMERIC},
-		#{memo, jdbcType=CLOB}
-		)
-	</insert>
     <insert id="insertSchedule"
             parameterType="kr.or.kosa.visang.domain.contract.model.Contract">
         <selectKey keyProperty="contractId" order="BEFORE"
