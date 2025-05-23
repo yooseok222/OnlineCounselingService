@@ -20,6 +20,8 @@ public class Contract {
     private String templateId; // 계약서 템플릿 ID
     private String  memo; // 계약 메모
 
+    private String clientName;
+
 //    // 추가 필드
 //    private int totalCount; // 총 건수
 //    private int pageCount;  // 페이지 수
