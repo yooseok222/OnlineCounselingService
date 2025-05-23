@@ -180,17 +180,17 @@
     }
 
     contractTime.addEventListener('change', (event) => {
-      console.log("값 변화")
       const selectedDate = new Date(event.target.value);
       const year = selectedDate.getFullYear();
       const month = selectedDate.getMonth() + 1; // 월은 0부터 시작하므로 +1
-      console.log(`Selected Year: ${year}, Month: ${month}`);
+      fetchAndRenderStatus(year, month);
     });
 
     resetContractStatusByMonth.addEventListener('click', () => {
       // 데이터 다시 가져오기
-      contractTime.value = new Date().toISOString().slice(0, 7);
-      console.log("reset");
+      const year = contractTime.value.split('-')[0];
+      const month = contractTime.value.split('-')[1];
+      fetchAndRenderStatus(year, month);
     });
 
     function renderStatusChart(data) {
