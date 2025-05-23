@@ -11,6 +11,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
+import org.springframework.security.authentication.RememberMeAuthenticationProvider;
+import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 
@@ -23,6 +25,7 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
+    private final String REMEMBER_ME_KEY = "visangSecretKey";
 
     /**
      * 비밀번호 인코더 빈 설정
@@ -44,6 +47,34 @@ public class SecurityConfig {
         provider.setUserDetailsService(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
+    }
+
+    /**
+     * RememberMe 서비스 빈 설정
+     * 자동 로그인 기능을 위한 토큰 기반 서비스를 구성한다.
+     * @return TokenBasedRememberMeServices
+     */
+    @Bean
+    public TokenBasedRememberMeServices rememberMeServices() {
+        TokenBasedRememberMeServices rememberMeServices = 
+            new TokenBasedRememberMeServices(REMEMBER_ME_KEY, userDetailsService);
+        
+        // 쿠키 설정
+        rememberMeServices.setParameter("remember-me"); // 체크박스 이름
+        rememberMeServices.setCookieName("remember-me"); // 쿠키 이름
+        rememberMeServices.setTokenValiditySeconds(1209600); // 유효기간 2주 (60*60*24*14)
+        
+        return rememberMeServices;
+    }
+    
+    /**
+     * RememberMe 인증 제공자 빈 설정
+     * 자동 로그인 인증을 처리한다.
+     * @return RememberMeAuthenticationProvider
+     */
+    @Bean
+    public RememberMeAuthenticationProvider rememberMeAuthenticationProvider() {
+        return new RememberMeAuthenticationProvider(REMEMBER_ME_KEY);
     }
 
     /**
@@ -125,12 +156,16 @@ public class SecurityConfig {
                 .passwordParameter("password")
                 .permitAll()
             )
+            .rememberMe(rememberMe -> rememberMe
+                .rememberMeServices(rememberMeServices())
+                .key(REMEMBER_ME_KEY)
+            )
             .logout(logout -> logout
                 .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
                 .logoutSuccessUrl("/")
                 .invalidateHttpSession(true)
                 .clearAuthentication(true)
-                .deleteCookies("JSESSIONID")
+                .deleteCookies("JSESSIONID", "remember-me")
                 .permitAll()
             )
             .sessionManagement(session -> session
@@ -146,7 +181,8 @@ public class SecurityConfig {
             .headers(headers -> headers
                 .frameOptions(frameOptions -> frameOptions.sameOrigin())
             )
-            .authenticationProvider(daoAuthenticationProvider());
+            .authenticationProvider(daoAuthenticationProvider())
+            .authenticationProvider(rememberMeAuthenticationProvider());
 
         return http.build();
     }
