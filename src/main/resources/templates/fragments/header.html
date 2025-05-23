@@ -1,26 +1,42 @@
-<header th:fragment="header"
+<header th:fragment="header" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
 	class="d-flex flex-wrap align-items-center justify-content-between py-3 mb-4 border-bottom">
+	<!-- Pretendard Variable 폰트 (자동 적용) -->
+	<link rel="stylesheet" th:href="@{/css/common/font.css}" />
 	<div class="d-flex align-items-center">
 		
 		
 		<h1 class="h5 my-0 fw-bold ms-3">
-		  <a href="#" class="text-decoration-none brand-logo">Visang</a>
+		  <a href="/" class="text-decoration-none brand-logo">Visang</a>
 		</h1>
 	</div>
 
 	<div class="d-flex align-items-center">
 	
 		<!--  로그인  -->
-	<div class="user-info me-3">
+	<div sec:authorize="isAnonymous()" class="user-info me-3">
 	  <div>
 	    <span class="user-name me-2"><a th:href="@{/login}" class="text-decoration-none">로그인</a></span>
 	    <span class="user-name"><a th:href="@{/register}" class="text-decoration-none">회원가입</a></span>
 	  </div>
 	</div>
 		
-		<!-- 사용자 정보 -->
+		<div sec:authorize="isAuthenticated()" class="user-info me-3 d-flex align-items-center">
+    <div sec:authorize="hasRole('USER')" class="me-2">
+        <a th:href="@{/user/dashboard}" class="text-decoration-none">마이페이지</a>
+    </div>
+    <div sec:authorize="hasRole('AGENT')" class="me-2">
+        <a th:href="@{/agent/dashboard}" class="text-decoration-none">상담원 페이지</a>
+    </div>
+    <div sec:authorize="hasRole('ADMIN')" class="me-2">
+        <a th:href="@{/admin/dashboard}" class="text-decoration-none">관리자 페이지</a>
+    </div>
+    <div>
+        <a th:href="@{/logout}" class="text-decoration-none">로그아웃</a>
+    </div>
+</div>
+<!-- 사용자 정보 -->
 		<!-- 
-		<div class="user-info me-3">
+		<div sec:authorize="isAnonymous()" class="user-info me-3">
 			<img src="https://via.placeholder.com/32" alt="User profile"
 				class="user-profile-img">
 			<div>

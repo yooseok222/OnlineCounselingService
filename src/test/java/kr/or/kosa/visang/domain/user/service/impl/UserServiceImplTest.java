@@ -81,11 +81,11 @@ class UserServiceImplTest {
                 .ssn("900101-1234567")
                 .build();
 
-        when(clientMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(adminMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(agentMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(clientMapper.isPhoneNumberExists(anyString())).thenReturn(false);
-        when(clientMapper.isSsnExists(request.getSsn())).thenReturn(false);
+        when(clientMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(adminMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(agentMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(clientMapper.isPhoneNumberExists(anyString())).thenReturn(0);
+        when(clientMapper.isSsnExists(request.getSsn())).thenReturn(0);
 
         // save 시에 clientId를 세팅해주는 더미 동작
         doAnswer(invocation -> {
@@ -118,9 +118,9 @@ class UserServiceImplTest {
                 .ssn("900101-1234567")
                 .build();
 
-        when(clientMapper.isEmailExists(request.getEmail())).thenReturn(true);
-        when(adminMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(agentMapper.isEmailExists(request.getEmail())).thenReturn(false);
+        when(clientMapper.isEmailExists(request.getEmail())).thenReturn(1);
+        when(adminMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(agentMapper.isEmailExists(request.getEmail())).thenReturn(0);
 
         // when & then
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> userService.register(request));
@@ -141,10 +141,10 @@ class UserServiceImplTest {
                 .ssn("900101-1234567")
                 .build();
 
-        when(clientMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(adminMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(agentMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(clientMapper.isPhoneNumberExists(anyString())).thenReturn(true);
+        when(clientMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(adminMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(agentMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(clientMapper.isPhoneNumberExists(anyString())).thenReturn(1);
 
         // when & then
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> userService.register(request));
@@ -164,9 +164,9 @@ class UserServiceImplTest {
                 .userType("USER")
                 .build(); // ssn 누락
 
-        when(clientMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(adminMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(agentMapper.isEmailExists(request.getEmail())).thenReturn(false);
+        when(clientMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(adminMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(agentMapper.isEmailExists(request.getEmail())).thenReturn(0);
 
         // when & then
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> userService.register(request));
@@ -187,11 +187,11 @@ class UserServiceImplTest {
                 .ssn("900101-1234567")
                 .build();
 
-        when(clientMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(adminMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(agentMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(clientMapper.isPhoneNumberExists(anyString())).thenReturn(false);
-        when(clientMapper.isSsnExists(anyString())).thenReturn(true);
+        when(clientMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(adminMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(agentMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(clientMapper.isPhoneNumberExists(anyString())).thenReturn(0);
+        when(clientMapper.isSsnExists(anyString())).thenReturn(1);
 
         // when & then
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> userService.register(request));
@@ -212,10 +212,10 @@ class UserServiceImplTest {
                 .companyName("테스트회사")
                 .build();
 
-        when(clientMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(adminMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(agentMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(adminMapper.isPhoneNumberExists(anyString())).thenReturn(false);
+        when(clientMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(adminMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(agentMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(adminMapper.isPhoneNumberExists(anyString())).thenReturn(0);
 
         doAnswer(invocation -> {
             Company companyParam = invocation.getArgument(0);
@@ -277,10 +277,10 @@ class UserServiceImplTest {
         when(companyMapper.findById(companyId)).thenReturn(company);
 
         // 이메일 및 전화번호 중복 체크 모킹
-        when(clientMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(adminMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(agentMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(agentMapper.isPhoneNumberExists(anyString())).thenReturn(false);
+        when(clientMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(adminMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(agentMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(agentMapper.isPhoneNumberExists(anyString())).thenReturn(0);
 
         // save 시에 agentId를 세팅해주는 더미 동작
         doAnswer(invocation -> {
@@ -329,9 +329,9 @@ class UserServiceImplTest {
         when(invitationService.verifyInvitation(invalidInvitationCode)).thenReturn(verifyResponse);
 
         // 이메일 중복 체크 모킹
-        when(clientMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(adminMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(agentMapper.isEmailExists(request.getEmail())).thenReturn(false);
+        when(clientMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(adminMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(agentMapper.isEmailExists(request.getEmail())).thenReturn(0);
 
         // when & then
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> userService.register(request));
@@ -353,9 +353,9 @@ class UserServiceImplTest {
                 .build();
 
         // 이메일 중복 체크 모킹
-        when(clientMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(adminMapper.isEmailExists(request.getEmail())).thenReturn(false);
-        when(agentMapper.isEmailExists(request.getEmail())).thenReturn(false);
+        when(clientMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(adminMapper.isEmailExists(request.getEmail())).thenReturn(0);
+        when(agentMapper.isEmailExists(request.getEmail())).thenReturn(0);
 
         // when & then
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> userService.register(request));

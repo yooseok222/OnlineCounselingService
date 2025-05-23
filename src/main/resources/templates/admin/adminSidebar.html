@@ -1,4 +1,4 @@
-<div th:fragment="sidebar">
+<div th:fragment="sidebar(currentUri)">
 	<div class="col-md-3 col-lg-2 d-md-block sidebar collapse"
 		id="sidebarMenu">
 		<div class="position-sticky pt-3">
@@ -6,8 +6,9 @@
 
 			<!-- 계약 시작하기 버튼 -->
 			<div class="start-contract-btn-wrapper">
-				<a href="#" class="btn btn-primary btn-lg w-100 start-contract-btn">계약
-					시작하기</a>
+				<a href="#" class="btn btn-primary btn-lg w-100 start-contract-btn"
+				   th:text="#{sidebar.startContract}">계약 시작하기
+				</a>
 			</div>
 
 			<!-- 메인 내비게이션 -->
@@ -16,10 +17,10 @@
 				<li class="nav-item">
 					<a
 					class="nav-link d-flex justify-content-between align-items-center"
-					data-bs-toggle="collapse" href="#" role="button"
-					aria-expanded="false" aria-controls="contractMenu">
+					th:href="@{/admin/dashboard}" role="button">
 					<span>
-						<i class="bi bi-house-door-fill me-2"></i> 대시보드
+						<i class="bi bi-house-door-fill me-2"></i>
+						<span th:text="#{sidebar.dashboard}">대시보드</span>
 					</span>
 					</a>
 				</li>
@@ -28,7 +29,8 @@
 					<a class="nav-link d-flex justify-content-between align-items-center"
 					   th:href="@{/admin/list}" role="button">
 						<span>
-							<i class="bi bi-person-lines-fill me-2"></i> 상담사관리
+							<i class="bi bi-person-lines-fill me-2"></i>
+							<span th:text="#{sidebar.counselorManagement}">상담사관리</span>
 						</span>
 					</a>
 				</li>
@@ -36,10 +38,11 @@
 				<!-- 계약서 관리 -->
 				<li class="nav-item">
 					<a class="nav-link d-flex justify-content-between align-items-center"
-					th:href="@{/admin/template-list/1}" role="button">
+					th:href="@{/admin/template-list}" role="button">
 <!--						나중에 수정 필요 -> security-->
 						<span>
-							<i class="bi bi-file-earmark-text-fill me-2"></i> 계약서 관리
+							<i class="bi bi-file-earmark-text-fill me-2"></i>
+							<span th:text="#{sidebar.contractTemplate}">계약서 관리</span>
 						</span>
 					</a>
 				</li>
@@ -51,15 +54,20 @@
 						data-bs-toggle="collapse" href="#contractMenu" role="button"
 						aria-expanded="false" aria-controls="contractMenu">
 						<span>
-							<i class="bi bi-receipt-cutoff me-2"></i> 계약 관리
+							<i class="bi bi-receipt-cutoff me-2"></i>
+							<span th:text="#{sidebar.contractManagement}">계약 관리</span>
 						</span>
 						<i class="bi bi-chevron-down"></i>
 					</a>
 					<div class="collapse ps-4" id="contractMenu">
-						<a class="nav-link sub-nav" th:href="@{/admin/contract-list/in-progress}">진행중 계약</a>
-						<a class="nav-link sub-nav" th:href="@{/admin/contract-list/pending}">미완료 계약</a>
-						<a class="nav-link sub-nav" th:href="@{/admin/contract-list/completed}">완료된 계약</a>
-						<a class="nav-link sub-nav" th:href="@{/admin/contract-list/cancled}">취소된 계약</a>
+						<a class="nav-link sub-nav" th:href="@{/admin/contract-list/in-progress}"
+						   th:text="#{sidebar.contract.inProgress}">진행중 계약</a>
+						<a class="nav-link sub-nav" th:href="@{/admin/contract-list/pending}"
+						   th:text="#{sidebar.contract.pending}">미완료 계약</a>
+						<a class="nav-link sub-nav" th:href="@{/admin/contract-list/completed}"
+						   th:text="#{sidebar.contract.completed}">완료된 계약</a>
+						<a class="nav-link sub-nav" th:href="@{/admin/contract-list/canceled}"
+						   th:text="#{sidebar.contract.canceled}">취소된 계약</a>
 					</div>
 				</li>
 
@@ -70,7 +78,8 @@
 						data-bs-toggle="collapse" href="#noticeManagement" role="button"
 						aria-expanded="false" aria-controls="noticeManagement">
 						<span>
-							<i class="bi bi-bell-fill me-2"></i> 공지사항 관리
+							<i class="bi bi-bell-fill me-2"></i>
+							<span th:text="#{sidebar.notice}">공지사항 관리</span>
 						</span>
 						<i class="bi bi-chevron-down"></i>
 					</a>
@@ -87,7 +96,9 @@
 						data-bs-toggle="collapse" href="#userMenu" role="button"
 						aria-expanded="false" aria-controls="userMenu">
 						<span>
-							<i class="bi bi-people me-2"></i> 통계</span>
+							<i class="bi bi-people me-2"></i>
+							<span th:text="#{sidebar.statistics}">통계</span>
+						</span>
 					</a>
 			</ul>
 
@@ -95,27 +106,46 @@
 			<div class="sidebar-footer mt-auto">
 				<ul class="list-unstyled company-info">
 					<li class="d-flex">
-						<div class="info-label">대표이사</div>
+						<div class="info-label" th:text="#{footer.ceo}">대표이사</div>
 						<div class="info-value">김시연</div>
 					</li>
 					<li class="d-flex flex-column">
-						<div class="info-label">주소</div>
+						<div class="info-label" th:text="#{footer.address}">주소</div>
 						<div class="info-value">서울특별시 영등포구 여의도동 국제금융로 39, 20층</div>
 					</li>
 					<li class="d-flex">
-						<div class="info-label">이메일</div>
+						<div class="info-label" th:text="#{footer.email}">이메일</div>
 						<div class="info-value">visanghelp@inswave.com</div>
 					</li>
 					<li class="d-flex">
-						<div class="info-label">대표번호</div>
-						<div class="info-value">02-2082-1400 (평일 09:00~17:00)</div>
+						<div class="info-label" th:text="#{footer.phone}">대표번호</div>
+						<div class="info-value">02-2082-1400 (Mon–Fri, 09:00~17:00)</div>
 					</li>
 				</ul>
-				<div class="business-info">사업자등록번호 : 107-86-16054</div>
-				<div class="footer-links">
-					<a href="#">이용약관</a> | <a href="#">개인정보처리방침</a>
+				<div class="business-info">
+					<span th:text="#{footer.businessNumber}">사업자등록번호</span> : 107-86-16054
 				</div>
-				<div class="copyright">Inswave Systems © 2024</div>
+				<div class="footer-links">
+					<a href="#" th:text="#{footer.terms}">이용약관</a> |
+					<a href="#" th:text="#{footer.privacy}">개인정보처리방침</a>
+				</div>
+				<div class="copyright" th:text="#{footer.copyright}">
+					Inswave Systems © 2024
+				</div>
+				<div class="language-selector">
+					<form method="get" th:action="@{${currentUri}}">
+						<label for="languageSelect">
+							<i class="bi bi-globe" style="font-size:1.2rem; color:#ccc;"></i> 언어 설정
+						</label>
+						<br/>
+						<select id="languageSelect" name="lang" onchange="this.form.submit()">
+							<option value="ko" th:selected="${#locale.language == 'ko'}">한국어</option>
+							<option value="en" th:selected="${#locale.language == 'en'}">English</option>
+							<option value="ja" th:selected="${#locale.language == 'ja'}">日本語</option>
+							<option value="zh" th:selected="${#locale.language == 'zh'}">中文</option>
+						</select>
+					</form>
+				</div>
 			</div>
 		</div>
 	</div>

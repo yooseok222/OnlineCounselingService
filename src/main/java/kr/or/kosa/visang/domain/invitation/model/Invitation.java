@@ -14,5 +14,4 @@ public class Invitation {
 	private LocalDateTime createdAt;
 	private LocalDateTime expiredTime;
 	private Long contractId;
-	private String emailSent;
 }

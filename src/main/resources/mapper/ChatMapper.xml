@@ -1,21 +1,77 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <!DOCTYPE mapper
-  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper
-	namespace="kr.or.kosa.visang.domain.chat.repository.ChatMapper">
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.kosa.visang.domain.chat.repository.ChatMapper">
 
-	<resultMap id="clientResultMap"
-		type="kr.or.kosa.visang.domain.client.model.Client">
-		<result column="chat_id" property="chatId" />
-		<result column="contract_id" property="contractId" />
-		<result column="sender_id" property="senderId" />
-		<result column="sender_type" property="senderType" />
-		<result column="message" property="message" />
-		<result column="message_type" property="messageType" />
-		<result column="sent_time" property="sendTime" />
-	</resultMap>
+    <resultMap id="chatResultMap"
+               type="kr.or.kosa.visang.domain.chat.model.ChatMessage">
+        <id column="chat_id" property="chatId"/>
+        <result column="contract_id" property="roomId"/>
+        <result column="chat_content" property="content"/>
+        <result column="chat_type" property="type"/>
+        <result column="send_time" property="sendTime"/>
+        <result column="export_filepath" property="exportFilePath" />
+    </resultMap>
 
+    <insert id="insertMessage"
+            parameterType="kr.or.kosa.visang.domain.chat.model.ChatMessage">
+        INSERT INTO chat (
+        chat_id,
+        contract_id,
+        chat_content,
+        chat_type,
+        send_time
+        )
+        VALUES (
+        chat_seq.NEXTVAL,
+        #{roomId}, <!-- contractId -->
+        #{content},
+        #{type},
+        SYSDATE
+        )
+    </insert>
+
+    <select id="findByContractId"
+            parameterType="long"
+            resultMap="chatResultMap">
+        SELECT
+        chat_id,
+        contract_id,
+        chat_content,
+        chat_type,
+        send_time
+        FROM chat
+        WHERE contract_id = #{value}
+        ORDER BY send_time ASC
+    </select>
+
+    <!-- 채팅 종료 시 파일 생성 경로 db 업데이트 -->
+    <update id="updateExportPath" parameterType="map">
+        UPDATE chat
+        SET export_filepath = #{filePath}
+        WHERE contract_id = #{roomId}
+        AND chat_type    = 'END'
+        AND send_time = (
+        SELECT MAX(send_time)
+        FROM chat
+        WHERE contract_id = #{roomId}
+        AND chat_type   = 'END'
+        )
+    </update>
+
+    <!-- 다운로드 링크를 위해 파일 경로만 조회 -->
+    <select id="getExportPath" parameterType="long" resultType="string">
+        SELECT export_filepath
+        FROM (
+        SELECT export_filepath
+        FROM chat
+        WHERE contract_id = #{value}
+        AND chat_type   = 'END'
+        ORDER BY send_time DESC
+        )
+        WHERE ROWNUM = 1
+    </select>
 
 </mapper>
+
