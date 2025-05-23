@@ -12,7 +12,5 @@ public interface InvitationMapper {
 
 	void deleteByContractId(@Param("contractId") Long contractId);
 
-	int updateEmailSent(@Param("invitationId") Long invitationId, @Param("emailSent") String emailSent);
-
 	Invitation findByCode(@Param("code") String code);
 }

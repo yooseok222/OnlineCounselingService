@@ -30,6 +30,11 @@ public class WebConfig implements WebMvcConfigurer {
         // PDF 파일 매핑
         registry.addResourceHandler("/files/pdf/**")
                 .addResourceLocations("file:" + uploadDirPdf + "/");
+
+        // 채팅 내역 다운로드 파일
+        // /files/** 요청 -> data/chats/ 폴더 매핑
+        registry.addResourceHandler("/files/**")
+                .addResourceLocations("file:./data/chats/");
     }
 
     // 세션 기반 Locale Resolver

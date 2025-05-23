@@ -13,6 +13,11 @@ public interface ContractMapper {
     // 모든 계약 조회
     List<Contract> selectAllContracts();
 
+    List<Contract> selectContractByStatus(
+            @Param("companyId") Long companyId,
+            @Param("status") String status
+    );
+
     List<Contract> selectMonthlyScheduleByAgentId(
             @Param("id") Long agentId,
             @Param("year") String year,
@@ -58,29 +63,44 @@ public interface ContractMapper {
     int updateContractMemo(Long contractId, String memo);
 
 
-	void insertSchedule(Contract c);
+    void insertSchedule(Contract c);
 
-	List<Schedule> selectSchedulesByAgent(@Param("agentId") Long agentId);
+    List<Schedule> selectSchedulesByAgent(@Param("agentId") Long agentId);
 
-	int countByClientAndTime(@Param("clientId") Long clientId, @Param("contractTime") LocalDateTime contractTime);
+    int countByClientAndTime(@Param("clientId") Long clientId, @Param("contractTime") LocalDateTime contractTime);
 
-	int countByAgentAndTime(@Param("agentId") Long agentId, @Param("contractTime") LocalDateTime contractTime);
+    int countByAgentAndTime(@Param("agentId") Long agentId, @Param("contractTime") LocalDateTime contractTime);
 
-	// excludeContractId : 자기 자신 제외
-	int countByClientAndTimeExcept(@Param("clientId") Long clientId, @Param("contractTime") LocalDateTime contractTime,
-			@Param("excludeContractId") Long excludeContractId);
+    // excludeContractId : 자기 자신 제외
+    int countByClientAndTimeExcept(@Param("clientId") Long clientId, @Param("contractTime") LocalDateTime contractTime,
+                                   @Param("excludeContractId") Long excludeContractId);
 
-	int countByAgentAndTimeExcept(@Param("agentId") Long agentId, @Param("contractTime") LocalDateTime contractTime,
-			@Param("excludeContractId") Long excludeContractId);
+    int countByAgentAndTimeExcept(@Param("agentId") Long agentId, @Param("contractTime") LocalDateTime contractTime,
+                                  @Param("excludeContractId") Long excludeContractId);
 
-	void updateSchedule(Schedule dto);
+    void updateSchedule(Schedule dto);
 
-	int deleteSchedule(@Param("contractId") Long contractId);
+    List<Schedule> findTodayContracts(Map<String, Object> params);
 
-	List<Schedule> findTodayContracts(Map<String, Object> params);
+    List<Schedule> selectSchedulesByAgentAndDateRange(Map<String, Object> param);
 
-	List<Schedule> selectSchedulesByAgentAndDateRange(Map<String, Object> param);
+    Contract findById(@Param("contractId") Long contractId);
 
-	Contract findById(@Param("contractId") Long contractId);
+    List<Map<String, Object>> countContractByStatus(Long agentId);
+
+    List<Contract> selectContractsByAgentIdAndStatus(Map<String, Object> param);
+
+    List<Contract> selectContractsByAgentIdAndStatusPaged(
+            @Param("agentId") Long agentId,
+            @Param("status") String status,
+            @Param("sort") String sort,
+            @Param("offset") int offset,
+            @Param("pageSize") int pageSize
+    );
+
+    int countContractsByAgentAndStatus(
+            @Param("agentId") Long agentId,
+            @Param("status") String status
+    );
 
 }

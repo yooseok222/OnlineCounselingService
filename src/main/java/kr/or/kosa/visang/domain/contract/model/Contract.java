@@ -17,8 +17,10 @@ public class Contract {
     private Long agentId; // 상담사 ID
     private Long clientId; // 고객 ID
 
-    private String templateId; // 계약서 템플릿 ID
+    private Long templateId; // 계약서 템플릿 ID
     private String  memo; // 계약 메모
+
+    private String clientName;
 
 //    // 추가 필드
 //    private int totalCount; // 총 건수
