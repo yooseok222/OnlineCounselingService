@@ -228,13 +228,6 @@ public class AgentService {
     }
 
 
-    @GetMapping("/recent-completed")
-    @ResponseBody
-    public List<Contract> getRecentCompleted(@RequestParam Long agentId) {
-        return agentMapper.getRecentCompletedContracts(agentId);
-    }
-
-
     public Agent findByEmailSelect(String email) {
         return agentMapper.findByEmailSelect(email);
     }
