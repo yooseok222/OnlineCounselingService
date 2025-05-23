@@ -8,9 +8,7 @@ import lombok.Data;
 public class Chat {
 	private Long chatId;
 	private Long contractId;
-	private Long senderId;
-	private String senderType;
-	private String message;
-	private String messageType;
+	private String chatContent;
+	private String chatType;
 	private LocalDateTime sendTime;
 }

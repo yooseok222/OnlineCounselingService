@@ -1,19 +1,20 @@
 package kr.or.kosa.visang.domain.contract.service;
 
-import kr.or.kosa.visang.domain.agent.repository.AgentMapper;
-import kr.or.kosa.visang.domain.contract.model.Contract;
+import kr.or.kosa.visang.domain.contract.model.*;
 import kr.or.kosa.visang.domain.contract.repository.ContractMapper;
+import kr.or.kosa.visang.domain.page.model.PageRequest;
+import kr.or.kosa.visang.domain.page.model.PageResult;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class ContractService {
-    private final AgentMapper agentMapper;
     private final ContractMapper contractMapper;
 
     // 모든 계약 조회
@@ -22,11 +23,45 @@ public class ContractService {
     }
     // 계약관련 비즈니스 로직 구현
 
-    public List<Contract> getContractByStatus(Long companyId, String status) {
-        // 계약 상태에 따라 계약 목록을 조회하는 로직을 구현합니다.
-        List<Contract> conn = contractMapper.selectContractByStatus(companyId, status);
-        conn.forEach(System.out::println);
-        return conn;
+
+    //searchContracts
+    public PageResult<Contract> searchContracts(ContractSearchRequest request, PageRequest pageRequest) {
+        // 계약 ID, 계약 월, 상담사 ID, 고객 ID, 계약서 템플릿 이름을 사용하여 계약 목록을 조회하는 로직을 구현합니다.
+        Map<String, Object> params = new HashMap<>();
+
+        params.put("companyId", request.getCompanyId());
+        params.put("contractId", request.getContractId());
+        params.put("contractTime", request.getContractTime());
+        params.put("agentId", request.getAgentId());
+        params.put("clientId", request.getClientId());
+        params.put("contractName", request.getContractName());
+        params.put("status", request.getStatus());
+
+        params.put("offset", pageRequest.getOffset());
+        params.put("pageSize", pageRequest.getPageSize());
+
+        List<Contract> contracts = contractMapper.searchContracts(params);
+        int totalCount = contractMapper.countContracts(params);
+
+        PageResult<Contract> pageResult = new PageResult<>();
+        pageResult.setContent(contracts);
+        pageResult.setTotalCount(totalCount);
+        pageResult.setPage(pageRequest.getPage());
+        pageResult.setPageSize(pageRequest.getPageSize());
+        pageResult.setTotalPages(pageResult.getTotalPages());
+        return pageResult;
+    }
+
+    // 최근 완료된 계약 조회
+    public List<RecentCompletedContract> getRecentCompletedContract(Long companyId) {
+        // 회사 ID를 사용하여 최근 완료된 계약을 조회하는 로직을 구현합니다.
+        return contractMapper.selectRecentCompletedContract(companyId);
+    }
+
+    // 진행중인 계약 5건 조회
+    public List<RecentCompletedContract> getRecentInProgressContract(Long companyId) {
+        // 회사 ID를 사용하여 진행중인 계약을 조회하는 로직을 구현합니다.
+        return contractMapper.selectInProgressContract(companyId);
     }
 
 
@@ -35,12 +70,16 @@ public class ContractService {
         return contractMapper.selectMonthlyScheduleByAgentId(agentId, year, month);
     }
 
-    /*@Autowired
-    private ContractMapper contractMapper;*/
-
     // 계약 조회
     public Contract getContractById(Long contractId) {
         return contractMapper.selectContractById(contractId);
+    }
+
+    // 계약 상세 조회
+    public ContractDetail getContractDetail(Long contractId) {
+        ContractDetail cont = contractMapper.selectContractDetail(contractId);
+        System.out.println(cont);
+        return cont;
     }
 
     // 고객 ID로 계약 목록 조회
@@ -56,6 +95,28 @@ public class ContractService {
     // 계약 상태별 조회
     public List<Contract> getContractsByStatus(String status) {
         return contractMapper.selectContractsByStatus(status);
+    }
+
+    // 계약 상태별 월별 숫자 조회
+    public ContractStatusCountsByMonthDTO getMonthlyStatusCounts(Long companyId, int year, int month) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("companyId", companyId);
+        params.put("year", year);
+        params.put("month", month);
+
+        return contractMapper.selectMonthlyStatusCounts(params);
+    }
+
+    //계약 월별 5개월치 완료 계약 조회
+    public ContractCompleteCountsByMonthDTO getLastFiveMonthsCompleted(Long companyId, int year, int month) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("companyId", companyId);
+        params.put("startYear", year);
+        params.put("startMonth", month);
+        params.put("year", year);
+        params.put("month", month);
+
+        return contractMapper.getLastFiveMonthsCompleted(params);
     }
 
     // 계약 생성

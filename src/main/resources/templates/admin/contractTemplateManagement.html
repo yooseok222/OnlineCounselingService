@@ -14,6 +14,7 @@
             <table class="table table-striped table-hover align-middle">
                 <thead class="table-light">
                 <tr>
+                    <th> </th>
                     <th>템플릿 이름</th>
                     <th>파일명</th>
                     <th>설명</th>
@@ -24,7 +25,8 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="template : ${templateList}">
+                <tr th:each="template, iterStat : ${templateList}">
+                    <td th:text="${iterStat.index + 1}"></td> <!-- 1부터 시작 -->
                     <td th:text="${template.contractName}"></td>
                     <td th:text="${template.filePath}"></td>
                     <td th:text="${#strings.abbreviate(template.descript, 50)}"></td>
@@ -77,6 +79,9 @@
 
         async function saveTemplate(e, id = null) {
             e.preventDefault();
+            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
             const form = e.target;
 
             const formData = new FormData();
@@ -87,7 +92,6 @@
                 formData.append("pdf", form.pdf.files[0]); // 새 파일만 전송
             }
             formData.append("filePath", form.filePath.value || '');
-            formData.append("companyId", 1); // TODO: 실제 회사 ID로 변경
 
             const url = id ? `/admin/template/${id}` : "/admin/template";
             const method = id ? "PUT" : "POST";
@@ -96,6 +100,9 @@
                 const res = await fetch(url, {
                     method,
                     body: formData,
+                    headers: {
+                        [csrfHeader]: csrfToken,
+                    }
                 });
 
                 if (!res.ok) throw new Error("저장 실패");

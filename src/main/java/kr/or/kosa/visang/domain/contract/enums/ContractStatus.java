@@ -4,5 +4,5 @@ public enum ContractStatus {
     IN_PROGRESS,
     PENDING,
     COMPLETED,
-    CANCELLED
+    CANCELED
 }

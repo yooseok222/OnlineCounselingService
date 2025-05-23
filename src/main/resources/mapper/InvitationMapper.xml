@@ -12,7 +12,6 @@
 		<result column="expired_time" property="expiredTime" />
 		<result column="created_at" property="createdAt" />
 		<result column="contract_id" property="contractId" />
-		<result column="email_sent" property="emailSent" />
 	</resultMap>
 
 	<insert id="insertInvitation"
@@ -23,11 +22,10 @@
 		</selectKey>
 		INSERT INTO invitation
 		(invitation_id, invitation_code, expired_time,
-		created_at, contract_id, email_sent)
+		created_at, contract_id)
 		VALUES
 		(#{invitationId},
-		#{invitationCode}, #{expiredTime}, #{createdAt}, #{contractId},
-		#{emailSent})
+		#{invitationCode}, #{expiredTime}, #{createdAt}, #{contractId})
 	</insert>
 
 	<delete id="deleteByContractId" parameterType="long">
@@ -35,13 +33,6 @@
 		invitation
 		WHERE contract_id = #{contractId}
 	</delete>
-
-	<update id="updateEmailSent" parameterType="map">
-		UPDATE invitation
-		SET
-		email_sent = #{emailSent}
-		WHERE invitation_id = #{invitationId}
-	</update>
 
 	<select id="findByCode"
 		resultType="kr.or.kosa.visang.domain.invitation.model.Invitation">
