@@ -4,6 +4,7 @@ import kr.or.kosa.visang.common.file.FileStorageService;
 import kr.or.kosa.visang.domain.contractTemplate.model.ContractTemplate;
 import kr.or.kosa.visang.domain.contractTemplate.repository.ContractTemplateMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,6 +26,12 @@ public class ContractTemplateService {
     // 계약서 템플릿 상세 조회
     public ContractTemplate getTemplateById(Long contractTemplateId) {
         return contractTemplateMapper.selectTemplateById(contractTemplateId);
+    }
+
+    public Resource getTemplateResource(Long contractTemplateId) {
+        String path = contractTemplateMapper.getPath(contractTemplateId);
+        if (path == null) throw new RuntimeException("DB에 경로 없음");
+        return fileStorageService.loadTemplateAsResource(path);
     }
 
     // 계약서 템플릿 생성

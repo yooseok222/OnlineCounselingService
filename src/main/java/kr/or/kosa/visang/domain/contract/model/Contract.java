@@ -14,11 +14,13 @@ public class Contract {
     private String contractTime; // 계약 시간
     private String companyId; // 회사 ID
 
-    private String agentId; // 상담사 ID
-    private String clientId; // 고객 ID
+    private Long agentId; // 상담사 ID
+    private Long clientId; // 고객 ID
 
-    private String templateId; // 계약서 템플릿 ID
+    private Long templateId; // 계약서 템플릿 ID
     private String  memo; // 계약 메모
+
+    private String clientName;
 
 //    // 추가 필드
 //    private int totalCount; // 총 건수

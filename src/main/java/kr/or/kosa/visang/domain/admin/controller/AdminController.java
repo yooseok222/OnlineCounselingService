@@ -2,6 +2,7 @@ package kr.or.kosa.visang.domain.admin.controller;
 
 import java.util.List;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,16 +28,27 @@ public class AdminController {
     private final AgentService agentService;
     private final ContractService contractService;
 
+    @GetMapping("/dashboard")
+    public String dashboard(Model model, HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        model.addAttribute("currentUri", uri);
+
+        model.addAttribute("contentFragment", "adminDashboard");
+        model.addAttribute("scriptFragment", "adminDashboard");
+
+        return "admin/adminLayout";
+    }
+
     @GetMapping("/list")
-    public String list(Model model) {
+    public String list(HttpServletRequest request, Model model) {
         model.addAttribute("agentList", agentService.getAgentList());
             // 공통 레이아웃으로 전체 페이지 렌더링
-        model.addAttribute("contentFragment", "admin/adminAgentManagement :: content");
-        model.addAttribute("scriptFragment", "admin/adminAgentManagement :: script");
+        model.addAttribute("contentFragment", "adminAgentManagement");
+        model.addAttribute("scriptFragment", "adminAgentManagement");
+
         return "admin/adminLayout";
 
     }
-
 
     @GetMapping(value="/search")
     @ResponseBody

@@ -6,16 +6,12 @@
 <title>전자계약 원스톱 AI 서비스 | 비상(Visang)</title>
 
 <!-- 부트스트랩 5 CSS CDN -->
-<link
-	href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-	rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <!-- 부트스트랩 아이콘 -->
 <link rel="stylesheet"
 	href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <!-- 캘린더 -->
-<link
-	href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css"
-	rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
 <!-- 커스텀 CSS -->
 <link rel="stylesheet" th:href="@{/css/common/main.css}" />
 <link rel="stylesheet" th:href="@{/css/agent/agent.css}" />
@@ -40,15 +36,19 @@
             
                 <!-- 헤더 영역 -->
 				<header th:replace="fragments/header :: header"></header>
-	
-                <!-- 메인 대시보드 내용 -->
-<!--				<div th:replace="fragments/mainDashboard :: content"></div> -			-->
+
+            <!-- 메인 대시보드 내용 -->
+               <!-- <div th:replace="fragments/mainDashboard :: content"></div> -->
 				<!-- 상담보드 내용 -->
 <!--				<div th:replace="counselor/counselorDashboard :: content"></div>-->
 
+<!--                &lt;!&ndash;관리자 대시보드 내용&ndash;&gt;-->
+<!--				<div th:replace="admin/adminDashboard :: content"></div>-->
                 <!--관리자 대시보드 내용-->
-				<div th:replace="admin/adminDashboard :: content"></div>
-				       
+                <div th:replace="~{admin/contractManagement :: content}"></div>
+                <!-- script fragment 동적으로 포함 -->
+                <script th:replace="~{admin/contractManagement :: script}"></script>
+
             </div>
         </div>
     </div>
@@ -60,9 +60,21 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Swiper JS -->
-  	<script src="https://cdn.jsdelivr.net/npm/swiper@4.5.0/dist/js/swiper.min.js"></script>
+    <!-- 캘린더 -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+    <!-- Swiper / STOMP 등 여러 라이브러리 로드 -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@4.5.0/dist/js/swiper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <!-- 커스텀 JavaScript -->
     <script th:src="@{/js/common/main.js}"></script>
+    <script th:src="@{/js/agent/agent.js}"></script>
+    <script th:src="@{/js/client/client.js}"></script>
+
 </body>
 </html> 

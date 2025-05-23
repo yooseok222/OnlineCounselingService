@@ -4,6 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
     <title>Visang 관리자</title>
     <!-- 반응형 지원 메타 -->
 
@@ -21,8 +23,7 @@
     <div class="row g-0">
         <!-- 사이드바 -->
         <!-- 상담 사이드바 -->
-        <div class="col-md-3 col-lg-2 sidebar collapse" id="sidebarMenu" th:replace="~{admin/adminSidebar :: sidebar}"></div>
-
+        <div class="col-md-3 col-lg-2 sidebar collapse" id="sidebarMenu" th:replace="~{admin/adminSidebar :: sidebar(currentUri=${currentUri})}"></div>
         <!-- 메인 콘텐츠 영역 -->
         <div class="col-md-9 col-lg-10 ms-sm-auto px-md-4">
 
@@ -30,9 +31,10 @@
             <header th:replace="~{fragments/header :: header}"></header>
 
             <!--관리자 대시보드 내용-->
-            <div th:replace="~{admin/contractManagement :: content}"></div>
+            <div th:replace="~{${'admin/' + contentFragment} :: content}"></div>
             <!-- script fragment 동적으로 포함 -->
-            <script th:replace="~{admin/contractManagement :: script}"></script>
+            <script th:replace="~{${'admin/' + contentFragment} :: script}"></script>
+
         </div>
     </div>
 </div>
@@ -47,5 +49,8 @@
 <script src="https://cdn.jsdelivr.net/npm/swiper@4.5.0/dist/js/swiper.min.js"></script>
 <!-- 커스텀 JavaScript -->
 <script th:src="@{/js/common/main.js}"></script>
+<!-- 차트 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 </body>
 </html>
