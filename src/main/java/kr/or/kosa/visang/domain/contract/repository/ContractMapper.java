@@ -4,13 +4,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-import kr.or.kosa.visang.domain.contract.model.ContractDetail;
-import kr.or.kosa.visang.domain.contract.model.ContractStatusCountsByMonthDTO;
+import kr.or.kosa.visang.domain.contract.model.*;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
-import kr.or.kosa.visang.domain.contract.model.Contract;
-import kr.or.kosa.visang.domain.contract.model.Schedule;
 
 @Mapper
 public interface ContractMapper {
@@ -28,6 +24,8 @@ public interface ContractMapper {
     int countContracts(Map<String, Object> params);
 
     ContractStatusCountsByMonthDTO selectMonthlyStatusCounts(Map<String, Object> params);
+
+    ContractCompleteCountsByMonthDTO getLastFiveMonthsCompleted(Map<String, Object> params);
 
     // 계약 조회
     Contract selectContractById(Long contractId);

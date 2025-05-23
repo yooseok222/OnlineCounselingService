@@ -90,6 +90,14 @@
 		<result column="invitation_code" property="invitationCode" />
 	</resultMap>
 
+	<resultMap id="CompleteCountsByMonthResultMap" type="kr.or.kosa.visang.domain.contract.model.ContractCompleteCountsByMonthDTO">
+		<result property="firstMonthCount" column="first_month_count"/>
+		<result property="secondMonthCount" column="second_month_count"/>
+		<result property="thirdMonthCount" column="third_month_count"/>
+		<result property="fourthMonthCount" column="fourth_month_count"/>
+		<result property="fifthMonthCount" column="fifth_month_count"/>
+	</resultMap>
+
 	<select id="selectMonthlyStatusCounts" resultMap="monthlyStatusCountsResultMap" parameterType="map">
 		SELECT
 			COUNT(*) AS total_count,
@@ -101,6 +109,33 @@
 		WHERE company_id = #{companyId,  jdbcType=BIGINT}
 		AND TRUNC(contract_time, 'MM') = TO_DATE(#{year} || '-' || LPAD(#{month},2,'0'), 'YYYY-MM')
 	</select>
+
+	<select id="getLastFiveMonthsCompleted" resultMap="CompleteCountsByMonthResultMap" parameterType="map">
+		-- 최근 5개월간 계약 완료 건수
+		SELECT
+			SUM(CASE WHEN TRUNC(contract_time, 'MM') = ADD_MONTHS(TO_DATE(#{year} || '-' || LPAD(#{month},2,'0'), 'YYYY-MM'), -4)
+						AND status = 'COMPLETED'
+						THEN 1 ELSE 0 END) AS first_month_count,
+			SUM(CASE WHEN TRUNC(contract_time, 'MM') = ADD_MONTHS(TO_DATE(#{year} || '-' || LPAD(#{month},2,'0'), 'YYYY-MM'), -3)
+						AND status = 'COMPLETED'
+						THEN 1 ELSE 0 END) AS second_month_count,
+			SUM(CASE WHEN TRUNC(contract_time, 'MM') = ADD_MONTHS(TO_DATE(#{year} || '-' || LPAD(#{month},2,'0'), 'YYYY-MM'), -2)
+						AND status = 'COMPLETED'
+						THEN 1 ELSE 0 END) AS third_month_count,
+			SUM(CASE WHEN TRUNC(contract_time, 'MM') = ADD_MONTHS(TO_DATE(#{year} || '-' || LPAD(#{month},2,'0'), 'YYYY-MM'), -1)
+						AND status = 'COMPLETED'
+						THEN 1 ELSE 0 END) AS fourth_month_count,
+			SUM(CASE WHEN TRUNC(contract_time, 'MM') = TO_DATE(#{year} || '-' || LPAD(#{month},2,'0'), 'YYYY-MM')
+						AND status = 'COMPLETED'
+						THEN 1 ELSE 0 END) AS fifth_month_count
+			FROM contract
+			WHERE company_id = #{companyId}
+			AND status = 'COMPLETED'
+			/* 이 범위 조건은 불필요하긴 하나, 성능 튜닝을 위해 인덱스 스캔 범위를 제한하고 싶다면 켜 두셔도 됩니다 */
+			AND TRUNC(contract_time, 'MM') BETWEEN
+			ADD_MONTHS(TO_DATE(#{year} || '-' || LPAD(#{month},2,'0'), 'YYYY-MM'), -4)
+			AND TO_DATE(#{year} || '-' || LPAD(#{month},2,'0'), 'YYYY-MM')
+</select>
 
 
 	<insert id="insertSchedule"

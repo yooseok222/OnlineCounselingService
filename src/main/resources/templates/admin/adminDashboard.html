@@ -49,16 +49,16 @@
         </div>
       </div>
       
-      <!-- 월별 서명요청 현황 카드 -->
+      <!-- 월별 계약 완료 현황 카드 -->
       <div class="col-md-6 mb-4">
         <div class="card h-100">
           <div class="card-header">
             <h3 class="card-title">월별 계약 완료 현황</h3>
             <div>
-              <button class="btn btn-sm btn-outline-secondary ms-2">
-                <i class="bi bi-list-ul"></i>
-              </button>
-              <button class="btn btn-sm btn-outline-secondary ms-1">
+              <input id ="contractStartMonth" type="month" readonly/>
+              <span><strong>~</strong></span>
+              <input id ="contractEndMonth" type="month"/>
+              <button id="resetContractComplete" class="btn btn-sm btn-outline-secondary ms-1">
                 <i class="bi bi-arrow-repeat"></i>
               </button>
             </div>
@@ -171,12 +171,25 @@
     const month = new Date().getMonth() + 1; // 월은 0부터 시작하므로 +1
 
     let statusChart;
+    let barChart;
+
+    // 계약서 상태 차트
     const contractTime = document.getElementById("contractTime");
     const resetContractStatusByMonth = document.getElementById("contractStatusByMonthReset");
+
+    // 월별 계약 완료 현황 차트
+    const contractStartMonth = document.getElementById("contractStartMonth");
+    const contractEndMonth = document.getElementById("contractEndMonth");
+    const resetContractComplete = document.getElementById("resetContractComplete");
 
 
     if (!contractTime.value) {
       contractTime.value = new Date().toISOString().slice(0, 7);
+    }
+
+    if (!contractEndMonth.value) {
+      contractEndMonth.value = new Date().toISOString().slice(0, 7);
+      contractStartMonth.value = new Date(new Date().setMonth(new Date().getMonth() - 4)).toISOString().slice(0, 7);
     }
 
     contractTime.addEventListener('change', (event) => {
@@ -192,6 +205,58 @@
       const month = contractTime.value.split('-')[1];
       fetchAndRenderStatus(year, month);
     });
+
+    contractEndMonth.addEventListener('change', (event) => {
+      const selectedDate = new Date(event.target.value);
+      const year = selectedDate.getFullYear();
+      const month = selectedDate.getMonth() + 1; // 월은 0부터 시작하므로 +1
+
+      contractStartMonth.value = new Date(selectedDate.getFullYear(), selectedDate.getMonth() - 3, 0).toISOString().slice(0, 7);
+      fetchAndRenderMonthlyCompleted(year, month);
+    });
+
+    resetContractComplete.addEventListener('click', () => {
+      // 데이터 다시 가져오기
+      const year = contractEndMonth.value.split('-')[0];
+      const month = contractEndMonth.value.split('-')[1];
+      fetchAndRenderMonthlyCompleted(year, month);
+    });
+
+    async function fetchAndRenderMonthlyCompleted(year, month) {
+      const res = await fetch(`/admin/contract/completed/month?year=${year||'2025'}&month=${month||'05'}`);
+      const json = await res.json(); // { labels: [...], data: [...] }
+
+      // 3) 레이블 확보 (백엔드에서 안 준다면 프론트에서 계산)
+      const labels = json.labels || Array.from({ length: 5 }, (_, i) => {
+        const d = new Date(+year, +month - 1 - (4 - i), 1);
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      });
+
+      const data = [
+        json.firstMonthCount,
+        json.secondMonthCount,
+        json.thirdMonthCount,
+        json.fourthMonthCount,
+        json.fifthMonthCount
+      ];
+
+      const canvas = document.getElementById('signRequestChart');
+
+      const existingChart = Chart.getChart(canvas);
+      if (existingChart) {
+        existingChart.destroy();
+      }
+      const ctx = canvas.getContext('2d');
+
+      barChart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels:labels,
+                datasets: [{ label: '완료 수', data: data }]
+        },
+        options: { scales: { y: { beginAtZero: true } } }
+      });
+    }
+
 
     function renderStatusChart(data) {
       const canvas = document.getElementById('contractStatusChart');
@@ -236,7 +301,6 @@
       // default month=현재월
       const res = await fetch(`/admin/contract-status/month?year=${year||'2025'}&month=${month||'05'}`);
       const json = await res.json();
-        console.log(json);
       const data = [
         json.inProgressCount,
         json.completedCount,
@@ -251,7 +315,7 @@
       document.querySelector('.status-item:nth-child(4) .status-value').textContent = json.pendingCount;
     }
 
-
+    fetchAndRenderMonthlyCompleted(year, month);
     fetchAndRenderStatus(year, month);
 
   });
