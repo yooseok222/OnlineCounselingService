@@ -99,6 +99,17 @@
                                 </div>
                             </div>
                             
+                            <!-- 자동 로그인 체크박스 추가 -->
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="remember-me" name="remember-me">
+                                <label class="form-check-label" for="remember-me">
+                                    <i class="bi bi-clock-history me-1"></i>로그인 상태 유지
+                                </label>
+                                <small class="form-text text-muted d-block mt-1">
+                                    <i class="bi bi-info-circle me-1"></i>개인 기기에서만 사용하세요. 공용 기기에서는 권장하지 않습니다.
+                                </small>
+                            </div>
+                            
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-primary py-2">로그인</button>
                             </div>
@@ -106,6 +117,10 @@
                         
                         <div class="mt-4 text-center">
                             <p>계정이 없으신가요? <a th:href="@{/register}" class="fw-semibold">회원가입</a></p>
+                        </div>
+                        <!-- Visang 로고: card-body p-5 하단, 가운데 정렬, 기존 헤더 스타일과 동일, 메인페이지 이동 -->
+                        <div class="text-center mt-0 pt-0">
+                            <a th:href="@{/}" class="text-decoration-none brand-logo" style="display:inline-block;">Visang</a>
                         </div>
                     </div>
                 </div>
