@@ -225,6 +225,15 @@ public class UserServiceImpl implements UserService {
                 throw new IllegalArgumentException("유효하지 않은 사용자 유형입니다: " + request.getUserType());
         }
         
+        // 이메일 인증 요청 자동 처리
+        try {
+            requestEmailVerification(request.getEmail());
+            log.info("회원가입 완료 및 이메일 인증 요청 발송: {}", request.getEmail());
+        } catch (Exception e) {
+            log.error("이메일 인증 요청 발송 실패: {}", request.getEmail(), e);
+            // 이메일 인증 요청 실패는 회원가입을 롤백하지 않음 (사용자가 나중에 재요청 가능)
+        }
+        
         return response;
     }
 
