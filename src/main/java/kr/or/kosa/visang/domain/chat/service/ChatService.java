@@ -3,6 +3,7 @@ package kr.or.kosa.visang.domain.chat.service;
 import kr.or.kosa.visang.domain.chat.model.Chat;
 import kr.or.kosa.visang.domain.chat.model.ChatMessage;
 import kr.or.kosa.visang.domain.chat.repository.ChatMapper;
+import lombok.RequiredArgsConstructor;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -21,18 +22,11 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class ChatService {
 
     private final ChatMapper chatMapper;
     private final RedisTemplate<String, ChatMessage> redis;
-
-    public ChatService(
-            ChatMapper chatMapper,
-            @Qualifier("chatRedisTemplate") RedisTemplate<String, ChatMessage> redisTemplate
-    ) {
-        this.chatMapper = chatMapper;
-        this.redis = redisTemplate;
-    }
 
     @Transactional
     public List<ChatMessage> getHistory(Long roomId) {
