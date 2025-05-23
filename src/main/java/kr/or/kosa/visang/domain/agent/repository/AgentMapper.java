@@ -2,10 +2,12 @@ package kr.or.kosa.visang.domain.agent.repository;
 
 import kr.or.kosa.visang.domain.agent.model.Agent;
 import kr.or.kosa.visang.domain.agent.model.UpdateAgentDto;
+import kr.or.kosa.visang.domain.contract.model.Contract;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface AgentMapper {
@@ -88,4 +90,8 @@ public interface AgentMapper {
      * @return 영향받은 행 수
      */
     int updateEmailVerificationStatus(@Param("email") String email, @Param("verified") boolean verified);
+
+    Agent findByEmailSelect(String email);
+
+    List<Map<String, Object>> countContractByStatus(Long agentId);
 }

@@ -12,7 +12,8 @@ import org.springframework.context.annotation.Configuration;
     "kr.or.kosa.visang.domain.client.repository",
     "kr.or.kosa.visang.domain.invitation.repository",
     "kr.or.kosa.visang.domain.company.repository",
-    "kr.or.kosa.visang.domain.contractTemplate.repository"
+    "kr.or.kosa.visang.domain.contractTemplate.repository",
+    "kr.or.kosa.visang.domain.chat.repository"
 })
 public class MyBatisConfig {
     // MyBatis 추가 설정이 필요하면 여기에 추가

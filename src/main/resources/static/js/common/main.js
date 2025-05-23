@@ -31,39 +31,42 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // 탭 버튼 수동 활성화 
+  // 탭 버튼 수동 활성화
   const triggerTabList = document.querySelectorAll('[data-bs-toggle="pill"]');
-  triggerTabList.forEach(triggerEl => {
+  triggerTabList.forEach((triggerEl) => {
     const tabTrigger = new bootstrap.Tab(triggerEl);
-    triggerEl.addEventListener('click', event => {
+    triggerEl.addEventListener("click", (event) => {
       event.preventDefault();
       tabTrigger.show();
     });
   });
 
   // swiper 스타일 탭 버튼 active 처리
-  const navButtons = document.querySelectorAll('.swiper-nav-style button');
+  const navButtons = document.querySelectorAll(".swiper-nav-style button");
   navButtons.forEach((btn) => {
-    btn.addEventListener('click', function () {
-      navButtons.forEach((b) => b.classList.remove('active')); // 모두 제거
-      btn.classList.add('active'); // 현재만 추가
+    btn.addEventListener("click", function () {
+      navButtons.forEach((b) => b.classList.remove("active")); // 모두 제거
+      btn.classList.add("active"); // 현재만 추가
     });
   });
 });
 
-
-
 // 차트 초기화 함수
 function initCharts() {
   const style = getComputedStyle(document.documentElement);
-  const chartBlue = style.getPropertyValue("--chart-blue") || "rgba(0, 87, 215, 0.7)";
-  const chartGreen = style.getPropertyValue("--chart-green") || "rgba(40, 167, 69, 0.7)";
-  const chartRed = style.getPropertyValue("--chart-red") || "rgba(220, 53, 69, 0.7)";
-  const chartGray = style.getPropertyValue("--chart-gray") || "rgba(108, 117, 125, 0.7)";
+  const chartBlue =
+    style.getPropertyValue("--chart-blue") || "rgba(0, 87, 215, 0.7)";
+  const chartGreen =
+    style.getPropertyValue("--chart-green") || "rgba(40, 167, 69, 0.7)";
+  const chartRed =
+    style.getPropertyValue("--chart-red") || "rgba(220, 53, 69, 0.7)";
+  const chartGray =
+    style.getPropertyValue("--chart-gray") || "rgba(108, 117, 125, 0.7)";
 
   const contractStatusEl = document.getElementById("contractStatusChart");
   if (contractStatusEl) {
-    const noDataMsgExists = contractStatusEl.parentNode.querySelector(".no-data");
+    const noDataMsgExists =
+      contractStatusEl.parentNode.querySelector(".no-data");
 
     if (noDataMsgExists) {
       contractStatusEl.style.display = "none";
@@ -73,17 +76,19 @@ function initCharts() {
         type: "doughnut",
         data: {
           labels: ["진행중", "완료됨", "취소/거절", "만료됨"],
-          datasets: [{
-            data: [0, 0, 0, 0],
-            backgroundColor: [chartBlue, chartGreen, chartRed, chartGray],
-            borderColor: [
-              chartBlue.replace("0.7", "1"),
-              chartGreen.replace("0.7", "1"),
-              chartRed.replace("0.7", "1"),
-              chartGray.replace("0.7", "1")
-            ],
-            borderWidth: 1,
-          }],
+          datasets: [
+            {
+              data: [0, 0, 0, 0],
+              backgroundColor: [chartBlue, chartGreen, chartRed, chartGray],
+              borderColor: [
+                chartBlue.replace("0.7", "1"),
+                chartGreen.replace("0.7", "1"),
+                chartRed.replace("0.7", "1"),
+                chartGray.replace("0.7", "1"),
+              ],
+              borderWidth: 1,
+            },
+          ],
         },
         options: {
           responsive: true,
@@ -92,10 +97,10 @@ function initCharts() {
           plugins: {
             legend: {
               display: true,
-              position: "bottom"
-            }
-          }
-        }
+              position: "bottom",
+            },
+          },
+        },
       });
     }
   }
@@ -107,13 +112,15 @@ function initCharts() {
       type: "bar",
       data: {
         labels: ["1월", "2월", "3월", "4월", "5월"],
-        datasets: [{
-          label: "서명요청 건수",
-          data: [0, 0, 0, 0, 0],
-          backgroundColor: Array(5).fill(chartBlue),
-          borderColor: Array(5).fill(chartBlue.replace("0.7", "1")),
-          borderWidth: 1,
-        }],
+        datasets: [
+          {
+            label: "서명요청 건수",
+            data: [0, 0, 0, 0, 0],
+            backgroundColor: Array(5).fill(chartBlue),
+            borderColor: Array(5).fill(chartBlue.replace("0.7", "1")),
+            borderWidth: 1,
+          },
+        ],
       },
       options: {
         responsive: true,
@@ -121,13 +128,13 @@ function initCharts() {
         scales: {
           y: {
             beginAtZero: true,
-            ticks: { stepSize: 1 }
-          }
+            ticks: { stepSize: 1 },
+          },
         },
         plugins: {
-          legend: { display: false }
-        }
-      }
+          legend: { display: false },
+        },
+      },
     });
   }
 }
@@ -154,7 +161,9 @@ function toggleTheme() {
 // 테마 초기 설정
 function loadTheme() {
   const savedTheme = localStorage.getItem("theme");
-  const prefersDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const prefersDarkMode = window.matchMedia(
+    "(prefers-color-scheme: dark)"
+  ).matches;
   const html = document.documentElement;
   const themeIconLight = document.querySelector(".theme-icon-light");
   const themeIconDark = document.querySelector(".theme-icon-dark");

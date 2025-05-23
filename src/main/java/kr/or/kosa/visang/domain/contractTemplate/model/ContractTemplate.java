@@ -9,7 +9,7 @@ public class ContractTemplate {
     private String contractName; // 계약서 제목
     private String descript; // 계약서 내용
     private String filePath; // 파일 경로
-    private String companyId; // 회사 ID
+    private Long companyId; // 회사 ID
     private String version; // 버전
 
     private String createdAt; // 생성일

@@ -19,7 +19,7 @@
     <h3><i class="fas fa-comments"></i> 온라인 상담</h3>
     <div id="userRoleDisplay"></div>
   </div>
-  
+
   <div class="container">
     <div class="toolbar">
       <div class="toolbar-group">
@@ -45,12 +45,12 @@
         <button class="tool-btn end-consult-btn" onclick="endConsult()"><i class="fas fa-times-circle"></i> 상담 종료</button>
       </div>
     </div>
-    
+
     <div class="status-area">
       <i class="fas fa-info-circle"></i>
       <span>현재 모드: <span id="currentMode">커서</span></span>
     </div>
-    
+
     <div class="content-wrapper">
       <div class="video-container">
         <div id="localVideoContainer" class="video-wrapper">
@@ -64,21 +64,21 @@
           <div id="remoteVideoStatus" class="video-status">연결 대기 중...</div>
         </div>
       </div>
-      
+
       <div class="record-controls-container">
         <div class="record-controls">
           <button id="startRec" class="start-rec"><i class="fas fa-microphone"></i> 녹음 시작</button>
           <button id="stopRec" class="stop-rec" disabled><i class="fas fa-stop-circle"></i> 녹음 중지</button>
         </div>
       </div>
-      
+
       <div id="scrollWrapper">
         <canvas id="pdfCanvas"></canvas>
         <canvas id="drawingCanvas"></canvas>
       </div>
     </div>
   </div>
-  
+
   <div id="textPopup">
     <h4><i class="fas fa-font"></i> 텍스트 입력</h4>
     <input type="text" id="textInput" placeholder="입력할 텍스트를 작성하세요" autofocus>
@@ -87,7 +87,7 @@
       <button onclick="closeTextPopup()"><i class="fas fa-times"></i> 취소</button>
     </div>
   </div>
-  
+
   <div id="completeModal" style="display:none;">
     <div>
       <h3>상담이 종료되었습니다</h3>
@@ -95,16 +95,16 @@
       <button onclick="goToHomePage()">홈으로 이동</button>
     </div>
   </div>
-  
+
   <div id="toastContainer"></div>
-  
+
   <!-- 전역 변수 선언 -->
   <script>
     let drawingDataPerPage = {};
     let stampDataPerPage = {};
     let textDataPerPage = {};
     let signatureDataPerPage = {};
-    
+
     let pdfDoc = null;
     let currentPage = 1;
     let renderTask = null;
@@ -116,7 +116,7 @@
     let userRole = null; // 'agent' | 'client'
     let sessionId = null; // 상담 세션 ID 추가
   </script>
-  
+
   <!-- 분리된 JS 파일 참조 -->
   <script src="/js/contract/ui.js"></script>
   <script src="/js/contract/pdfViewer.js"></script>
