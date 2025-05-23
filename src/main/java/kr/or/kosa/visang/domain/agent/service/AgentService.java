@@ -1,8 +1,10 @@
 package kr.or.kosa.visang.domain.agent.service;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -129,15 +131,27 @@ public class AgentService {
 					time.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))));
 		}
 
-		// CONTRACT 삽입
+		// CONTRACT 삽입 - Oracle DB의 NUMBER 타입에 맞게 수정
 		Contract c = new Contract();
-		c.setClientId(dto.getClientId().toString());
-		c.setAgentId(dto.getAgentId().toString());
+		c.setStatus("예약됨"); // 상태 명시적 설정
+		c.setClientId(dto.getClientId()); // Long 타입으로 설정
+		c.setAgentId(dto.getAgentId()); // Long 타입으로 설정
 		c.setContractTime(dto.getContractTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
 		c.setMemo(dto.getMemo());
-		c.setCreatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+		c.setCreatedAt(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())); // String으로 변경
 
-		contractMapper.insertSchedule(c);
+		// 직접 insertContract 메서드 사용 (순환 참조 방지)
+		try {
+			int result = contractMapper.insertContract(c);
+			if (result <= 0) {
+				throw new RuntimeException("계약 생성에 실패했습니다.");
+			}
+			System.out.println("계약 생성 성공 - ID: " + c.getContractId());
+		} catch (Exception e) {
+			System.err.println("계약 생성 오류: " + e.getMessage());
+			e.printStackTrace();
+			throw new RuntimeException("계약 생성에 실패했습니다: " + e.getMessage(), e);
+		}
 
 		// 초대코드 생성
 		String timePart = dto.getContractTime().format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"));

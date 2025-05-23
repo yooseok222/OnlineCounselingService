@@ -47,6 +47,15 @@ public interface ContractMapper {
     // 계약 메모 업데이트
     int updateContractMemo(Long contractId, String memo);
 
+    // 계약의 상담원 ID 업데이트
+    int updateContractAgentId(@Param("contractId") Long contractId, @Param("agentId") Long agentId);
+
+    // 계약의 고객 ID 업데이트
+    int updateContractClientId(@Param("contractId") Long contractId, @Param("clientId") Long clientId);
+
+    // 세션 ID로 계약 조회
+    Contract selectContractBySessionId(@Param("sessionId") String sessionId);
+
 
 	void insertSchedule(Contract c);
 

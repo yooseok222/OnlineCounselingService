@@ -107,6 +107,12 @@ public class SecurityConfig {
                 .requestMatchers("/", "/login", "/register/**", "/verify/**").permitAll()
                 // API 엔드포인트 접근 허용
                 .requestMatchers("/api/email/check", "/api/phone/check", "/api/ssn/check", "/api/invitation/verify", "/api/verify/resend").permitAll()
+                // 상담 관련 API 접근 허용 (인증된 사용자만)
+                .requestMatchers("/api/consultation/**").authenticated()
+                // WebSocket 연결 허용
+                .requestMatchers("/ws/**").permitAll()
+                // 계약 관련 페이지 접근 허용 (인증된 사용자만)
+                .requestMatchers("/contract/**").authenticated()
                 // 사용자 페이지 접근 권한 설정
                 .requestMatchers("/user/**").hasRole("USER")
                 // 상담원 페이지 접근 권한 설정
