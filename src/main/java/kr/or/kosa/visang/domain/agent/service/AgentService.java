@@ -1,8 +1,10 @@
 package kr.or.kosa.visang.domain.agent.service;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -154,7 +156,7 @@ public class AgentService {
                     time.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))));
         }
 
-		// CONTRACT 삽입
+		// CONTRACT 삽입 - Oracle DB의 NUMBER 타입에 맞게 수정
 		Contract c = new Contract();
 		c.setClientId(dto.getClientId());
 		c.setAgentId(dto.getAgentId());
