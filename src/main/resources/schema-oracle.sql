@@ -49,6 +49,16 @@ EXCEPTION
 END;
 /
 
+BEGIN
+  EXECUTE IMMEDIATE 'DROP TABLE contract CASCADE CONSTRAINTS';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -942 THEN
+      RAISE;
+    END IF;
+END;
+/
+
 -- 시퀀스 Drop
 BEGIN
   EXECUTE IMMEDIATE 'DROP SEQUENCE company_seq';
@@ -90,6 +100,16 @@ EXCEPTION
 END;
 /
 
+BEGIN
+  EXECUTE IMMEDIATE 'DROP SEQUENCE contract_seq';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2289 THEN
+      RAISE;
+    END IF;
+END;
+/
+
 -- 시퀀스 생성
 CREATE SEQUENCE company_seq START WITH 2 INCREMENT BY 1
 /
@@ -100,6 +120,13 @@ CREATE SEQUENCE admin_seq START WITH 2 INCREMENT BY 1
 CREATE SEQUENCE agent_seq START WITH 2 INCREMENT BY 1
 /
 
+-- Contract 시퀀스 생성 (이미 있다면 건너뛰기)
+CREATE SEQUENCE contract_seq
+START WITH 1
+INCREMENT BY 1
+NOCACHE
+NOCYCLE;
+
 -- 회사 테이블
 BEGIN
   EXECUTE IMMEDIATE '
@@ -108,6 +135,59 @@ BEGIN
       company_name VARCHAR2(100) NOT NULL,
       created_at TIMESTAMP NOT NULL
   )';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- Contract 테이블 생성
+BEGIN
+  EXECUTE IMMEDIATE '
+  CREATE TABLE contract (
+      contract_id NUMBER(19) PRIMARY KEY,
+      status VARCHAR2(20) DEFAULT ''진행중'' NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      contract_time TIMESTAMP,
+      client_id VARCHAR2(100),
+      agent_id VARCHAR2(100),
+      contract_template_id VARCHAR2(100),
+      memo CLOB,
+      company_id NUMBER(19)
+  )';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- Contract 테이블 인덱스 생성
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE INDEX idx_contract_status ON contract(status)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE INDEX idx_contract_client_id ON contract(client_id)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE INDEX idx_contract_agent_id ON contract(agent_id)';
 EXCEPTION
   WHEN OTHERS THEN
     IF SQLCODE != -955 THEN

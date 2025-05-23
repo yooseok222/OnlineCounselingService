@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper
-        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper
         namespace="kr.or.kosa.visang.domain.contract.repository.ContractMapper">
@@ -76,6 +76,7 @@
         <result column="client_id" property="clientId" jdbcType="VARCHAR"/>
         <result column="contract_template_id" property="templateId" jdbcType="VARCHAR"/>
         <result column="memo" property="memo" jdbcType="CLOB"/>
+        <result column="client_email" property="clientEmail" jdbcType="VARCHAR"/>
     </resultMap>
 
     <!-- mapper 최상단에 추가 -->
@@ -89,7 +90,7 @@
 	<resultMap id="scheduleResultMap"
 		type="kr.or.kosa.visang.domain.contract.model.Schedule">
 		<result column="contract_id" property="contractId" />
-		<result column="created_at" property="createdAt" />
+		<result column="created_at" property="createdAt" jdbcType="VARCHAR" />
 		<result column="status" property="status" />
 		<result column="contract_time" property="contractTime" />
 		<result column="client_id" property="clientId" />
@@ -392,6 +393,12 @@
 			</if>
 		</where>
 	</select>
+    <select id="selectContractByStatus" resultMap="ContractResultMap">
+        SELECT *
+        FROM contract
+        WHERE status = #{status} and company_id = #{companyId}
+        ORDER BY contract_time DESC
+    </select>
 
     <!-- 모든 계약 조회 -->
     <select id="selectAllContracts" resultMap="ContractResultMap">
@@ -470,20 +477,49 @@
         )
     </insert>
 
-    <!-- 계약 상태 업데이트 -->
-    <update id="updateContractStatus">
-        UPDATE contract
-        SET status = #{param2}
-        WHERE contract_id = #{param1}
-    </update>
+	<!-- 계약 상태 업데이트 -->
+	<update id="updateContractStatus">
+		UPDATE contract
+		SET status = #{param2, jdbcType=VARCHAR}
+		WHERE contract_id = #{param1}
+	</update>
 
-    <!-- 계약 메모 업데이트 -->
-    <update id="updateContractMemo">
-        UPDATE contract
-        SET memo = #{param2}
-        WHERE contract_id = #{param1}
-    </update>
+	<!-- 계약 메모 업데이트 -->
+	<update id="updateContractMemo">
+		UPDATE contract
+		SET memo = #{param2, jdbcType=CLOB}
+		WHERE contract_id = #{param1}
+	</update>
 
+	<!-- 계약의 상담원 ID 업데이트 -->
+	<update id="updateContractAgentId">
+		UPDATE contract
+		SET agent_id = #{agentId, jdbcType=NUMERIC}
+		WHERE contract_id = #{contractId}
+	</update>
+
+	<!-- 계약의 고객 ID 업데이트 -->
+	<update id="updateContractClientId">
+		UPDATE contract
+		SET client_id = #{clientId, jdbcType=NUMERIC}
+		WHERE contract_id = #{contractId}
+	</update>
+
+	<!-- 세션 ID로 계약 조회 - Oracle 문법 사용 -->
+	<select id="selectContractBySessionId" resultMap="ContractResultMap">
+		SELECT * FROM (
+			SELECT <include refid="baseColumns" />, created_at,
+				   TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
+			FROM contract
+			WHERE memo LIKE '%SessionId: ' || #{sessionId} || '%'
+			OR contract_id = (
+				SELECT MAX(contract_id)
+				FROM contract
+				WHERE status = '진행중'
+			)
+			ORDER BY contract_id DESC
+		) WHERE ROWNUM &lt;= 1
+	</select>
 
     <select id="selectContractsByAgentIdAndStatusPaged"
             resultMap="contractResultMap"

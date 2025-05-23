@@ -1,0 +1,498 @@
+body {
+  font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f8f9fa;
+  color: #333;
+}
+
+.header {
+  background-color: #0064E1;
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.container {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.toolbar {
+  background-color: white;
+  border-radius: 8px;
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  border-right: 1px solid #eee;
+  padding-right: 10px;
+  margin-right: 5px;
+}
+
+.toolbar-group:last-child {
+  border-right: none;
+}
+
+.tool-btn {
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tool-btn:hover {
+  background-color: #e9ecef;
+  border-color: #ced4da;
+}
+
+.tool-btn.active {
+  background-color: #0064E1;
+  color: white;
+  border-color: #0064E1;
+}
+
+.tool-btn i {
+  font-size: 16px;
+}
+
+.file-upload {
+  position: relative;
+  overflow: hidden;
+  display: inline-block;
+}
+
+.file-upload input[type=file] {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 100%;
+  min-height: 100%;
+  font-size: 100px;
+  text-align: right;
+  filter: alpha(opacity=0);
+  opacity: 0;
+  outline: none;
+  cursor: pointer;
+  display: block;
+}
+
+.status-area {
+  background-color: #e3f0fd;
+  border-radius: 8px;
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  font-weight: 500;
+  color: #0064E1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 메인 콘텐츠 영역 */
+.content-wrapper {
+  display: flex;
+  flex-direction: column; /* 전체 레이아웃을 세로로 변경 */
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+/* PDF 영역 - 항상 보이도록 수정 */
+#scrollWrapper {
+  background-color: white;
+  border-radius: 8px;
+  padding: 15px;
+  position: relative;
+  height: 500px; /* 높이 조정 */
+  overflow-y: scroll;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  width: 100%; /* 너비 100%로 설정 */
+}
+
+/* 비디오 영역 - 가로로 배치 */
+.video-container {
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+  width: 100%;
+}
+
+.video-wrapper {
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  position: relative;
+  flex: 1;
+}
+
+.video-wrapper h4 {
+  background-color: #0064E1;
+  color: white;
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.video-wrapper video {
+  width: 100%;
+  height: 200px; /* 높이 조정 */
+  background-color: #222;
+  object-fit: cover;
+  display: block;
+  border: 2px solid #0064E1;
+  border-radius: 8px;
+  transition: border-color 0.3s;
+}
+
+.video-wrapper:hover video {
+  border-color: #ff4500;
+}
+
+.video-status {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 10;
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* 녹음 컨트롤 */
+.record-controls-container {
+  margin-top: 10px;
+}
+
+.record-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.record-controls button {
+  flex: 1;
+  background-color: #0064E1;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.record-controls button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+#pdfCanvas {
+  border: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+#drawingCanvas {
+  border: none;
+  position: absolute;
+  top: 15px;
+  left: 15px;
+}
+
+#textPopup {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  z-index: 1000;
+  width: 300px;
+  border: 2px solid #0064E1;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+#textPopup h4 {
+  margin-top: 0;
+  color: #0064E1;
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+#textPopup h4 i {
+  margin-right: 8px;
+}
+
+#textPopup input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0 15px 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#textPopup input:focus {
+  border-color: #0064E1;
+  box-shadow: inset 0 1px 3px rgba(0,100,225,0.2);
+  outline: none;
+}
+
+#textPopup div {
+  text-align: right;
+  margin-top: 15px;
+}
+
+#textPopup button {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 8px;
+  font-weight: bold;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+#textPopup button:hover {
+  transform: translateY(-1px);
+}
+
+#textPopup button:active {
+  transform: translateY(1px);
+}
+
+#textPopup button:first-of-type {
+  background-color: #0064E1;
+  color: white;
+}
+
+#textPopup button:first-of-type:hover {
+  background-color: #0053b3;
+}
+
+#textPopup button:last-of-type {
+  background-color: #f1f3f5;
+  color: #495057;
+}
+
+#textPopup button:last-of-type:hover {
+  background-color: #e9ecef;
+}
+
+#completeModal {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  z-index: 10000;
+  width: 400px;
+  text-align: center;
+  border: 3px solid #0064E1;
+}
+
+#completeModal h3 {
+  margin-top: 0;
+  color: #0064E1;
+}
+
+#completeModal button {
+  background-color: #0064E1;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 15px;
+  transition: background-color 0.2s;
+}
+
+#completeModal button:hover {
+  background-color: #0053b3;
+}
+
+/* 토스트 메시지 스타일 */
+#toastContainer {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+}
+
+.toast {
+  background-color: #0064E1;
+  color: white;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-width: 300px;
+  max-width: 400px;
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all 0.3s ease-in-out;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.toast-icon {
+  font-size: 24px;
+  margin-right: 10px;
+}
+
+.toast-content {
+  flex-grow: 1;
+}
+
+.toast-title {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.toast-message {
+  font-size: 14px;
+}
+
+.toast-close {
+  cursor: pointer;
+  font-size: 18px;
+  margin-left: 10px;
+}
+
+.end-consult-btn {
+  background-color: #0064E1;
+  color: white;
+}
+
+.end-consult-btn:hover {
+  background-color: #0053b3;
+  border-color: #0053b3;
+}
+
+@media (max-width: 768px) {
+  .toolbar {
+    flex-direction: column;
+  }
+
+  .toolbar-group {
+    border-right: none;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+  }
+
+  #scrollWrapper {
+    height: 400px;
+  }
+
+  .video-container {
+    flex-direction: column;
+  }
+
+  .video-wrapper {
+    flex: 1;
+  }
+
+  .video-wrapper video {
+    height: 150px;
+  }
+}
+
+@media (max-width: 768px) {
+  /* 모바일에서 비디오 영역 세로 배치로 변경 */
+  .video-container {
+    flex-direction: column !important;
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .video-wrapper {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .video-wrapper video {
+    height: 180px;
+  }
+}
+
+/* 비디오 요소 스타일 개선 */
+#localVideo, #remoteVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background-color: #1a1a1a; /* 비디오 로딩 중일 때 배경색 */
+  display: block !important; /* 항상 표시되도록 설정 */
+  border-radius: 8px;
+  z-index: 1;
+}
+
+#localVideoContainer, #remoteVideoContainer {
+  position: relative;
+  overflow: hidden;
+  margin: 5px;
+  border-radius: 8px;
+  background-color: #1a1a1a;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  min-height: 200px; /* 최소 높이 보장 */
+}
+
+.video-status {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: rgba(0,0,0,0.7);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 2; /* 비디오 위에 표시 */
+} 

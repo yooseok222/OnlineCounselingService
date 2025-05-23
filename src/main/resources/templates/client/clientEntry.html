@@ -170,18 +170,65 @@
 
             const reader = new FileReader();
             reader.onload = function (e) {
-                sessionStorage.setItem("role", "client");
-                sessionStorage.setItem("stampImage", e.target.result);
-                sessionStorage.setItem("entryType", "stamp");
-                
-                // 대기실로 이동
-                location.href = "/waiting-room";
+                // 이미지 투명도 유지를 위해 캔버스를 통해 처리
+                const img = new Image();
+                img.onload = function() {
+                    // 캔버스 생성 및 이미지 그리기
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    
+                    // willReadFrequently 옵션 추가 및 투명도 지원 확실히 설정
+                    const ctx = canvas.getContext('2d', { alpha: true, willReadFrequently: true });
+                    
+                    // 캔버스 완전히 투명하게 초기화
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    // 이미지 그리기 전 투명도 설정
+                    ctx.globalCompositeOperation = 'source-over';
+                    
+                    // 이미지 그리기
+                    ctx.drawImage(img, 0, 0);
+                    
+                    // 투명 픽셀 처리 - 배경색이 흰색이면 투명하게 만들기
+                    if (file.type !== 'image/png') {
+                        try {
+                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                            const data = imageData.data;
+                            
+                            // 흰색 배경을 투명하게 변환 (약간의 여유를 두고 처리)
+                            for (let i = 0; i < data.length; i += 4) {
+                                // 흰색에 가까운 픽셀(모든 RGB 값이 높은 경우)을 투명하게 설정
+                                if (data[i] > 240 && data[i + 1] > 240 && data[i + 2] > 240) {
+                                    // 알파 채널(투명도)을 0으로 설정
+                                    data[i + 3] = 0;
+                                }
+                            }
+                            
+                            // 처리된 이미지 데이터를 다시 캔버스에 그리기
+                            ctx.putImageData(imageData, 0, 0);
+                        } catch (e) {
+                            console.error("이미지 처리 중 오류 발생:", e);
+                        }
+                    }
+                    
+                    // 반드시 PNG 형식으로 변환 (투명도 유지를 위해)
+                    const processedImageData = canvas.toDataURL('image/png');
+                    
+                    sessionStorage.setItem("role", "client");
+                    sessionStorage.setItem("stampImage", processedImageData);
+                    sessionStorage.setItem("entryType", "stamp");
+                    
+                    // 대기실로 이동
+                    location.href = "/waiting-room";
+                };
+                img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
 
         const signCanvas = document.getElementById('signCanvas');
-        const signCtx = signCanvas.getContext('2d');
+        const signCtx = signCanvas.getContext('2d', { alpha: true });
         let isDrawing = false;
         let hasSignature = false;
 
@@ -274,7 +321,18 @@
                 return alert("서명이 너무 작거나 없습니다. 다시 작성해주세요.");
             }
             
-            const signatureImage = signCanvas.toDataURL();
+            // 새 캔버스에 서명 복사하여 최적화
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = signCanvas.width;
+            tempCanvas.height = signCanvas.height;
+            const tempCtx = tempCanvas.getContext('2d', { alpha: true, willReadFrequently: true });
+            
+            // 투명 배경 설정
+            tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+            tempCtx.drawImage(signCanvas, 0, 0);
+            
+            // PNG 형식으로 변환하여 저장 (투명도 유지)
+            const signatureImage = tempCanvas.toDataURL('image/png');
             sessionStorage.setItem("role", "client");
             sessionStorage.setItem("signatureImage", signatureImage);
             sessionStorage.setItem("entryType", "signature");

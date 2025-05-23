@@ -56,17 +56,17 @@ public class SecurityConfig {
      */
     @Bean
     public TokenBasedRememberMeServices rememberMeServices() {
-        TokenBasedRememberMeServices rememberMeServices = 
+        TokenBasedRememberMeServices rememberMeServices =
             new TokenBasedRememberMeServices(REMEMBER_ME_KEY, userDetailsService);
-        
+
         // 쿠키 설정
         rememberMeServices.setParameter("remember-me"); // 체크박스 이름
         rememberMeServices.setCookieName("remember-me"); // 쿠키 이름
         rememberMeServices.setTokenValiditySeconds(1209600); // 유효기간 2주 (60*60*24*14)
-        
+
         return rememberMeServices;
     }
-    
+
     /**
      * RememberMe 인증 제공자 빈 설정
      * 자동 로그인 인증을 처리한다.
@@ -129,63 +129,68 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .authorizeHttpRequests(authorize -> authorize
-                        // 정적 리소스 접근 허용
-                        .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico").permitAll()
-                        // H2 콘솔 접근 허용
-                        .requestMatchers("/h2-console/**").permitAll()
-                        // 공개 페이지 접근 허용
-                        .requestMatchers("/", "/login", "/register/**", "/verify/**").permitAll()
-                        // API 엔드포인트 접근 허용
-                        .requestMatchers("/api/email/check", "/api/phone/check", "/api/ssn/check", "/api/invitation/verify", "/api/verify/resend").permitAll()
-                        // 사용자 페이지 접근 권한 설정
-                        .requestMatchers("/user/**").hasRole("USER")
-                        // 상담원 페이지 접근 권한 설정
-                        .requestMatchers("/agent/**").hasRole("AGENT")
-                        // 관리자 페이지 접근 권한 설정
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/ws/**").permitAll()           // SockJS 핸드셰이크 엔드포인트
-                        .requestMatchers("/app/**").permitAll()          // 클라이언트 → 서버로 메시지 보낼 때
-                        .requestMatchers("/topic/**").permitAll()        // 서버 → 클라이언트로 메시지 보낼 때
-                        // 다운로드용 파일 접근 허용
-                        .requestMatchers("/files/**").permitAll()
-                        // 내보낸 채팅 이력 정보 조회 허용
-                        .requestMatchers("/api/chat/export/**").permitAll()
+            .authorizeHttpRequests(authorize -> authorize
+                // 정적 리소스 접근 허용
+                .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico").permitAll()
+                // H2 콘솔 접근 허용
+                .requestMatchers("/h2-console/**").permitAll()
+                // 공개 페이지 접근 허용
+                .requestMatchers("/", "/login", "/register/**", "/verify/**").permitAll()
+                // API 엔드포인트 접근 허용
+                .requestMatchers("/api/email/check", "/api/phone/check", "/api/ssn/check", "/api/invitation/verify", "/api/verify/resend").permitAll()
+                    // 상담 관련 API 접근 허용 (인증된 사용자만)
+                    .requestMatchers("/api/consultation/**").authenticated()
+                    // WebSocket 연결 허용
+                    .requestMatchers("/ws/**").permitAll()
+                    // 계약 관련 페이지 접근 허용 (인증된 사용자만)
+                    .requestMatchers("/contract/**").authenticated()
+                    // 사용자 페이지 접근 권한 설정
+                .requestMatchers("/user/**").hasRole("USER")
+                // 상담원 페이지 접근 권한 설정
+                .requestMatchers("/agent/**").hasRole("AGENT")
+                // 관리자 페이지 접근 권한 설정
+                .requestMatchers("/admin/**").hasRole("ADMIN")
+                    .requestMatchers("/app/**").permitAll()          // 클라이언트 → 서버로 메시지 보낼 때
+                    .requestMatchers("/topic/**").permitAll()        // 서버 → 클라이언트로 메시지 보낼 때
+                    // 다운로드용 파일 접근 허용
+                    .requestMatchers("/files/**").permitAll()
+                    // 내보낸 채팅 이력 정보 조회 허용
+                    .requestMatchers("/api/chat/export/**").permitAll()
 
-                        // 그 외 모든 요청은 인증 필요
-                        .anyRequest().authenticated()
-                )
-                .formLogin(form -> form
-                        .loginPage("/login")
-                        .loginProcessingUrl("/login/process")
-                        .successHandler(authenticationSuccessHandler())
-                        .failureHandler(authenticationFailureHandler())
-                        .usernameParameter("email")
-                        .passwordParameter("password")
-                        .permitAll()
-                )
-                .logout(logout -> logout
-                        .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
-                        .logoutSuccessUrl("/")
-                        .invalidateHttpSession(true)
-                        .clearAuthentication(true)
-                        .deleteCookies("JSESSIONID")
-                        .permitAll()
-                )
-                .sessionManagement(session -> session
-                        .maximumSessions(1)
-                        .maxSessionsPreventsLogin(false)
-                        .expiredUrl("/login?expired=true")
-                )
-                .csrf(csrf -> csrf
-                        // H2 콘솔 및 API는 CSRF 비활성화
-                        .ignoringRequestMatchers("/h2-console/**", "/api/**")
-                )
-                // H2 콘솔 사용을 위한 설정
-                .headers(headers -> headers
-                        .frameOptions(frameOptions -> frameOptions.sameOrigin())
-                )
-                .authenticationProvider(daoAuthenticationProvider());
+                    // 그 외 모든 요청은 인증 필요
+                .anyRequest().authenticated()
+            )
+            .formLogin(form -> form
+                .loginPage("/login")
+                .loginProcessingUrl("/login/process")
+                .successHandler(authenticationSuccessHandler())
+                .failureHandler(authenticationFailureHandler())
+                .usernameParameter("email")
+                .passwordParameter("password")
+                .permitAll()
+            )
+            .logout(logout -> logout
+                .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
+                .logoutSuccessUrl("/")
+                .invalidateHttpSession(true)
+                .clearAuthentication(true)
+                .deleteCookies("JSESSIONID")
+                .permitAll()
+            )
+            .sessionManagement(session -> session
+                .maximumSessions(1)
+                .maxSessionsPreventsLogin(false)
+                .expiredUrl("/login?expired=true")
+            )
+            .csrf(csrf -> csrf
+                // H2 콘솔 및 API는 CSRF 비활성화
+                .ignoringRequestMatchers("/h2-console/**", "/api/**")
+            )
+            // H2 콘솔 사용을 위한 설정
+            .headers(headers -> headers
+                .frameOptions(frameOptions -> frameOptions.sameOrigin())
+            )
+            .authenticationProvider(daoAuthenticationProvider());
 
         return http.build();
     }
