@@ -80,26 +80,34 @@
       <div class="col-md-12 mb-4">
         <div class="card h-100">
           <div class="card-header">
-            <h3 class="card-title">주요기능 바로 시작하기</h3>
+            <h3 class="card-title">관리자 기능 바로 시작하기</h3>
             <div>계약서 생성부터 편집까지, 클릭 몇 번으로 계약을 완료하세요.</div>
           </div>
           <div class="card-body p-0">
             <ul class="feature-list">
               <li class="feature-item">
-                <div class="feature-title">일반서명</div>
-                <div class="feature-desc">대면 없이 메일을 통한 빠른 계약</div>
+                <a th:href="@{/admin/list}">
+                  <div class="feature-title">상담원 관리</div>
+                  <div class="feature-desc">상담원 별 개인정보 조회 및 수정 </div>
+                </a>
               </li>
               <li class="feature-item">
-                <div class="feature-title">대면서명</div>
-                <div class="feature-desc">하나의 디바이스로 여러 참여자 서명</div>
+                <a th:href="@{/admin/template-list}">
+                  <div class="feature-title">계약서 관리</div>
+                  <div class="feature-desc">계약서 정보 및 버전관리</div>
+                </a>
               </li>
               <li class="feature-item">
-                <div class="feature-title">순차서명</div>
-                <div class="feature-desc">최대 10명의 수신자가 순차적으로 서명</div>
+                <a th:href="@{/admin/contract-list/canceled}">
+                  <div class="feature-title">취소된 계약</div>
+                  <div class="feature-desc">취소된 계약별 조건 검색 및 모니터링</div>
+                </a>
               </li>
               <li class="feature-item">
-                <div class="feature-title">대량서명</div>
-                <div class="feature-desc">다수의 수신자에게 발송</div>
+                <a th:href="@{/admin/contract-list/pending}">
+                  <div class="feature-title">대기중 계약</div>
+                  <div class="feature-desc">대기중 계약별 조건 검색 및 모니터링</div>
+                </a>
               </li>
             </ul>
           </div>
