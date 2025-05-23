@@ -1,13 +1,17 @@
 package kr.or.kosa.visang.domain.admin.controller;
 
 import kr.or.kosa.visang.common.config.security.CustomUserDetails;
+import kr.or.kosa.visang.domain.contract.model.Contract;
 import kr.or.kosa.visang.domain.contract.model.ContractCompleteCountsByMonthDTO;
 import kr.or.kosa.visang.domain.contract.model.ContractStatusCountsByMonthDTO;
+import kr.or.kosa.visang.domain.contract.model.RecentCompletedContract;
 import kr.or.kosa.visang.domain.contract.service.ContractService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 
 @Controller
@@ -40,5 +44,15 @@ public class AdminDashboardController {
         ContractCompleteCountsByMonthDTO con = contractService.getLastFiveMonthsCompleted(companyId, year, month);
         System.out.println("con = " + con);
         return con;
+    }
+
+    @GetMapping("/contract/recent-completed")
+    @ResponseBody
+    public List<RecentCompletedContract> getRecentCompleted(
+            @AuthenticationPrincipal CustomUserDetails admin
+    ) {
+        System.out.println("getRecentCompleted() called");
+        Long companyId = admin.getCompanyId();
+        return contractService.getRecentCompletedContract(companyId);
     }
 }

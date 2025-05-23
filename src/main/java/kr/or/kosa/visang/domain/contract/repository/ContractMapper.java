@@ -19,6 +19,9 @@ public interface ContractMapper {
             @Param("month") String month
     );
 
+    // 최근 완료된 계약 조회
+    List<RecentCompletedContract> selectRecentCompletedContract(Long companyId);
+
     List<Contract> searchContracts(Map<String, Object> params);
 
     int countContracts(Map<String, Object> params);

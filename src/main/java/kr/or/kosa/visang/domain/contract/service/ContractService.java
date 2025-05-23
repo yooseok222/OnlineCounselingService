@@ -52,6 +52,11 @@ public class ContractService {
         return pageResult;
     }
 
+    // 최근 완료된 계약 조회
+    public List<RecentCompletedContract> getRecentCompletedContract(Long companyId) {
+        // 회사 ID를 사용하여 최근 완료된 계약을 조회하는 로직을 구현합니다.
+        return contractMapper.selectRecentCompletedContract(companyId);
+    }
 
 
     public List<Contract> getMonthlyScheduleByAgentId(Long agentId, String year, String month) {

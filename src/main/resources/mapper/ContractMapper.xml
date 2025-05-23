@@ -19,6 +19,12 @@
 		<result column="memo" property="memo" />
 	</resultMap>
 
+	<resultMap id="selectRecentCompletedContract" type="kr.or.kosa.visang.domain.contract.model.RecentCompletedContract">
+		<result column="contract_time" property="contractTime" />
+		<result column="client_name" property="clientName"/>
+		<result column="agent_name" property="agentName"/>
+	</resultMap>
+
 	<resultMap id="monthlyStatusCountsResultMap" type="kr.or.kosa.visang.domain.contract.model.ContractStatusCountsByMonthDTO">
 		<result column="total_count" property="totalCount" />
 		<result column="inProgress_count" property="inProgressCount" />
@@ -98,6 +104,36 @@
 		<result property="fifthMonthCount" column="fifth_month_count"/>
 	</resultMap>
 
+<!--	<select id="selectRecentCompletedContract" resultMap="selectRecentCompletedContract">-->
+<!--		SELECT-->
+<!--		    TO_CHAR(c.contract_time, 'YYYY-MM-DD HH24:MI:SS') AS contract_time,-->
+<!--			cl.name AS client_name,-->
+<!--			a.name AS agent_name-->
+<!--		FROM contract c-->
+<!--		JOIN client cl ON c.client_id = cl.client_id-->
+<!--		JOIN agent a ON c.agent_id = a.agent_id-->
+<!--		WHERE c.company_id = #{companyId}-->
+<!--		AND c.status = 'COMPLETED'-->
+<!--		ORDER BY c.contract_time DESC-->
+<!--		FETCH FIRST 5 ROWS ONLY-->
+<!--	</select> Oracle 12c 이상 문법 -->
+	<select id="selectRecentCompletedContract" resultMap="selectRecentCompletedContract">
+		SELECT *
+		FROM (
+		SELECT
+		TO_CHAR(c.contract_time, 'YYYY-MM-DD HH24:MI:SS') AS contract_time,
+		cl.name   AS client_name,
+		a.name    AS agent_name
+		FROM contract c
+		JOIN client cl ON c.client_id = cl.client_id
+		JOIN agent  a  ON c.agent_id  = a.agent_id
+		WHERE c.company_id = #{companyId}
+		AND c.status     = 'COMPLETED'
+		ORDER BY c.contract_time DESC
+		)
+		WHERE ROWNUM &lt;= 5
+	</select>
+
 	<select id="selectMonthlyStatusCounts" resultMap="monthlyStatusCountsResultMap" parameterType="map">
 		SELECT
 			COUNT(*) AS total_count,
@@ -111,7 +147,7 @@
 	</select>
 
 	<select id="getLastFiveMonthsCompleted" resultMap="CompleteCountsByMonthResultMap" parameterType="map">
-		-- 최근 5개월간 계약 완료 건수
+		<!-- 최근 5개월간 계약 완료 건수-->
 		SELECT
 			SUM(CASE WHEN TRUNC(contract_time, 'MM') = ADD_MONTHS(TO_DATE(#{year} || '-' || LPAD(#{month},2,'0'), 'YYYY-MM'), -4)
 						AND status = 'COMPLETED'
