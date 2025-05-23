@@ -58,6 +58,12 @@ public class ContractService {
         return contractMapper.selectRecentCompletedContract(companyId);
     }
 
+    // 진행중인 계약 5건 조회
+    public List<RecentCompletedContract> getRecentInProgressContract(Long companyId) {
+        // 회사 ID를 사용하여 진행중인 계약을 조회하는 로직을 구현합니다.
+        return contractMapper.selectInProgressContract(companyId);
+    }
+
 
     public List<Contract> getMonthlyScheduleByAgentId(Long agentId, String year, String month) {
         // 에이전트 ID와 연도, 월을 사용하여 월간 스케줄을 조회하는 로직을 구현합니다.

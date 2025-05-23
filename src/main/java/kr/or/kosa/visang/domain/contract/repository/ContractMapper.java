@@ -22,6 +22,9 @@ public interface ContractMapper {
     // 최근 완료된 계약 조회
     List<RecentCompletedContract> selectRecentCompletedContract(Long companyId);
 
+    // 진행중인 계약 5건 조회
+    List<RecentCompletedContract> selectInProgressContract(Long companyId);
+
     List<Contract> searchContracts(Map<String, Object> params);
 
     int countContracts(Map<String, Object> params);

@@ -134,6 +134,23 @@
 		WHERE ROWNUM &lt;= 5
 	</select>
 
+	<select id="selectInProgressContract" resultMap="selectRecentCompletedContract">
+		SELECT *
+		FROM (
+				 SELECT
+					 TO_CHAR(c.contract_time, 'YYYY-MM-DD HH24:MI:SS') AS contract_time,
+					 cl.name   AS client_name,
+					 a.name    AS agent_name
+				 FROM contract c
+						  JOIN client cl ON c.client_id = cl.client_id
+						  JOIN agent  a  ON c.agent_id  = a.agent_id
+				 WHERE c.company_id = #{companyId}
+				   AND c.status     = 'IN_PROGRESS'
+				 ORDER BY c.contract_time DESC
+			 )
+		WHERE ROWNUM &lt;= 5
+	</select>
+
 	<select id="selectMonthlyStatusCounts" resultMap="monthlyStatusCountsResultMap" parameterType="map">
 		SELECT
 			COUNT(*) AS total_count,

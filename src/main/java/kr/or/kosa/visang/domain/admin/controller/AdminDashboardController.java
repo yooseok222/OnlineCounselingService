@@ -1,7 +1,6 @@
 package kr.or.kosa.visang.domain.admin.controller;
 
 import kr.or.kosa.visang.common.config.security.CustomUserDetails;
-import kr.or.kosa.visang.domain.contract.model.Contract;
 import kr.or.kosa.visang.domain.contract.model.ContractCompleteCountsByMonthDTO;
 import kr.or.kosa.visang.domain.contract.model.ContractStatusCountsByMonthDTO;
 import kr.or.kosa.visang.domain.contract.model.RecentCompletedContract;
@@ -38,12 +37,8 @@ public class AdminDashboardController {
             @RequestParam int month
     ) {
         Long companyId = admin.getCompanyId();
-        System.out.println("year = " + year);
-        System.out.println("month = " + month);
 
-        ContractCompleteCountsByMonthDTO con = contractService.getLastFiveMonthsCompleted(companyId, year, month);
-        System.out.println("con = " + con);
-        return con;
+        return contractService.getLastFiveMonthsCompleted(companyId, year, month);
     }
 
     @GetMapping("/contract/recent-completed")
@@ -54,5 +49,14 @@ public class AdminDashboardController {
         System.out.println("getRecentCompleted() called");
         Long companyId = admin.getCompanyId();
         return contractService.getRecentCompletedContract(companyId);
+    }
+
+    @GetMapping("/contract/in-progress")
+    @ResponseBody
+    public List<RecentCompletedContract> getInProgress(
+            @AuthenticationPrincipal CustomUserDetails admin
+    ) {
+        Long companyId = admin.getCompanyId();
+        return contractService.getRecentInProgressContract(companyId);
     }
 }
