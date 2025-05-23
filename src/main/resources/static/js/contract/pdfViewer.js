@@ -28,9 +28,17 @@ async function loadAndRenderPDF(url, targetPage = 1) {
       `${url}&_t=${Date.now()}` : 
       `${url}?_t=${Date.now()}`;
 
-    // PDF 문서 로드
+    // PDF 문서 로드 옵션 추가
     try {
-      pdfDoc = await pdfjsLib.getDocument(pdfUrl).promise;
+      pdfDoc = await pdfjsLib.getDocument({
+        url: pdfUrl,
+        cMapUrl: '/static/js/pdf/cmaps/',
+        cMapPacked: true,
+        disableRange: false,
+        disableStream: false,
+        disableAutoFetch: false
+      }).promise;
+      
       console.log(`PDF 로드 완료, 총 ${pdfDoc.numPages} 페이지`);
       
       // 로드 성공 시 재시도 카운터 초기화
@@ -117,11 +125,11 @@ async function renderPage(pageNum) {
 
     // 캔버스 요소 가져오기
     const canvas = document.getElementById('pdfCanvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true, alpha: true });
 
     // 드로잉 캔버스도 함께 업데이트
     const drawingCanvas = document.getElementById('drawingCanvas');
-    const drawCtx = drawingCanvas.getContext('2d');
+    const drawCtx = drawingCanvas.getContext('2d', { willReadFrequently: true, alpha: true });
 
     // 뷰포트 설정 (페이지 크기에 맞게 스케일 조정)
     const viewport = page.getViewport({ scale: 1.5 });
@@ -132,16 +140,27 @@ async function renderPage(pageNum) {
     drawingCanvas.width = viewport.width;
     drawingCanvas.height = viewport.height;
 
-    // 렌더링 작업 실행
+    // 캔버스 초기화 - 검은 배경 방지를 위해 명시적으로 초기화
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // 배경을 흰색으로 설정
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 렌더링 작업 실행 (투명도 처리 개선)
     renderTask = page.render({
       canvasContext: ctx,
-      viewport: viewport
+      viewport: viewport,
+      background: 'transparent' // 투명 배경 설정 시도
     });
 
     // 렌더링 완료 대기
     await renderTask.promise;
     console.log(`페이지 ${pageNum} 렌더링 완료`);
 
+    // 모든 캔버스 레이어를 투명하게 초기화 후 드로잉 캔버스 준비
+    drawCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+    
     // 현재 페이지 상태 업데이트
     currentPage = pageNum;
     document.getElementById('currentMode').textContent = mode || '커서';
@@ -323,6 +342,47 @@ function handlePdfUpload(event) {
   .then(data => {
     console.log("파일 업로드 성공:", data);
     
+    // 새 PDF 업로드 시 모든 이전 캔버스 데이터 초기화
+    if (typeof drawingDataPerPage !== 'undefined') {
+      drawingDataPerPage = {};
+      console.log("이전 드로잉 데이터 초기화");
+    }
+    
+    if (typeof textDataPerPage !== 'undefined') {
+      textDataPerPage = {};
+      console.log("이전 텍스트 데이터 초기화");
+    }
+    
+    if (typeof stampDataPerPage !== 'undefined') {
+      stampDataPerPage = {};
+      console.log("이전 도장 데이터 초기화");
+    }
+    
+    if (typeof signatureDataPerPage !== 'undefined') {
+      signatureDataPerPage = {};
+      console.log("이전 서명 데이터 초기화");
+    }
+    
+    // 로컬 스토리지의 이전 세션 데이터도 초기화
+    try {
+      localStorage.removeItem(`drawing_${sessionId}`);
+      localStorage.removeItem(`text_${sessionId}`);
+      localStorage.removeItem(`stamp_${sessionId}`);
+      localStorage.removeItem(`signature_${sessionId}`);
+      localStorage.removeItem(`currentPage_${sessionId}`);
+      console.log("로컬 스토리지 이전 데이터 초기화 완료");
+    } catch (e) {
+      console.warn("로컬 스토리지 초기화 중 오류:", e);
+    }
+    
+    // 드로잉 캔버스가 있으면 초기화
+    const drawingCanvas = document.getElementById('drawingCanvas');
+    if (drawingCanvas) {
+      const drawCtx = drawingCanvas.getContext('2d', { alpha: true });
+      drawCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+      console.log("드로잉 캔버스 초기화 완료");
+    }
+    
     // 타임스탬프 추가로 캐싱 방지
     const timestamp = Date.now();
     const pdfUrl = data + `?t=${timestamp}`;
@@ -405,7 +465,8 @@ function sendPdfNotification(pdfUrl) {
       type: 'pdf_upload',
       sender: userRole,
       sessionId: sessionId,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      clearPreviousData: true // 이전 데이터 초기화 플래그 추가
     };
     
     // 메시지 전송

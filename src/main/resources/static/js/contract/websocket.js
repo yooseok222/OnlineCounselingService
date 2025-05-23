@@ -256,10 +256,18 @@ function subscribeToTopics() {
   stompClient.subscribe(`/topic/room/${sessionId}/stamp`, function(message) {
     try {
       const stampData = JSON.parse(message.body);
-      console.log("도장 데이터 수신:", stampData);
+      console.log("도장 데이터 수신:", { ...stampData, imageData: stampData.imageData ? '이미지 데이터 있음' : '이미지 데이터 없음' });
+      
+      // sender 정보 확인
+      if (stampData.sender === userRole) {
+        console.log("자신이 보낸 도장 데이터이므로 처리하지 않습니다.");
+        return;
+      }
+      
       handleRemoteStamp(stampData);
     } catch (e) {
       console.error("도장 데이터 처리 오류:", e);
+      console.error("원본 메시지:", message.body);
     }
   });
   
@@ -267,10 +275,18 @@ function subscribeToTopics() {
   stompClient.subscribe(`/topic/room/${sessionId}/signature`, function(message) {
     try {
       const signatureData = JSON.parse(message.body);
-      console.log("서명 데이터 수신:", signatureData);
+      console.log("서명 데이터 수신:", { ...signatureData, imageData: signatureData.imageData ? '이미지 데이터 있음' : '이미지 데이터 없음' });
+      
+      // sender 정보 확인
+      if (signatureData.sender === userRole) {
+        console.log("자신이 보낸 서명 데이터이므로 처리하지 않습니다.");
+        return;
+      }
+      
       handleRemoteSignature(signatureData);
     } catch (e) {
       console.error("서명 데이터 처리 오류:", e);
+      console.error("원본 메시지:", message.body);
     }
   });
   
@@ -298,6 +314,42 @@ function subscribeToTopics() {
       
       // 본인이 보낸 메시지가 아닌 경우에만 처리
       if (pdfData.sender !== userRole) {
+        // 이전 데이터 초기화 플래그 확인
+        if (pdfData.clearPreviousData === true) {
+          console.log("새 PDF 업로드로 인한 이전 데이터 초기화 시작");
+          
+          // 모든 이전 캔버스 데이터 초기화
+          if (typeof drawingDataPerPage !== 'undefined') {
+            drawingDataPerPage = {};
+            console.log("원격 드로잉 데이터 초기화");
+          }
+          
+          if (typeof textDataPerPage !== 'undefined') {
+            textDataPerPage = {};
+            console.log("원격 텍스트 데이터 초기화");
+          }
+          
+          if (typeof stampDataPerPage !== 'undefined') {
+            stampDataPerPage = {};
+            console.log("원격 도장 데이터 초기화");
+          }
+          
+          if (typeof signatureDataPerPage !== 'undefined') {
+            signatureDataPerPage = {};
+            console.log("원격 서명 데이터 초기화");
+          }
+          
+          // 드로잉 캔버스가 있으면 초기화
+          const drawingCanvas = document.getElementById('drawingCanvas');
+          if (drawingCanvas) {
+            const drawCtx = drawingCanvas.getContext('2d', { alpha: true });
+            drawCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+            console.log("원격 드로잉 캔버스 초기화 완료");
+          }
+          
+          console.log("원격 PDF 업로드로 인한 데이터 초기화 완료");
+        }
+        
         showToast("PDF 수신", "상대방이 PDF 파일을 업로드했습니다.", "info");
         uploadedPdfUrl = pdfData.pdfUrl;
         loadAndRenderPDF(uploadedPdfUrl);
@@ -355,6 +407,40 @@ function subscribeToTopics() {
       }
     } catch (e) {
       console.error("방 입장 데이터 처리 오류:", e);
+    }
+  });
+  
+  // 동기화 요청 구독
+  stompClient.subscribe(`/topic/room/${sessionId}/sync`, function(message) {
+    try {
+      const syncData = JSON.parse(message.body);
+      console.log("동기화 요청 수신:", syncData);
+      
+      // 본인이 보낸 메시지가 아닌 경우에만 처리
+      if (syncData.sender !== userRole) {
+        // 동기화 요청에 응답
+        handleSyncRequest(syncData);
+      }
+    } catch (e) {
+      console.error("동기화 요청 처리 오류:", e);
+      console.error("원본 메시지:", message.body);
+    }
+  });
+  
+  // 동기화 응답 구독
+  stompClient.subscribe(`/topic/room/${sessionId}/sync_response`, function(message) {
+    try {
+      const syncResponse = JSON.parse(message.body);
+      console.log("동기화 응답 수신:", syncResponse);
+      
+      // 본인이 보낸 메시지가 아닌 경우에만 처리
+      if (syncResponse.sender !== userRole) {
+        // 동기화 응답 처리
+        handleSyncResponse(syncResponse);
+      }
+    } catch (e) {
+      console.error("동기화 응답 처리 오류:", e);
+      console.error("원본 메시지:", message.body);
     }
   });
   
@@ -479,11 +565,46 @@ function handlePageSync(pageData) {
     // 페이지 렌더링 함수가 있으면 직접 호출
     renderPage(pageData.page);
     
+    // 도장 및 서명 데이터 동기화 요청
+    if (stompClient && stompClient.connected && userRole === 'agent') {
+      // 상담원인 경우에만 동기화 데이터 요청
+      requestSyncStampAndSignature(pageData.page);
+    }
+    
     // 성공 메시지
     showToast("페이지 동기화", `${pageData.page}페이지로 이동했습니다.`, "info");
     console.log(`페이지 동기화 완료: ${pageData.page}페이지`);
   } else {
     console.error("페이지 렌더링 함수를 찾을 수 없습니다.");
+  }
+}
+
+// 도장 및 서명 데이터 동기화 요청
+function requestSyncStampAndSignature(page) {
+  if (!stompClient || !stompClient.connected) {
+    console.error("WebSocket 연결이 없어 동기화 요청을 전송할 수 없습니다.");
+    return;
+  }
+  
+  try {
+    // 동기화 요청 메시지 구성
+    const message = {
+      type: 'sync_request',
+      page: page,
+      sessionId: sessionId,
+      sender: userRole,
+      timestamp: Date.now()
+    };
+    
+    // 동기화 요청 전송
+    stompClient.send(`/app/room/${sessionId}/sync`, {
+      contentType: 'application/json',
+      sessionId: sessionId,
+      userRole: userRole
+    }, JSON.stringify(message));
+    console.log("도장 및 서명 데이터 동기화 요청 전송:", message);
+  } catch (e) {
+    console.error("동기화 요청 전송 오류:", e);
   }
 }
 
@@ -510,4 +631,318 @@ function sendPageSync(targetPage) {
   } catch (e) {
     console.error("페이지 동기화 메시지 전송 오류:", e);
   }
-} 
+}
+
+// 동기화 요청 처리
+function handleSyncRequest(syncData) {
+  if (syncData.type !== 'sync_request') return;
+  
+  console.log("동기화 요청 처리 시작");
+  
+  // 현재 페이지의 도장 및 서명 데이터 전송
+  if (stompClient && stompClient.connected) {
+    try {
+      // 요청된 페이지의 도장 및 서명 데이터 수집
+      const stampData = stampDataPerPage[syncData.page] || [];
+      const signatureData = signatureDataPerPage[syncData.page] || [];
+      
+      // 응답 메시지 구성
+      const syncResponse = {
+        type: 'sync_response',
+        page: syncData.page,
+        stampData: stampData,
+        signatureData: signatureData,
+        sessionId: sessionId,
+        sender: userRole,
+        timestamp: Date.now()
+      };
+      
+      // 동기화 응답 전송
+      stompClient.send(`/app/room/${sessionId}/sync_response`, {
+        contentType: 'application/json',
+        sessionId: sessionId,
+        userRole: userRole
+      }, JSON.stringify(syncResponse));
+      console.log("동기화 응답 전송:", syncResponse);
+    } catch (e) {
+      console.error("동기화 응답 전송 오류:", e);
+    }
+  } else {
+    console.error("WebSocket 연결이 없어 동기화 응답을 전송할 수 없습니다.");
+  }
+}
+
+// 동기화 응답 처리
+function handleSyncResponse(syncResponse) {
+  if (syncResponse.type !== 'sync_response') return;
+  
+  console.log("동기화 응답 처리 시작");
+  
+  // 응답이 현재 페이지에 관한 것인지 확인
+  if (syncResponse.page === currentPage) {
+    // 도장 데이터 처리
+    if (syncResponse.stampData && Array.isArray(syncResponse.stampData)) {
+      syncResponse.stampData.forEach(stampData => {
+        // 이미 있는 데이터인지 확인 (중복 방지)
+        const isDuplicate = stampDataPerPage[currentPage] && 
+                          stampDataPerPage[currentPage].some(item => 
+                          item.x === stampData.x && 
+                          item.y === stampData.y &&
+                          item.width === stampData.width &&
+                          item.height === stampData.height);
+        
+        if (!isDuplicate) {
+          // 도장 데이터 저장 및 그리기
+          if (!stampDataPerPage[currentPage]) {
+            stampDataPerPage[currentPage] = [];
+          }
+          stampDataPerPage[currentPage].push(stampData);
+          
+          // 도장 이미지 그리기
+          const stampImage = new Image();
+          if (stampData.imageData) {
+            stampImage.src = stampData.imageData;
+          } else {
+            stampImage.src = '/images/stamp.png';
+          }
+          
+          stampImage.onload = function() {
+            drawingContext.drawImage(stampImage, stampData.x, stampData.y, stampData.width, stampData.height);
+            console.log(`동기화된 도장 이미지 그리기 완료: (${stampData.x}, ${stampData.y})`);
+          };
+        }
+      });
+    }
+    
+    // 서명 데이터 처리
+    if (syncResponse.signatureData && Array.isArray(syncResponse.signatureData)) {
+      syncResponse.signatureData.forEach(signatureData => {
+        // 이미 있는 데이터인지 확인 (중복 방지)
+        const isDuplicate = signatureDataPerPage[currentPage] && 
+                          signatureDataPerPage[currentPage].some(item => 
+                          item.x === signatureData.x && 
+                          item.y === signatureData.y &&
+                          item.width === signatureData.width &&
+                          item.height === signatureData.height);
+        
+        if (!isDuplicate) {
+          // 서명 데이터 저장 및 그리기
+          if (!signatureDataPerPage[currentPage]) {
+            signatureDataPerPage[currentPage] = [];
+          }
+          signatureDataPerPage[currentPage].push(signatureData);
+          
+          // 서명 이미지 그리기
+          if (signatureData.imageData) {
+            const signatureImage = new Image();
+            signatureImage.src = signatureData.imageData;
+            
+            signatureImage.onload = function() {
+              drawingContext.drawImage(signatureImage, signatureData.x, signatureData.y, 
+                                      signatureData.width || 200, signatureData.height || 100);
+              console.log(`동기화된 서명 이미지 그리기 완료: (${signatureData.x}, ${signatureData.y})`);
+            };
+          } else {
+            // 이미지 데이터가 없는 경우 기본 서명 그리기
+            drawSignature(signatureData.x, signatureData.y);
+          }
+        }
+      });
+    }
+    
+    // 세션 데이터 저장
+    saveSessionData();
+    console.log("동기화 데이터 처리 완료");
+  } else {
+    console.log(`동기화 응답 페이지(${syncResponse.page})와 현재 페이지(${currentPage})가 다릅니다.`);
+  }
+}
+
+// PDF에 도장과 서명 포함해서 저장하는 함수
+async function savePdfWithStampAndSignature(forEmail = false) {
+  try {
+    const PDFDocument = window.PDFLib.PDFDocument;
+
+    if (!uploadedPdfUrl) {
+      throw new Error("PDF 파일 경로를 찾을 수 없습니다.");
+    }
+
+    // 로딩 메시지 표시
+    if (!forEmail) {
+      alert("PDF 저장 중입니다. 잠시만 기다려주세요...");
+    } else {
+      showToast("PDF 생성 중", "PDF 문서를 생성하고 있습니다...", "info");
+    }
+
+    // 원본 PDF 가져오기
+    const existingPdfBytes = await fetch(uploadedPdfUrl).then(res => res.arrayBuffer());
+    const pdfDocLib = await PDFDocument.load(existingPdfBytes);
+    const pages = pdfDocLib.getPages();
+
+    // 페이지별로 도장과 서명 데이터 처리
+    for (let i = 0; i < pages.length; i++) {
+      const pageNumber = i + 1;
+      const page = pages[i];
+      const { width, height } = page.getSize();
+
+      // 이 페이지에 있는 도장 목록
+      const stampItems = stampDataPerPage[pageNumber] || [];
+      console.log(`페이지 ${pageNumber}의 도장 개수: ${stampItems.length}`);
+
+      // 이 페이지에 있는 서명 목록
+      const signatureItems = signatureDataPerPage[pageNumber] || [];
+      console.log(`페이지 ${pageNumber}의 서명 개수: ${signatureItems.length}`);
+
+      // 도장 추가
+      for (const stampItem of stampItems) {
+        try {
+          // 이미지 데이터 가져오기 (이미지 또는 imageData 필드 둘 다 지원)
+          const imageData = stampItem.imageData || stampItem.image;
+          if (!imageData) continue;
+          
+          // Base64 데이터만 추출 (data:image/png;base64, 부분 제거)
+          const base64Data = imageData.split(',')[1];
+          if (!base64Data) continue;
+          
+          // Base64 데이터를 바이너리로 변환
+          const binaryData = atob(base64Data);
+          const bytes = new Uint8Array(binaryData.length);
+          for (let j = 0; j < binaryData.length; j++) {
+            bytes[j] = binaryData.charCodeAt(j);
+          }
+          
+          // 이미지를 PDF에 임베드
+          const stampImage = await pdfDocLib.embedPng(bytes);
+          
+          // 좌표 변환 (PDF 좌표계는 왼쪽 하단이 원점)
+          const scale = 1.5; // PDF.js의 renderPage에서 사용된 스케일과 맞춤
+          const pdfX = (stampItem.x / scale);
+          const pdfY = height - (stampItem.y / scale);
+          
+          // 도장 크기
+          const stampSize = stampItem.width || 50;
+          
+          // 도장 추가
+          page.drawImage(stampImage, {
+            x: pdfX,
+            y: pdfY - stampSize,
+            width: stampSize,
+            height: stampSize
+          });
+        } catch (err) {
+          console.error("도장 추가 중 오류:", err);
+        }
+      }
+
+      // 서명 추가
+      for (const signItem of signatureItems) {
+        try {
+          // 이미지 데이터 가져오기 (이미지 또는 imageData 필드 둘 다 지원)
+          const imageData = signItem.imageData || signItem.image;
+          if (!imageData) continue;
+          
+          // Base64 데이터만 추출 (data:image/png;base64, 부분 제거)
+          const base64Data = imageData.split(',')[1];
+          if (!base64Data) continue;
+          
+          // Base64 데이터를 바이너리로 변환
+          const binaryData = atob(base64Data);
+          const bytes = new Uint8Array(binaryData.length);
+          for (let j = 0; j < binaryData.length; j++) {
+            bytes[j] = binaryData.charCodeAt(j);
+          }
+          
+          // 이미지를 PDF에 임베드
+          const signImage = await pdfDocLib.embedPng(bytes);
+          
+          // 좌표 변환
+          const scale = 1.5;
+          const pdfX = (signItem.x / scale);
+          const pdfY = height - (signItem.y / scale);
+          
+          // 서명 크기
+          const signWidth = signItem.width || 100;
+          const signHeight = signItem.height || 50;
+          
+          // 서명 추가
+          page.drawImage(signImage, {
+            x: pdfX,
+            y: pdfY - signHeight,
+            width: signWidth,
+            height: signHeight
+          });
+        } catch (err) {
+          console.error("서명 추가 중 오류:", err);
+        }
+      }
+    }
+
+    // PDF 저장
+    const pdfBytes = await pdfDocLib.save();
+    const blob = new Blob([pdfBytes], { type: "application/pdf" });
+    
+    // 현재 날짜와 시간을 파일명에 추가
+    const now = new Date();
+    const timestamp = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
+    const fileName = `상담문서_${timestamp}.pdf`;
+    
+    // 로컬 다운로드 (이메일 전송이 아닌 경우)
+    if (!forEmail) {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      link.click();
+      console.log("PDF 저장 완료");
+      return null;
+    } else {
+      // 이메일 전송을 위해 Base64 인코딩된 데이터 반환
+      console.log("이메일 전송용 PDF 생성 완료");
+      return await blobToBase64(blob);
+    }
+  } catch (error) {
+    console.error("PDF 저장 오류:", error);
+    if (!forEmail) {
+      alert("PDF 저장 중 오류가 발생했습니다: " + error.message);
+    } else {
+      showToast("PDF 생성 실패", "PDF 저장 중 오류가 발생했습니다: " + error.message, "error");
+    }
+    throw error;
+  }
+}
+
+// Blob을 Base64로 변환하는 함수
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+// PDF 저장 버튼 추가 (UI 초기화 시 호출)
+function addPdfSaveButton() {
+  // 이미 추가되어 있는지 확인
+  if (document.getElementById('pdfSaveBtn')) return;
+  
+  const toolbarGroup = document.querySelector('.toolbar-group:last-child');
+  if (!toolbarGroup) return;
+  
+  // 저장 버튼 생성
+  const saveBtn = document.createElement('button');
+  saveBtn.id = 'pdfSaveBtn';
+  saveBtn.className = 'tool-btn';
+  saveBtn.innerHTML = '<i class="fas fa-save"></i> PDF 저장';
+  saveBtn.onclick = function() {
+    savePdfWithStampAndSignature();
+  };
+  
+  // 툴바에 버튼 추가
+  toolbarGroup.insertBefore(saveBtn, toolbarGroup.firstChild);
+  console.log("PDF 저장 버튼이 추가되었습니다.");
+}
+
+// 페이지 로드 시 PDF 저장 버튼 추가
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(addPdfSaveButton, 1000); // 1초 후 버튼 추가 (다른 UI 초기화 이후)
+}); 

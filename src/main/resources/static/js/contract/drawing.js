@@ -7,7 +7,10 @@ let lastY = 0;
 // 드로잉 초기화 함수
 function initDrawing() {
   drawingCanvas = document.getElementById('drawingCanvas');
-  drawingContext = drawingCanvas.getContext('2d');
+  drawingContext = drawingCanvas.getContext('2d', { alpha: true });
+
+  // 투명 배경 설정
+  drawingContext.globalCompositeOperation = 'source-over';
 
   // 마우스 이벤트 리스너 설정
   drawingCanvas.addEventListener('mousedown', startDrawing);
@@ -426,64 +429,110 @@ function handleStampPlacement(event) {
   const x = event.clientX - rect.left;
   const y = event.clientY - rect.top;
   
-  // 도장 스타일 설정
-  const stampImage = new Image();
-  stampImage.src = '/images/stamp.png';
+  if (!customStampImage) {
+    // 사용자 정의 도장 이미지가 없는 경우 기본 도장 이미지 사용
+    const stampImage = new Image();
+    stampImage.src = '/images/stamp.png';
+    
+    // 도장 이미지 로드 오류 처리
+    stampImage.onerror = function() {
+      console.error("도장 이미지 로드 실패");
+      showToast("오류", "도장 이미지를 불러올 수 없습니다.", "error");
+      // 커서 모드로 복귀
+      setCursor();
+    };
+    
+    // 도장 이미지가 로드되면 그리기
+    stampImage.onload = function() {
+      processStampPlacement(x, y, stampImage);
+    };
+  } else {
+    // 사용자 정의 도장 이미지가 있는 경우 바로 처리
+    processStampPlacement(x, y, customStampImage);
+  }
+}
+
+// 도장 배치 처리 공통 로직
+async function processStampPlacement(x, y, stampImage) {
+  const stampWidth = 100;
+  const stampHeight = 100;
   
-  // 도장 이미지 로드 오류 처리
-  stampImage.onerror = function() {
-    console.error("도장 이미지 로드 실패");
-    showToast("오류", "도장 이미지를 불러올 수 없습니다.", "error");
-    // 커서 모드로 복귀
-    setCursor();
+  // 캔버스에 그리기 전에 globalCompositeOperation 설정 저장 및 변경
+  const originalCompositeOperation = drawingContext.globalCompositeOperation;
+  drawingContext.globalCompositeOperation = 'source-over';
+  
+  // 도장 그리기
+  drawingContext.drawImage(stampImage, x - stampWidth/2, y - stampHeight/2, stampWidth, stampHeight);
+  
+  // globalCompositeOperation 복원
+  drawingContext.globalCompositeOperation = originalCompositeOperation;
+  
+  // 도장 데이터 저장
+  if (!stampDataPerPage[currentPage]) {
+    stampDataPerPage[currentPage] = [];
+  }
+  
+  // 도장 이미지 데이터 준비 (base64)
+  let stampImageData;
+  
+  try {
+    // 이미지가 src 속성을 가지고 있으면 이미지 데이터로 변환
+    if (stampImage.src) {
+      const canvas = document.createElement('canvas');
+      canvas.width = stampWidth;
+      canvas.height = stampHeight;
+      const ctx = canvas.getContext('2d', { alpha: true, willReadFrequently: true });
+      
+      // 캔버스 초기화 - 완전히 투명하게
+      ctx.clearRect(0, 0, stampWidth, stampHeight);
+      
+      // 이미지 그리기
+      ctx.drawImage(stampImage, 0, 0, stampWidth, stampHeight);
+      
+      // 투명도 유지를 위해 PNG 형식으로 변환
+      stampImageData = canvas.toDataURL('image/png');
+    }
+  } catch (e) {
+    console.error("도장 이미지 데이터 처리 오류:", e);
+    stampImageData = null;
+  }
+  
+  const stampData = {
+    x: x - stampWidth/2,
+    y: y - stampHeight/2,
+    width: stampWidth,
+    height: stampHeight,
+    image: stampImageData // 이미지 데이터 저장
   };
   
-  // 도장 이미지가 로드되면 그리기
-  stampImage.onload = function() {
-    const stampWidth = 100;
-    const stampHeight = 100;
-    drawingContext.drawImage(stampImage, x - stampWidth/2, y - stampHeight/2, stampWidth, stampHeight);
-    
-    // 도장 데이터 저장
-    if (!stampDataPerPage[currentPage]) {
-      stampDataPerPage[currentPage] = [];
-    }
-    
-    const stampData = {
+  stampDataPerPage[currentPage].push(stampData);
+  
+  // WebSocket으로 도장 데이터 전송
+  if (stompClient && stompClient.connected) {
+    const stampMessage = {
+      type: 'stamp',
       x: x - stampWidth/2,
       y: y - stampHeight/2,
       width: stampWidth,
-      height: stampHeight
+      height: stampHeight,
+      imageData: stampImageData, // 이미지 데이터 전송
+      page: currentPage,
+      sessionId: sessionId,
+      sender: userRole
     };
     
-    stampDataPerPage[currentPage].push(stampData);
-    
-    // WebSocket으로 도장 데이터 전송
-    if (stompClient && stompClient.connected) {
-      const stampMessage = {
-        type: 'stamp',
-        x: x - stampWidth/2,
-        y: y - stampHeight/2,
-        width: stampWidth,
-        height: stampHeight,
-        page: currentPage,
-        sessionId: sessionId,
-        sender: userRole
-      };
-      
-      stompClient.send(`/topic/room/${sessionId}/stamp`, {}, JSON.stringify(stampMessage));
-      console.log("도장 메시지 전송:", stampMessage);
-    } else {
-      console.error("웹소켓 연결이 없어 도장 데이터를 전송할 수 없습니다.");
-    }
-    
-    // 세션 데이터 저장
-    saveStampData();
-    saveSessionData();
-    
-    // 커서 모드로 되돌리기
-    setCursor();
-  };
+    stompClient.send(`/app/room/${sessionId}/stamp`, {}, JSON.stringify(stampMessage));
+    console.log("도장 메시지 전송:", { ...stampMessage, imageData: '이미지 데이터 [생략]' });
+  } else {
+    console.error("웹소켓 연결이 없어 도장 데이터를 전송할 수 없습니다.");
+  }
+  
+  // 세션 데이터 저장
+  saveStampData();
+  saveSessionData();
+  
+  // 커서 모드로 되돌리기
+  setCursor();
 }
 
 // 서명 배치 처리
@@ -494,17 +543,98 @@ function handleSignaturePlacement(event) {
   const x = event.clientX - rect.left;
   const y = event.clientY - rect.top;
   
-  // 서명 그리기 (간단한 서명 이미지를 그리거나 사용자 입력을 받을 수 있음)
-  drawSignature(x, y);
+  if (!customStampImage && !customSignatureImage) {
+    // 사용자 정의 서명 이미지가 없는 경우 기본 서명 사용
+    processSignaturePlacement(x, y, null);
+  } else {
+    // 사용자 정의 서명 이미지가 있는 경우
+    const signatureImage = customSignatureImage || customStampImage;
+    processSignaturePlacement(x, y, signatureImage);
+  }
+}
+
+// 서명 배치 처리 공통 로직
+async function processSignaturePlacement(x, y, signatureImage) {
+  const signatureWidth = 200;
+  const signatureHeight = 100;
+  
+  // 캔버스에 그리기 전에 globalCompositeOperation 설정 저장 및 변경
+  const originalCompositeOperation = drawingContext.globalCompositeOperation;
+  drawingContext.globalCompositeOperation = 'source-over';
+  
+  // 서명 그리기
+  if (signatureImage) {
+    drawingContext.drawImage(signatureImage, x - signatureWidth/2, y - signatureHeight/2, signatureWidth, signatureHeight);
+  } else {
+    // 기본 서명 그리기
+    drawDefaultSignature(x - signatureWidth/2, y - signatureHeight/2);
+  }
+  
+  // globalCompositeOperation 복원
+  drawingContext.globalCompositeOperation = originalCompositeOperation;
   
   // 서명 데이터 저장
   if (!signatureDataPerPage[currentPage]) {
     signatureDataPerPage[currentPage] = [];
   }
   
+  // 서명 이미지 데이터 준비 (base64)
+  let signatureImageData;
+  
+  try {
+    if (signatureImage && signatureImage.src) {
+      // 이미지가 src 속성을 가지고 있으면 이미지 데이터로 변환
+      const canvas = document.createElement('canvas');
+      canvas.width = signatureWidth;
+      canvas.height = signatureHeight;
+      const ctx = canvas.getContext('2d', { alpha: true, willReadFrequently: true });
+      
+      // 캔버스 초기화 - 완전히 투명하게
+      ctx.clearRect(0, 0, signatureWidth, signatureHeight);
+      
+      // 이미지 그리기
+      ctx.drawImage(signatureImage, 0, 0, signatureWidth, signatureHeight);
+      
+      // 투명도 유지를 위해 PNG 형식으로 변환
+      signatureImageData = canvas.toDataURL('image/png');
+    } else if (!signatureImage) {
+      // 기본 서명인 경우 캔버스에서 이미지 데이터 추출
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = signatureWidth;
+      tempCanvas.height = signatureHeight;
+      const tempCtx = tempCanvas.getContext('2d', { alpha: true, willReadFrequently: true });
+      
+      // 캔버스 초기화 - 완전히 투명하게
+      tempCtx.clearRect(0, 0, signatureWidth, signatureHeight);
+      
+      // 기본 서명 그리기
+      tempCtx.font = '24px cursive';
+      tempCtx.fillStyle = '#0064E1';
+      const userName = sessionStorage.getItem('userName') || '서명';
+      tempCtx.fillText(userName, 10, 50);
+      
+      // 서명 밑줄 그리기
+      tempCtx.beginPath();
+      tempCtx.moveTo(10, 55);
+      tempCtx.lineTo(10 + userName.length * 15, 55);
+      tempCtx.strokeStyle = '#0064E1';
+      tempCtx.lineWidth = 1;
+      tempCtx.stroke();
+      
+      // 투명도 유지를 위해 PNG 형식으로 변환
+      signatureImageData = tempCanvas.toDataURL('image/png');
+    }
+  } catch (e) {
+    console.error("서명 이미지 데이터 처리 오류:", e);
+    signatureImageData = null;
+  }
+  
   const signatureData = {
-    x: x,
-    y: y,
+    x: x - signatureWidth/2,
+    y: y - signatureHeight/2,
+    width: signatureWidth,
+    height: signatureHeight,
+    imageData: signatureImageData, // 이미지 데이터 저장
     timestamp: new Date().getTime()
   };
   
@@ -514,16 +644,19 @@ function handleSignaturePlacement(event) {
   if (stompClient && stompClient.connected) {
     const data = {
       type: 'signature',
-      x: x,
-      y: y,
+      x: x - signatureWidth/2,
+      y: y - signatureHeight/2,
+      width: signatureWidth,
+      height: signatureHeight,
+      imageData: signatureImageData, // 이미지 데이터 전송
       page: currentPage,
       sessionId: sessionId,
       sender: userRole,
       timestamp: new Date().getTime()
     };
     
-    stompClient.send(`/topic/room/${sessionId}/signature`, {}, JSON.stringify(data));
-    console.log("서명 메시지 전송:", data);
+    stompClient.send(`/app/room/${sessionId}/signature`, {}, JSON.stringify(data));
+    console.log("서명 메시지 전송:", { ...data, imageData: '이미지 데이터 [생략]' });
   } else {
     console.error("웹소켓 연결이 없어 서명 데이터를 전송할 수 없습니다.");
   }
@@ -537,12 +670,44 @@ function handleSignaturePlacement(event) {
 }
 
 // 서명 그리기 함수
-function drawSignature(x, y) {
+function drawSignature(x, y, imageData = null, width = 200, height = 100) {
+  if (imageData) {
+    // 이미지 데이터가 있는 경우 이미지로 그리기
+    const signatureImage = new Image();
+    signatureImage.src = imageData;
+    
+    signatureImage.onload = function() {
+      // 이미지 렌더링 시 배경 투명도 유지
+      const originalCompositeOperation = drawingContext.globalCompositeOperation;
+      
+      // 투명도를 올바르게 처리하기 위해 설정
+      drawingContext.globalCompositeOperation = 'source-over';
+      
+      // 이미지 그리기 전에 배경 유지
+      drawingContext.drawImage(signatureImage, x, y, width, height);
+      
+      // 원래 설정으로 복원
+      drawingContext.globalCompositeOperation = originalCompositeOperation;
+    };
+    
+    signatureImage.onerror = function() {
+      console.error("서명 이미지 로드 실패");
+      // 기본 서명으로 대체
+      drawDefaultSignature(x, y);
+    };
+  } else {
+    // 이미지 데이터가 없는 경우 기본 서명 그리기
+    drawDefaultSignature(x, y);
+  }
+}
+
+// 기본 서명 그리기 (텍스트 기반)
+function drawDefaultSignature(x, y) {
   // 서명 스타일 설정
   drawingContext.font = '24px cursive';
   drawingContext.fillStyle = '#0064E1';
   
-  // 간단한 서명 텍스트 또는 이미지 그리기
+  // 간단한 서명 텍스트 그리기
   const userName = sessionStorage.getItem('userName') || '서명';
   drawingContext.fillText(userName, x, y);
   
@@ -560,25 +725,70 @@ function handleRemoteSignature(data) {
   // 데이터 유효성 검사
   if (!data || data.sender === userRole) return;
   
-  console.log("원격 서명 데이터 수신:", data);
+  console.log("원격 서명 데이터 수신:", { ...data, imageData: data.imageData ? '이미지 데이터 있음' : '이미지 데이터 없음' });
   
   // 서명 데이터 저장 - 현재 페이지가 아니더라도 데이터는 저장
   if (!signatureDataPerPage[data.page]) {
     signatureDataPerPage[data.page] = [];
   }
   
+  // 수신된 이미지 데이터 사용, 없으면 null로 설정
+  const imageData = data.imageData || data.image || null;
+  
   const signatureData = {
     x: data.x,
     y: data.y,
+    width: data.width || 200,
+    height: data.height || 100,
+    imageData: imageData, // 이미지 데이터 저장
     timestamp: new Date().getTime()
   };
   
   signatureDataPerPage[data.page].push(signatureData);
   
   // 현재 페이지인 경우에만 화면에 표시
-  if (data.page === currentPage) {
-    // 원격 서명 그리기
-    drawSignature(data.x, data.y);
+  if (parseInt(data.page) === currentPage) {
+    if (imageData) {
+      console.log("서명 이미지 데이터 사용");
+      // 수정된 drawSignature 함수 사용하여 원격 서명 그리기
+      const signatureImage = new Image();
+      signatureImage.src = imageData;
+      
+      signatureImage.onerror = function() {
+        console.error("원격 서명 이미지 로드 실패");
+        showToast("오류", "서명 이미지를 불러올 수 없습니다.", "error");
+        // 기본 서명으로 대체
+        drawDefaultSignature(data.x, data.y);
+      };
+      
+      signatureImage.onload = function() {
+        console.log(`서명 이미지 로드 성공, 그리기 시작: (${data.x}, ${data.y})`);
+        // 이미지 렌더링 시 배경 투명도 유지
+        const originalCompositeOperation = drawingContext.globalCompositeOperation;
+        
+        // 투명도를 올바르게 처리하기 위해 설정
+        drawingContext.globalCompositeOperation = 'source-over';
+        
+        // 이미지 그리기
+        drawingContext.drawImage(
+          signatureImage, 
+          data.x, 
+          data.y, 
+          data.width || 200, 
+          data.height || 100
+        );
+        
+        // 원래 설정으로 복원
+        drawingContext.globalCompositeOperation = originalCompositeOperation;
+        console.log(`원격 서명 이미지 그리기 완료: (${data.x}, ${data.y})`);
+      };
+    } else {
+      console.log("기본 서명 사용");
+      // 이미지 데이터가 없는 경우 기본 서명 그리기
+      drawDefaultSignature(data.x, data.y);
+    }
+  } else {
+    console.log(`현재 페이지(${currentPage})와 서명 페이지(${data.page})가 다릅니다. 화면에 표시하지 않습니다.`);
   }
   
   // 세션 데이터 저장
@@ -631,14 +841,47 @@ function restoreStampData() {
   const stampData = stampDataPerPage[currentPage];
   if (!stampData || !stampData.length) return;
   
-  const stampImage = new Image();
-  stampImage.src = '/images/stamp.png';
-  
-  stampImage.onload = function() {
-    stampData.forEach(item => {
+  stampData.forEach(item => {
+    const stampImage = new Image();
+    
+    // 저장된 이미지 데이터가 있으면 사용, 없으면 기본 이미지 사용
+    if (item.imageData) {
+      stampImage.src = item.imageData;
+    } else if (item.image) {
+      // 이전 버전 호환성을 위한 처리
+      stampImage.src = item.image;
+    } else {
+      stampImage.src = '/images/stamp.png';
+    }
+    
+    stampImage.onload = function() {
+      // 이미지 렌더링 시 배경 투명도 유지
+      const originalCompositeOperation = drawingContext.globalCompositeOperation;
+      
+      // 투명도를 올바르게 처리하기 위해 설정
+      drawingContext.globalCompositeOperation = 'source-over';
+      
+      // 이미지 그리기
       drawingContext.drawImage(stampImage, item.x, item.y, item.width, item.height);
-    });
-  };
+      
+      // 원래 설정으로 복원
+      drawingContext.globalCompositeOperation = originalCompositeOperation;
+    };
+    
+    stampImage.onerror = function() {
+      console.error("도장 이미지 복원 실패");
+      // 기본 이미지로 대체
+      const defaultStamp = new Image();
+      defaultStamp.src = '/images/stamp.png';
+      defaultStamp.onload = function() {
+        // 투명도 처리 적용
+        const originalCompositeOperation = drawingContext.globalCompositeOperation;
+        drawingContext.globalCompositeOperation = 'source-over';
+        drawingContext.drawImage(defaultStamp, item.x, item.y, item.width, item.height);
+        drawingContext.globalCompositeOperation = originalCompositeOperation;
+      };
+    };
+  });
 }
 
 // 서명 데이터 저장
@@ -658,11 +901,17 @@ function saveSignatureData() {
 function restoreSignatureData() {
   // 현재 페이지의 서명 데이터가 있으면 복원
   const pageSignatures = signatureDataPerPage[currentPage];
-  if (pageSignatures && pageSignatures.length > 0) {
-    pageSignatures.forEach(sig => {
+  if (!pageSignatures || !pageSignatures.length) return;
+  
+  pageSignatures.forEach(sig => {
+    if (sig.imageData) {
+      // 이미지 데이터가 있는 경우 drawSignature 함수로 그리기
+      drawSignature(sig.x, sig.y, sig.imageData, sig.width || 200, sig.height || 100);
+    } else {
+      // 이미지 데이터가 없는 경우 기본 방식으로 복원
       drawSignature(sig.x, sig.y);
-    });
-  }
+    }
+  });
 }
 
 // 원격 드로잉 처리 (WebSocket으로 수신한 드로잉 데이터 처리)
@@ -754,39 +1003,95 @@ function handleRemoteStamp(data) {
   // 데이터 유효성 검사
   if (!data || data.sender === userRole) return;
   
-  console.log("원격 도장 데이터 수신:", data);
+  console.log("원격 도장 데이터 수신:", { ...data, imageData: data.imageData ? '이미지 데이터 있음' : '이미지 데이터 없음' });
   
   // 도장 데이터 저장 - 현재 페이지가 아니더라도 데이터는 저장
   if (!stampDataPerPage[data.page]) {
     stampDataPerPage[data.page] = [];
   }
   
-  stampDataPerPage[data.page].push({
+  // 수신된 이미지 데이터 사용, 없으면 기본 도장 이미지 사용
+  const imageData = data.imageData || null;
+  
+  const stampData = {
     x: data.x,
     y: data.y,
-    width: data.width,
-    height: data.height
-  });
+    width: data.width || 100,
+    height: data.height || 100,
+    imageData: imageData, // 이미지 데이터 저장
+    timestamp: new Date().getTime()
+  };
+  
+  stampDataPerPage[data.page].push(stampData);
   
   // 현재 페이지인 경우에만 화면에 표시
-  if (data.page === currentPage) {
-    // 원격 도장을 현재 캔버스에 적용
-    const stampImage = new Image();
-    stampImage.src = '/images/stamp.png';
-    
-    // 이미지 로드 오류 처리
-    stampImage.onerror = function() {
-      console.error("원격 도장 이미지 로드 실패");
-      showToast("오류", "도장 이미지를 불러올 수 없습니다.", "error");
-    };
-    
-    stampImage.onload = function() {
-      drawingContext.drawImage(stampImage, data.x, data.y, data.width, data.height);
-      console.log(`원격 도장 이미지 그리기 완료: (${data.x}, ${data.y})`);
+  if (parseInt(data.page) === currentPage) {
+    if (imageData) {
+      console.log("도장 이미지 데이터 사용");
+      const stampImage = new Image();
+      stampImage.src = imageData;
       
-      // 도장 데이터 저장
-      saveStampData();
-    };
+      stampImage.onerror = function() {
+        console.error("원격 도장 이미지 로드 실패");
+        showToast("오류", "도장 이미지를 불러올 수 없습니다.", "error");
+        // 기본 도장으로 대체
+        const defaultStamp = new Image();
+        defaultStamp.src = '/images/stamp.png';
+        defaultStamp.onload = function() {
+          const originalCompositeOperation = drawingContext.globalCompositeOperation;
+          drawingContext.globalCompositeOperation = 'source-over';
+          drawingContext.drawImage(
+            defaultStamp, 
+            data.x, 
+            data.y, 
+            data.width || 100, 
+            data.height || 100
+          );
+          drawingContext.globalCompositeOperation = originalCompositeOperation;
+        };
+      };
+      
+      stampImage.onload = function() {
+        console.log(`도장 이미지 로드 성공, 그리기 시작: (${data.x}, ${data.y})`);
+        // 이미지 렌더링 시 배경 투명도 유지
+        const originalCompositeOperation = drawingContext.globalCompositeOperation;
+        
+        // 투명도를 올바르게 처리하기 위해 설정
+        drawingContext.globalCompositeOperation = 'source-over';
+        
+        // 이미지 그리기
+        drawingContext.drawImage(
+          stampImage, 
+          data.x, 
+          data.y, 
+          data.width || 100, 
+          data.height || 100
+        );
+        
+        // 원래 설정으로 복원
+        drawingContext.globalCompositeOperation = originalCompositeOperation;
+        console.log(`원격 도장 이미지 그리기 완료: (${data.x}, ${data.y})`);
+      };
+    } else {
+      console.log("기본 도장 사용");
+      // 이미지 데이터가 없는 경우 기본 도장 사용
+      const defaultStamp = new Image();
+      defaultStamp.src = '/images/stamp.png';
+      defaultStamp.onload = function() {
+        const originalCompositeOperation = drawingContext.globalCompositeOperation;
+        drawingContext.globalCompositeOperation = 'source-over';
+        drawingContext.drawImage(
+          defaultStamp, 
+          data.x, 
+          data.y, 
+          data.width || 100, 
+          data.height || 100
+        );
+        drawingContext.globalCompositeOperation = originalCompositeOperation;
+      };
+    }
+  } else {
+    console.log(`현재 페이지(${currentPage})와 도장 페이지(${data.page})가 다릅니다. 화면에 표시하지 않습니다.`);
   }
   
   // 세션 데이터 저장
