@@ -131,8 +131,8 @@ public class AgentService {
 
 		// CONTRACT 삽입
 		Contract c = new Contract();
-		c.setClientId(dto.getClientId().toString());
-		c.setAgentId(dto.getAgentId().toString());
+		c.setClientId(dto.getClientId());
+		c.setAgentId(dto.getAgentId());
 		c.setContractTime(dto.getContractTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
 		c.setMemo(dto.getMemo());
 		c.setCreatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
