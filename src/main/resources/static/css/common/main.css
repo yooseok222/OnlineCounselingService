@@ -363,6 +363,7 @@ header {
     flex: 1 0 100%;
     padding: 1rem;
     border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
     cursor: pointer;
     transition: background-color 0.3s ease;
 }
@@ -392,16 +393,15 @@ header {
     }
 }
 
+
 @media (min-width: 992px) {
+    /* 데스크탑에서는 4열 */
     .feature-item {
-        flex: 1 0 33.333%;
-    }
-    
-    .feature-item:nth-child(3n+1), .feature-item:nth-child(3n+2) {
+        flex: 1 0 25%;
         border-right: 1px solid var(--border-color);
     }
-    
-    .feature-item:nth-child(even) {
+    /* 매 네 번째마다 오른쪽 border 제거 */
+    .feature-item:nth-child(4n) {
         border-right: none;
     }
 }

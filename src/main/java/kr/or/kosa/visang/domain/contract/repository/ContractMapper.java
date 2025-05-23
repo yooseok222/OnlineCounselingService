@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import kr.or.kosa.visang.domain.contract.model.ContractDetail;
-import kr.or.kosa.visang.domain.contract.model.ContractSearchRequest;
+import kr.or.kosa.visang.domain.contract.model.ContractStatusCountsByMonthDTO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -27,6 +27,7 @@ public interface ContractMapper {
 
     int countContracts(Map<String, Object> params);
 
+    ContractStatusCountsByMonthDTO selectMonthlyStatusCounts(Map<String, Object> params);
 
     // 계약 조회
     Contract selectContractById(Long contractId);

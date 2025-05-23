@@ -19,6 +19,14 @@
 		<result column="memo" property="memo" />
 	</resultMap>
 
+	<resultMap id="monthlyStatusCountsResultMap" type="kr.or.kosa.visang.domain.contract.model.ContractStatusCountsByMonthDTO">
+		<result column="total_count" property="totalCount" />
+		<result column="inProgress_count" property="inProgressCount" />
+		<result column="completed_count" property="completedCount" />
+		<result column="canceled_count" property="canceledCount" />
+		<result column="pending_count" property="pendingCount" />
+	</resultMap>
+
 	<resultMap id="contractListResultMap" type="kr.or.kosa.visang.domain.contract.model.ContractListDTO">
 		<id column="contract_id" property="contractId" />
 		<result column="company_id" property="companyId" />
@@ -81,6 +89,19 @@
 		<result column="time" property="time" />
 		<result column="invitation_code" property="invitationCode" />
 	</resultMap>
+
+	<select id="selectMonthlyStatusCounts" resultMap="monthlyStatusCountsResultMap" parameterType="map">
+		SELECT
+			COUNT(*) AS total_count,
+			SUM(CASE WHEN status = 'IN_PROGRESS' THEN 1 ELSE 0 END) AS inProgress_count,
+			SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_count,
+			SUM(CASE WHEN status = 'CANCELED' THEN 1 ELSE 0 END) AS canceled_count,
+			SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END) AS pending_count
+		FROM contract
+		WHERE company_id = #{companyId,  jdbcType=BIGINT}
+		AND TRUNC(contract_time, 'MM') = TO_DATE(#{year} || '-' || LPAD(#{month},2,'0'), 'YYYY-MM')
+	</select>
+
 
 	<insert id="insertSchedule"
 		parameterType="kr.or.kosa.visang.domain.contract.model.Contract">

@@ -1,9 +1,9 @@
 package kr.or.kosa.visang.domain.contract.service;
 
-import kr.or.kosa.visang.domain.agent.repository.AgentMapper;
 import kr.or.kosa.visang.domain.contract.model.Contract;
 import kr.or.kosa.visang.domain.contract.model.ContractDetail;
 import kr.or.kosa.visang.domain.contract.model.ContractSearchRequest;
+import kr.or.kosa.visang.domain.contract.model.ContractStatusCountsByMonthDTO;
 import kr.or.kosa.visang.domain.contract.repository.ContractMapper;
 import kr.or.kosa.visang.domain.page.model.PageRequest;
 import kr.or.kosa.visang.domain.page.model.PageResult;
@@ -87,6 +87,16 @@ public class ContractService {
     // 계약 상태별 조회
     public List<Contract> getContractsByStatus(String status) {
         return contractMapper.selectContractsByStatus(status);
+    }
+
+    // 계약 상태별 월별 숫자 조회
+    public ContractStatusCountsByMonthDTO getMonthlyStatusCounts(Long companyId, int year, int month) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("companyId", companyId);
+        params.put("year", year);
+        params.put("month", month);
+
+        return contractMapper.selectMonthlyStatusCounts(params);
     }
 
     // 계약 생성

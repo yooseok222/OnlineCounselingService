@@ -50,7 +50,6 @@ public class AdminController {
 
     }
 
-
     @GetMapping(value="/search")
     @ResponseBody
     public List<Agent> searchAjax(

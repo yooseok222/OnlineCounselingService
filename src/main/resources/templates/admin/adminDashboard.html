@@ -5,43 +5,43 @@
       <!-- 계약서 상태 카드 -->
       <div class="col-md-6 mb-4">
         <div class="card h-100">
+
           <div class="card-header">
             <h3 class="card-title">계약서 상태</h3>
             <div>
-              <span>2025.05.01 ~ 2025.05.14</span>
-              <button class="btn btn-sm btn-outline-secondary ms-2">
-                <i class="bi bi-list-ul"></i>
-              </button>
-              <button class="btn btn-sm btn-outline-secondary ms-1">
+              <input id ="contractTime" type="month"/>
+              <button id ="contractStatusByMonthReset" class="btn btn-sm btn-outline-secondary ms-1">
                 <i class="bi bi-arrow-repeat"></i>
               </button>
             </div>
           </div>
+
           <div class="card-body d-flex flex-column">
             <!-- 도넛 차트 영역 -->
-            <div class="chart-container">
+            <div class="chart-container position-relative">
               <canvas id="contractStatusChart"></canvas>
-              <div class="no-data">표시할 데이터가 없습니다.</div>
+<!--              <div class="no-data">표시할 데이터가 없습니다.</div>-->
             </div>
+
             <!-- 계약 현황 리스트 -->
             <div class="mt-3">
               <div class="fw-bold mb-2">나의 계약 현황</div>
               <ul class="status-list">
                 <li class="status-item">
                   <div class="status-label">진행중 계약</div>
-                  <div class="status-value">0</div>
+                  <div class="status-value">1</div>
                 </li>
                 <li class="status-item">
                   <div class="status-label">완료된 계약</div>
-                  <div class="status-value">0</div>
+                  <div class="status-value">2</div>
                 </li>
                 <li class="status-item">
                   <div class="status-label">취소/거절된 계약</div>
-                  <div class="status-value">0</div>
+                  <div class="status-value">3</div>
                 </li>
                 <li class="status-item">
-                  <div class="status-label">만료된 계약</div>
-                  <div class="status-value">0</div>
+                  <div class="status-label">대기중 계약</div>
+                  <div class="status-value">4</div>
                 </li>
               </ul>
             </div>
@@ -53,7 +53,7 @@
       <div class="col-md-6 mb-4">
         <div class="card h-100">
           <div class="card-header">
-            <h3 class="card-title">월별 서명요청 현황</h3>
+            <h3 class="card-title">월별 계약 완료 현황</h3>
             <div>
               <button class="btn btn-sm btn-outline-secondary ms-2">
                 <i class="bi bi-list-ul"></i>
@@ -63,6 +63,7 @@
               </button>
             </div>
           </div>
+
           <div class="card-body">
             <!-- 바 차트 영역 -->
             <div class="chart-container">
@@ -75,29 +76,8 @@
     
     <!-- 두 번째 행: 이용 가이드와 주요기능 -->
     <div class="row">
-      <!-- 이용 가이드 카드 -->
-      <div class="col-md-4 mb-4">
-        <div class="card h-100">
-          <div class="card-header">
-            <h3 class="card-title">이용 가이드</h3>
-          </div>
-          <div class="card-body p-0">
-            <ul class="feature-list">
-              <li class="feature-item">
-                <div class="feature-title">처음이신가요?</div>
-                <div class="feature-desc">support</div>
-              </li>
-              <li class="feature-item">
-                <div class="feature-title">문의하기</div>
-                <div class="feature-desc">inquiry</div>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-      
       <!-- 주요기능 바로 시작하기 카드 -->
-      <div class="col-md-8 mb-4">
+      <div class="col-md-12 mb-4">
         <div class="card h-100">
           <div class="card-header">
             <h3 class="card-title">주요기능 바로 시작하기</h3>
@@ -121,17 +101,13 @@
                 <div class="feature-title">대량서명</div>
                 <div class="feature-desc">다수의 수신자에게 발송</div>
               </li>
-              <li class="feature-item">
-                <div class="feature-title">링크서명</div>
-                <div class="feature-desc">URL 또는 QR코드를 통해 서명 및 계약</div>
-              </li>
             </ul>
           </div>
         </div>
       </div>
     </div>
     
-    <!-- 세 번째 행: 최근 완료된 계약과 만료 예정 계약 -->
+    <!-- 세 번째 행: 최근 완료된 계약과 진행중 계약 -->
     <div class="row">
       <!-- 최근 완료된 계약 카드 -->
       <div class="col-md-6 mb-4">
@@ -142,6 +118,7 @@
               <i class="bi bi-list-ul"></i>
             </button>
           </div>
+
           <div class="card-body">
             <ul class="list-group list-group-flush">
               <li class="list-group-item text-center text-muted py-4">완료된 계약이 없습니다.</li>
@@ -150,18 +127,18 @@
         </div>
       </div>
       
-      <!-- 만료 예정 계약 카드 -->
+      <!-- 진행중 계약 카드 -->
       <div class="col-md-6 mb-4">
         <div class="card h-100">
           <div class="card-header">
-            <h3 class="card-title">만료 예정 계약</h3>
+            <h3 class="card-title">진행 중인 계약</h3>
             <button class="btn btn-sm btn-outline-secondary">
               <i class="bi bi-list-ul"></i>
             </button>
           </div>
           <div class="card-body">
             <ul class="list-group list-group-flush">
-              <li class="list-group-item text-center text-muted py-4">만료 예정인 계약이 없습니다.</li>
+              <li class="list-group-item text-center text-muted py-4">진행 중인 계약이 없습니다.</li>
             </ul>
           </div>
         </div>
@@ -187,5 +164,96 @@
 </div>
 
 <script th:fragment="script">
+  document.addEventListener('DOMContentLoaded', () => {
+
+    // 현재 년도과 월을 가져옵니다.
+    const year = new Date().getFullYear();
+    const month = new Date().getMonth() + 1; // 월은 0부터 시작하므로 +1
+
+    let statusChart;
+    const contractTime = document.getElementById("contractTime");
+    const resetContractStatusByMonth = document.getElementById("contractStatusByMonthReset");
+
+
+    if (!contractTime.value) {
+      contractTime.value = new Date().toISOString().slice(0, 7);
+    }
+
+    contractTime.addEventListener('change', (event) => {
+      console.log("값 변화")
+      const selectedDate = new Date(event.target.value);
+      const year = selectedDate.getFullYear();
+      const month = selectedDate.getMonth() + 1; // 월은 0부터 시작하므로 +1
+      console.log(`Selected Year: ${year}, Month: ${month}`);
+    });
+
+    resetContractStatusByMonth.addEventListener('click', () => {
+      // 데이터 다시 가져오기
+      contractTime.value = new Date().toISOString().slice(0, 7);
+      console.log("reset");
+    });
+
+    function renderStatusChart(data) {
+      const canvas = document.getElementById('contractStatusChart');
+
+      const existingChart = Chart.getChart(canvas);
+        if (existingChart) {
+            existingChart.destroy();
+        }
+
+      const ctx = canvas.getContext('2d');
+
+      statusChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['진행중', '완료', '취소/거절', '대기중'],
+          datasets: [{
+            data: data,
+            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'],
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'top',
+            },
+            tooltip: {
+              callbacks: {
+                label: function(tooltipItem) {
+                  return tooltipItem.label + ': ' + tooltipItem.raw;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Ajax로 서버에서 가져오기
+    async function fetchAndRenderStatus(year, month) {
+      // default month=현재월
+      const res = await fetch(`/admin/contract-status/month?year=${year||'2025'}&month=${month||'05'}`);
+      const json = await res.json();
+        console.log(json);
+      const data = [
+        json.inProgressCount,
+        json.completedCount,
+        json.canceledCount,
+        json.pendingCount
+      ];
+      renderStatusChart(data);
+      // 아래 “나의 계약 현황” 숫자도 업데이트
+      document.querySelector('.status-item:nth-child(1) .status-value').textContent = json.inProgressCount;
+      document.querySelector('.status-item:nth-child(2) .status-value').textContent = json.completedCount;
+      document.querySelector('.status-item:nth-child(3) .status-value').textContent = json.canceledCount;
+      document.querySelector('.status-item:nth-child(4) .status-value').textContent = json.pendingCount;
+    }
+
+
+    fetchAndRenderStatus(year, month);
+
+  });
 
 </script>
