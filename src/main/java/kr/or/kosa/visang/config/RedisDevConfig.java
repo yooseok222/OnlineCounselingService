@@ -15,7 +15,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
  */
 @Slf4j
 @Configuration
-@Profile("dev")
+@Profile({"dev", "h2", "oracle"})
 @RequiredArgsConstructor
 public class RedisDevConfig {
 
