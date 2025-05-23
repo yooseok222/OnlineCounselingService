@@ -4,11 +4,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+import kr.or.kosa.visang.domain.contract.model.*;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
-import kr.or.kosa.visang.domain.contract.model.Contract;
-import kr.or.kosa.visang.domain.contract.model.Schedule;
 
 @Mapper
 public interface ContractMapper {
@@ -26,8 +24,25 @@ public interface ContractMapper {
             @Param("month") String month
     );
 
+    // 최근 완료된 계약 조회
+    List<RecentCompletedContract> selectRecentCompletedContract(Long companyId);
+
+    // 진행중인 계약 5건 조회
+    List<RecentCompletedContract> selectInProgressContract(Long companyId);
+
+    List<Contract> searchContracts(Map<String, Object> params);
+
+    int countContracts(Map<String, Object> params);
+
+    ContractStatusCountsByMonthDTO selectMonthlyStatusCounts(Map<String, Object> params);
+
+    ContractCompleteCountsByMonthDTO getLastFiveMonthsCompleted(Map<String, Object> params);
+
     // 계약 조회
     Contract selectContractById(Long contractId);
+
+    // 계약 상세 조회
+    ContractDetail selectContractDetail(Long contractId);
 
     // 고객 ID로 계약 목록 조회
     List<Contract> selectContractsByClientId(Long clientId);
@@ -64,7 +79,7 @@ public interface ContractMapper {
                                   @Param("excludeContractId") Long excludeContractId);
 
     void updateSchedule(Schedule dto);
-    
+
     List<Schedule> findTodayContracts(Map<String, Object> params);
 
     List<Schedule> selectSchedulesByAgentAndDateRange(Map<String, Object> param);

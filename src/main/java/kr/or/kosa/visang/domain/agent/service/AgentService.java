@@ -1,5 +1,20 @@
 package kr.or.kosa.visang.domain.agent.service;
 
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.spring6.ISpringTemplateEngine;
+
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import kr.or.kosa.visang.common.file.FileStorageService;
@@ -139,13 +154,13 @@ public class AgentService {
                     time.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))));
         }
 
-        // CONTRACT 삽입
-        Contract c = new Contract();
-        c.setClientId(dto.getClientId().toString());
-        c.setAgentId(dto.getAgentId().toString());
-        c.setContractTime(dto.getContractTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-        c.setMemo(dto.getMemo());
-        c.setCreatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+		// CONTRACT 삽입
+		Contract c = new Contract();
+		c.setClientId(dto.getClientId());
+		c.setAgentId(dto.getAgentId());
+		c.setContractTime(dto.getContractTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+		c.setMemo(dto.getMemo());
+		c.setCreatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         c.setStatus("PENDING");
 
         contractMapper.insertSchedule(c);

@@ -23,26 +23,12 @@
         <div class="row">
         
             <!-- 메인 사이드바 영역 -->
-            <!-- <div class="col-md-3 col-lg-2 sidebar collapse" id="sidebarMenu" th:replace="fragments/sidebar :: sidebar"></div> -->
+<!--			 <div class="col-md-3 col-lg-2 sidebar collapse" id="sidebarMenu" th:replace="fragments/sidebar :: sidebar"></div> 		-->
+ 			<!-- 상담 사이드바 -->
+ 			<!-- <div class="col-md-3 col-lg-2 sidebar collapse" id="sidebarMenu" th:replace="fragments/counselorSidebar :: sidebar"></div>   -->
 
             <!-- 상담 사이드바 -->
-            <div class="col-md-3 col-lg-2 sidebar collapse" id="sidebarMenu" th:replace="agent/agentSidebar :: sidebar"></div>
-
-
-<!--            &lt;!&ndash; 관리자 사이드바 &ndash;&gt;-->
-<!--            <div th:if="${#authentication.principal.role == 'ADMIN'}"-->
-<!--                 class="col-md-3 col-lg-2 sidebar collapse" id="sidebarMenu1"-->
-<!--                 th:replace="admin/adminSidebar :: sidebar"></div>-->
-
-<!--            &lt;!&ndash; 상담원 사이드바 &ndash;&gt;-->
-<!--            <div th:if="${#authentication.principal.role == 'AGENT'}"-->
-<!--                 class="col-md-3 col-lg-2 sidebar collapse" id="sidebarMenu2"-->
-<!--                 th:replace="agent/agentSidebar :: sidebar"></div>-->
-
-<!--            &lt;!&ndash; 고객 사이드바 &ndash;&gt;-->
-<!--            <div th:if="${#authentication.principal.role == 'CLIENT'}"-->
-<!--                 class="col-md-3 col-lg-2 sidebar collapse" id="sidebarMenu3"-->
-<!--                 th:replace="client/clientSidebar :: sidebar"></div>-->
+             <div class="col-md-3 col-lg-2 sidebar collapse" id="sidebarMenu" th:replace="admin/adminSidebar :: sidebar"></div>
 
 
             <!-- 메인 콘텐츠 영역 -->
@@ -54,20 +40,14 @@
             <!-- 메인 대시보드 내용 -->
                <!-- <div th:replace="fragments/mainDashboard :: content"></div> -->
 				<!-- 상담보드 내용 -->
-                <div th:replace="agent/agentDashboard :: content"></div>
+<!--				<div th:replace="counselor/counselorDashboard :: content"></div>-->
 
-                <!-- 관리자 -->
-<!--                <div th:if="${#authentication.principal.role == 'ADMIN'}"-->
-<!--                     th:replace="admin/adminDashboard :: content"></div>-->
-
-<!--                &lt;!&ndash; 상담원 &ndash;&gt;-->
-<!--                <div th:if="${#authentication.principal.role == 'AGENT'}"-->
-<!--                     th:replace="agent/agentDashboard :: content"></div>-->
-
-<!--                &lt;!&ndash; 고객 &ndash;&gt;-->
-<!--                <div th:if="${#authentication.principal.role == 'CLIENT'}"-->
-<!--                     th:replace="client/clientDashboard :: content"></div>-->
-
+<!--                &lt;!&ndash;관리자 대시보드 내용&ndash;&gt;-->
+<!--				<div th:replace="admin/adminDashboard :: content"></div>-->
+                <!--관리자 대시보드 내용-->
+                <div th:replace="~{admin/contractManagement :: content}"></div>
+                <!-- script fragment 동적으로 포함 -->
+                <script th:replace="~{admin/contractManagement :: script}"></script>
 
             </div>
         </div>

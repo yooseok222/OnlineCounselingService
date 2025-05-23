@@ -12,6 +12,7 @@ public interface ContractTemplateMapper {
     Long getNextTemplateId();
     List<ContractTemplate> selectAllContractTemplates(@Param("companyId") Long companyId);
     ContractTemplate selectTemplateById(Long templateId);
+    String getPath(Long contractTemplateId);
     void insertTemplate(ContractTemplate template);
     void updateTemplate(ContractTemplate template);
     void deleteTemplate(Long contractTemplateId);
