@@ -377,6 +377,25 @@ function subscribeToTopics() {
       console.error("RTC 신호 처리 오류:", e);
     }
   });
+
+  // 스크롤 동기화 이벤트 구독
+  stompClient.subscribe(`/topic/room/${sessionId}/scroll`, function(message) {
+    try {
+      const scrollData = JSON.parse(message.body);
+      console.log("스크롤 동기화 데이터 수신:", scrollData);
+      
+      // 본인이 보낸 메시지가 아닌 경우에만 처리
+      if (scrollData.sender !== userRole) {
+        if (typeof handleRemoteScrollSync === 'function') {
+          handleRemoteScrollSync(scrollData.scrollData);
+        } else {
+          console.error("스크롤 동기화 핸들러가 정의되지 않았습니다.");
+        }
+      }
+    } catch (e) {
+      console.error("스크롤 동기화 데이터 처리 오류:", e);
+    }
+  });
   
   // 방 입장 이벤트 구독
   stompClient.subscribe(`/topic/room/${sessionId}/join`, function(message) {

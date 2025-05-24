@@ -222,6 +222,16 @@ window.onload = function() {
     }
   }, 1000);
 
+  // 스크롤 동기화 초기화
+  setTimeout(() => {
+    if (typeof initializeScrollSync === 'function') {
+      console.log("스크롤 동기화 초기화");
+      initializeScrollSync();
+    } else {
+      console.error("스크롤 동기화 초기화 함수가 로드되지 않았습니다.");
+    }
+  }, 1500);
+
   // 상담방 참여 - 무조건 실행!
   console.log("=== 상담방 참여 강제 실행 ===");
   console.log("세션 ID:", sessionId);

@@ -133,6 +133,34 @@ body {
   width: 100%; /* 너비 100%로 설정 */
 }
 
+/* 고객 스크롤 비활성화 스타일 */
+#scrollWrapper.client-scroll-disabled {
+  overflow: hidden !important;
+  user-select: none;
+}
+
+#scrollWrapper.client-scroll-disabled::-webkit-scrollbar {
+  display: none;
+}
+
+/* 스크롤 동기화 상태 표시 */
+.scroll-sync-indicator {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: rgba(0, 100, 225, 0.9);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 1000;
+  display: none;
+}
+
+.scroll-sync-indicator.active {
+  display: block;
+}
+
 /* 비디오 영역 - 가로로 배치 */
 .video-container {
   display: flex;

@@ -200,18 +200,22 @@ async function renderPage(pageNum) {
 
 // 이전 페이지로 이동
 function prevPage() {
-  if (!pdfDoc || currentPage <= 1) return;
+  if (!pdfDoc || currentPage <= 1) {
+    console.log("이전 페이지가 없습니다.");
+    return;
+  }
+
+  console.log(`이전 페이지로 이동: ${currentPage} → ${currentPage - 1}`);
   
-  // 현재 데이터 저장
-  saveDrawingData();
-  saveTextData();
-  saveStampData();
-  saveSignatureData();
+  // 현재 페이지의 모든 데이터 저장
+  if (typeof saveCurrentPageData === 'function') {
+    saveCurrentPageData();
+  }
   
   // 이전 페이지로 이동
   const prevPageNum = currentPage - 1;
   
-  // 다음 페이지 렌더링
+  // 이전 페이지 렌더링
   renderPage(prevPageNum);
   
   // 페이지 번호 저장
@@ -230,13 +234,17 @@ function prevPage() {
 
 // 다음 페이지로 이동
 function nextPage() {
-  if (!pdfDoc || currentPage >= pdfDoc.numPages) return;
+  if (!pdfDoc || currentPage >= pdfDoc.numPages) {
+    console.log("다음 페이지가 없습니다.");
+    return;
+  }
+
+  console.log(`다음 페이지로 이동: ${currentPage} → ${currentPage + 1}`);
   
-  // 현재 데이터 저장
-  saveDrawingData();
-  saveTextData();
-  saveStampData();
-  saveSignatureData();
+  // 현재 페이지의 모든 데이터 저장
+  if (typeof saveCurrentPageData === 'function') {
+    saveCurrentPageData();
+  }
   
   // 다음 페이지로 이동
   const nextPageNum = currentPage + 1;
@@ -534,4 +542,161 @@ function saveSessionData() {
   .catch(error => {
     console.error("세션 데이터 저장 오류:", error);
   });
+}
+
+// 스크롤 동기화 관련 변수
+let isScrollSyncEnabled = true;
+let isReceivingScrollSync = false;
+let scrollSyncTimeout = null;
+
+// 스크롤 동기화 초기화 함수
+function initializeScrollSync() {
+  const scrollWrapper = document.getElementById('scrollWrapper');
+  if (!scrollWrapper) {
+    console.warn("scrollWrapper 요소를 찾을 수 없습니다.");
+    return;
+  }
+
+  // 상담원만 스크롤 이벤트를 전송할 수 있도록 설정
+  if (userRole === 'agent') {
+    scrollWrapper.addEventListener('scroll', handleAgentScroll);
+    console.log("상담원 스크롤 동기화 이벤트 리스너 등록 완료");
+  } else if (userRole === 'client') {
+    // 고객은 스크롤을 비활성화
+    disableClientScroll();
+    console.log("고객 스크롤 비활성화 완료");
+  }
+}
+
+// 상담원 스크롤 이벤트 처리
+function handleAgentScroll(event) {
+  if (!isScrollSyncEnabled || isReceivingScrollSync) {
+    return;
+  }
+
+  // 스크롤 이벤트 디바운싱
+  if (scrollSyncTimeout) {
+    clearTimeout(scrollSyncTimeout);
+  }
+
+  scrollSyncTimeout = setTimeout(() => {
+    const scrollWrapper = event.target;
+    const scrollData = {
+      scrollTop: scrollWrapper.scrollTop,
+      scrollLeft: scrollWrapper.scrollLeft,
+      scrollHeight: scrollWrapper.scrollHeight,
+      scrollWidth: scrollWrapper.scrollWidth,
+      clientHeight: scrollWrapper.clientHeight,
+      clientWidth: scrollWrapper.clientWidth
+    };
+
+    sendScrollSync(scrollData);
+  }, 50); // 50ms 디바운싱
+}
+
+// 스크롤 동기화 데이터 전송
+function sendScrollSync(scrollData) {
+  if (!stompClient || !stompClient.connected || !sessionId) {
+    console.warn("WebSocket 연결이 없어 스크롤 동기화를 전송할 수 없습니다.");
+    return;
+  }
+
+  try {
+    const message = {
+      type: 'scroll_sync',
+      sender: userRole,
+      sessionId: sessionId,
+      scrollData: scrollData,
+      timestamp: Date.now()
+    };
+
+    stompClient.send(`/topic/room/${sessionId}/scroll`, {}, JSON.stringify(message));
+    console.log("스크롤 동기화 데이터 전송:", scrollData);
+  } catch (error) {
+    console.error("스크롤 동기화 전송 오류:", error);
+  }
+}
+
+// 원격 스크롤 동기화 처리
+function handleRemoteScrollSync(scrollData) {
+  if (userRole !== 'client') {
+    return; // 고객만 스크롤 동기화를 받음
+  }
+
+  const scrollWrapper = document.getElementById('scrollWrapper');
+  if (!scrollWrapper) {
+    console.warn("scrollWrapper 요소를 찾을 수 없습니다.");
+    return;
+  }
+
+  // 무한 루프 방지
+  isReceivingScrollSync = true;
+
+  try {
+    // 스크롤 위치 동기화
+    scrollWrapper.scrollTop = scrollData.scrollTop;
+    scrollWrapper.scrollLeft = scrollData.scrollLeft;
+    
+    console.log("고객 스크롤 위치 동기화 완료:", scrollData);
+  } catch (error) {
+    console.error("스크롤 동기화 처리 오류:", error);
+  } finally {
+    // 100ms 후 플래그 해제
+    setTimeout(() => {
+      isReceivingScrollSync = false;
+    }, 100);
+  }
+}
+
+// 고객 스크롤 비활성화
+function disableClientScroll() {
+  const scrollWrapper = document.getElementById('scrollWrapper');
+  if (!scrollWrapper) {
+    return;
+  }
+
+  // CSS로 스크롤 비활성화
+  scrollWrapper.style.overflow = 'hidden';
+  
+  // 스크롤 이벤트 차단
+  scrollWrapper.addEventListener('wheel', preventScroll, { passive: false });
+  scrollWrapper.addEventListener('touchmove', preventScroll, { passive: false });
+  scrollWrapper.addEventListener('keydown', preventScrollKeys, { passive: false });
+  
+  console.log("고객 스크롤 비활성화 적용 완료");
+}
+
+// 스크롤 이벤트 차단 함수
+function preventScroll(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  return false;
+}
+
+// 키보드 스크롤 차단 함수
+function preventScrollKeys(event) {
+  const scrollKeys = [32, 33, 34, 35, 36, 37, 38, 39, 40]; // Space, Page Up/Down, Home, End, Arrow keys
+  if (scrollKeys.includes(event.keyCode)) {
+    event.preventDefault();
+    event.stopPropagation();
+    return false;
+  }
+}
+
+// 고객 스크롤 활성화 (필요시 사용)
+function enableClientScroll() {
+  const scrollWrapper = document.getElementById('scrollWrapper');
+  if (!scrollWrapper) {
+    return;
+  }
+
+  // CSS 스크롤 활성화
+  scrollWrapper.style.overflow = 'auto';
+  
+  // 이벤트 리스너 제거
+  scrollWrapper.removeEventListener('wheel', preventScroll);
+  scrollWrapper.removeEventListener('touchmove', preventScroll);
+  scrollWrapper.removeEventListener('keydown', preventScrollKeys);
+  
+  console.log("고객 스크롤 활성화 완료");
 } 
