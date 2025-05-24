@@ -939,29 +939,7 @@ function blobToBase64(blob) {
   });
 }
 
-// PDF 저장 버튼 추가 (UI 초기화 시 호출)
-function addPdfSaveButton() {
-  // 이미 추가되어 있는지 확인
-  if (document.getElementById('pdfSaveBtn')) return;
-  
-  const toolbarGroup = document.querySelector('.toolbar-group:last-child');
-  if (!toolbarGroup) return;
-  
-  // 저장 버튼 생성
-  const saveBtn = document.createElement('button');
-  saveBtn.id = 'pdfSaveBtn';
-  saveBtn.className = 'tool-btn';
-  saveBtn.innerHTML = '<i class="fas fa-save"></i> PDF 저장';
-  saveBtn.onclick = function() {
-    savePdfWithStampAndSignature();
-  };
-  
-  // 툴바에 버튼 추가
-  toolbarGroup.insertBefore(saveBtn, toolbarGroup.firstChild);
-  console.log("PDF 저장 버튼이 추가되었습니다.");
-}
-
-// 페이지 로드 시 PDF 저장 버튼 추가
+// PDF 저장 버튼 추가 (UI 초기화 시 호출) - 상담원만
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(addPdfSaveButton, 1000); // 1초 후 버튼 추가 (다른 UI 초기화 이후)
 }); 

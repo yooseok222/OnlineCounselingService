@@ -105,14 +105,7 @@
         <button id="penBtn" class="tool-btn" onclick="setPen()"><i class="fas fa-pen"></i> 펜</button>
         <button id="highlighterBtn" class="tool-btn" onclick="setHighlighter()"><i class="fas fa-highlighter"></i> 형광펜</button>
       </div>
-      <div class="toolbar-group">
-        <button id="textBtn" class="tool-btn" onclick="openTextPopup()"><i class="fas fa-font"></i> 텍스트</button>
-        <button id="stampBtn" class="tool-btn" onclick="openStampPopup()"><i class="fas fa-stamp"></i> 도장</button>
-        <button id="signatureBtn" class="tool-btn" onclick="openSignaturePopup()"><i class="fas fa-signature"></i> 서명</button>
-      </div>
-      <div class="toolbar-group">
-        <button class="tool-btn end-consult-btn" onclick="endConsult()"><i class="fas fa-times-circle"></i> 상담 종료</button>
-      </div>
+            <div class="toolbar-group">        <button id="textBtn" class="tool-btn" onclick="openTextPopup()"><i class="fas fa-font"></i> 텍스트</button>        <button id="stampBtn" class="tool-btn" onclick="openStampPopup()"><i class="fas fa-stamp"></i> 도장</button>        <button id="signatureBtn" class="tool-btn" onclick="openSignaturePopup()"><i class="fas fa-signature"></i> 서명</button>      </div>
     </div>
     
     <div class="status-area">
@@ -120,29 +113,7 @@
       <span>현재 모드: <span id="currentMode">커서</span></span>
     </div>
     
-    <div class="content-wrapper">
-      <div class="video-container">
-        <div id="localVideoContainer" class="video-wrapper">
-          <h4>내 화면</h4>
-          <video id="localVideo" autoplay playsinline muted></video>
-          <div id="localVideoStatus" class="video-status">연결 중...</div>
-        </div>
-        <div id="remoteVideoContainer" class="video-wrapper">
-          <h4>상담원 화면</h4>
-          <video id="remoteVideo" autoplay playsinline></video>
-          <div id="remoteVideoStatus" class="video-status">연결 대기 중...</div>
-        </div>
-      </div>
-      
-      <div class="record-controls-container">
-        <div class="record-controls">
-          <button id="startRec" class="start-rec"><i class="fas fa-microphone"></i> 녹음 시작</button>
-          <button id="stopRec" class="stop-rec" disabled><i class="fas fa-stop-circle"></i> 녹음 중지</button>
-        </div>
-      </div>
-      
-            <div id="scrollWrapper">        <div class="scroll-sync-indicator" id="scrollSyncIndicator">          <i class="fas fa-sync-alt"></i> 스크롤 동기화 중        </div>        <canvas id="pdfCanvas"></canvas>        <canvas id="drawingCanvas"></canvas>      </div>
-    </div>
+        <div class="content-wrapper">      <div id="scrollWrapper">        <div class="scroll-sync-indicator" id="scrollSyncIndicator">          <i class="fas fa-sync-alt"></i> 스크롤 동기화 중        </div>        <canvas id="pdfCanvas"></canvas>        <canvas id="drawingCanvas"></canvas>      </div>            <div class="video-container">        <div id="localVideoContainer" class="video-wrapper">          <h4>내 화면</h4>          <video id="localVideo" autoplay playsinline muted></video>          <div id="localVideoStatus" class="video-status">연결 중...</div>        </div>        <div id="remoteVideoContainer" class="video-wrapper">          <h4>상담원 화면</h4>          <video id="remoteVideo" autoplay playsinline></video>          <div id="remoteVideoStatus" class="video-status">연결 대기 중...</div>        </div>                <div class="record-controls-container">          <div class="record-controls">            <button id="startRec" class="start-rec"><i class="fas fa-microphone"></i> 녹음 시작</button>            <button id="stopRec" class="stop-rec" disabled><i class="fas fa-stop-circle"></i> 녹음 중지</button>          </div>        </div>      </div>    </div>
   </div>
   
   <!-- 텍스트 입력 팝업 -->

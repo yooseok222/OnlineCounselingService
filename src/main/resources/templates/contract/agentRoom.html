@@ -51,6 +51,14 @@
     </div>
     
     <div class="content-wrapper">
+      <div id="scrollWrapper">
+        <div class="scroll-sync-indicator" id="scrollSyncIndicator">
+          <i class="fas fa-sync-alt"></i> 스크롤 동기화 중
+        </div>
+        <canvas id="pdfCanvas"></canvas>
+        <canvas id="drawingCanvas"></canvas>
+      </div>
+      
       <div class="video-container">
         <div id="localVideoContainer" class="video-wrapper">
           <h4>내 화면</h4>
@@ -62,21 +70,13 @@
           <video id="remoteVideo" autoplay playsinline></video>
           <div id="remoteVideoStatus" class="video-status">연결 대기 중...</div>
         </div>
-      </div>
-      
-      <div class="record-controls-container">
-        <div class="record-controls">
-          <button id="startRec" class="start-rec"><i class="fas fa-microphone"></i> 녹음 시작</button>
-          <button id="stopRec" class="stop-rec" disabled><i class="fas fa-stop-circle"></i> 녹음 중지</button>
+        
+        <div class="record-controls-container">
+          <div class="record-controls">
+            <button id="startRec" class="start-rec"><i class="fas fa-microphone"></i> 녹음 시작</button>
+            <button id="stopRec" class="stop-rec" disabled><i class="fas fa-stop-circle"></i> 녹음 중지</button>
+          </div>
         </div>
-      </div>
-      
-      <div id="scrollWrapper">
-        <div class="scroll-sync-indicator" id="scrollSyncIndicator">
-          <i class="fas fa-sync-alt"></i> 스크롤 동기화 중
-        </div>
-        <canvas id="pdfCanvas"></canvas>
-        <canvas id="drawingCanvas"></canvas>
       </div>
     </div>
   </div>

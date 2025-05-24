@@ -106,48 +106,7 @@ window.onload = function() {
     window.history.replaceState({}, '', newUrl);
   }
     
-  // 상담원인 경우 고객 URL 생성 및 표시
-  if (userRole === "agent") {
-    const clientUrl = new URL(window.location.href);
-    clientUrl.searchParams.set('role', 'client');
-    const clientUrlString = clientUrl.toString();
-    
-    // URL을 상담원에게 표시 (복사 가능하게)
-    setTimeout(() => {
-      // URL을 복사 가능한 형태로 표시하는 모달 또는 요소 추가
-      const urlDisplayDiv = document.createElement('div');
-      urlDisplayDiv.className = 'client-url-display';
-      urlDisplayDiv.innerHTML = `
-        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; position: relative;">
-          <h4>고객 접속 URL</h4>
-          <div style="display: flex;">
-            <input type="text" value="${clientUrlString}" 
-                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" 
-                   readonly id="clientUrlInput">
-            <button onclick="copyClientUrl()" 
-                    style="margin-left: 5px; padding: 8px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-              복사
-            </button>
-          </div>
-        </div>
-      `;
-      
-      // 상담원 컨트롤 영역에 URL 표시 요소 추가
-      const controlArea = document.querySelector('.controls') || document.querySelector('.toolbar');
-      if (controlArea) {
-        controlArea.appendChild(urlDisplayDiv);
-      } else {
-        document.body.insertBefore(urlDisplayDiv, document.body.firstChild);
-      }
-      
-      // URL 복사 함수 추가
-      window.copyClientUrl = function() {
-        const urlInput = document.getElementById('clientUrlInput');
-        urlInput.select();
-        document.execCommand('copy');
-      };
-    }, 2000);
-  }
+    // 고객 URL 표시 기능 제거됨 (불필요)
 
   // 세션 ID 확인 로그
   console.log("최종 설정된 세션 ID:", sessionId);

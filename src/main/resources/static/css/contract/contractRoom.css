@@ -116,57 +116,31 @@ body {
 /* 메인 콘텐츠 영역 */
 .content-wrapper {
   display: flex;
-  flex-direction: column; /* 전체 레이아웃을 세로로 변경 */
+  flex-direction: row; /* 가로 배치로 변경 */
   gap: 15px;
   margin-bottom: 15px;
+  height: 70vh; /* 전체 높이 설정 */
 }
 
-/* PDF 영역 - 항상 보이도록 수정 */
+/* PDF 영역 - 왼쪽에 크게 배치 */
 #scrollWrapper {
   background-color: white;
   border-radius: 8px;
   padding: 15px;
   position: relative;
-  height: 500px; /* 높이 조정 */
+  height: 100%;
   overflow-y: scroll;
   box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-  width: 100%; /* 너비 100%로 설정 */
+  flex: 2; /* PDF 영역을 2배 크기로 */
 }
 
-/* 고객 스크롤 비활성화 스타일 */
-#scrollWrapper.client-scroll-disabled {
-  overflow: hidden !important;
-  user-select: none;
-}
-
-#scrollWrapper.client-scroll-disabled::-webkit-scrollbar {
-  display: none;
-}
-
-/* 스크롤 동기화 상태 표시 */
-.scroll-sync-indicator {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background-color: rgba(0, 100, 225, 0.9);
-  color: white;
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  z-index: 1000;
-  display: none;
-}
-
-.scroll-sync-indicator.active {
-  display: block;
-}
-
-/* 비디오 영역 - 가로로 배치 */
+/* 비디오 영역 - 오른쪽에 세로로 배치 */
 .video-container {
   display: flex;
-  flex-direction: row;
-  gap: 15px;
-  width: 100%;
+  flex-direction: column; /* 세로 배치로 변경 */
+  gap: 10px;
+  flex: 1; /* 비디오 영역 크기 */
+  height: 100%;
 }
 
 .video-wrapper {
@@ -176,25 +150,26 @@ body {
   box-shadow: 0 2px 10px rgba(0,0,0,0.05);
   position: relative;
   flex: 1;
+  min-height: 0; /* Flexbox가 제대로 작동하도록 */
 }
 
 .video-wrapper h4 {
   background-color: #0064E1;
   color: white;
   margin: 0;
-  padding: 8px 12px;
-  font-size: 14px;
+  padding: 6px 10px; /* 패딩 줄임 */
+  font-size: 12px; /* 폰트 크기 줄임 */
   text-align: center;
 }
 
 .video-wrapper video {
   width: 100%;
-  height: 200px; /* 높이 조정 */
+  height: calc(100% - 30px); /* h4 높이를 제외한 나머지 */
   background-color: #222;
   object-fit: cover;
   display: block;
-  border: 2px solid #0064E1;
-  border-radius: 8px;
+  border: none; /* 경계선 제거 */
+  border-radius: 0 0 8px 8px; /* 하단만 둥글게 */
   transition: border-color 0.3s;
 }
 
@@ -219,11 +194,15 @@ body {
 /* 녹음 컨트롤 */
 .record-controls-container {
   margin-top: 10px;
+  background-color: white;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
 
 .record-controls {
   display: flex;
-  gap: 10px;
+  gap: 5px;
 }
 
 .record-controls button {
@@ -232,8 +211,9 @@ body {
   color: white;
   border: none;
   border-radius: 4px;
-  padding: 8px 12px;
+  padding: 6px 8px; /* 패딩 줄임 */
   cursor: pointer;
+  font-size: 12px; /* 폰트 크기 줄임 */
 }
 
 .record-controls button:disabled {
@@ -251,6 +231,33 @@ body {
   position: absolute;
   top: 15px;
   left: 15px;
+}
+
+/* 스크롤 동기화 인디케이터 */
+.scroll-sync-indicator {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: rgba(0, 100, 225, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  z-index: 100;
+  display: none;
+  box-shadow: 0 2px 10px rgba(0, 100, 225, 0.3);
+  animation: pulse 1.5s infinite;
+}
+
+.scroll-sync-indicator.active {
+  display: block;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
 }
 
 #textPopup {
@@ -457,12 +464,20 @@ body {
     margin-bottom: 10px;
   }
 
+  .content-wrapper {
+    flex-direction: column; /* 모바일에서는 세로 배치 */
+    height: auto;
+  }
+
   #scrollWrapper {
     height: 400px;
+    flex: none;
   }
 
   .video-container {
-    flex-direction: column;
+    flex-direction: row; /* 모바일에서는 가로 배치 */
+    height: 200px;
+    flex: none;
   }
 
   .video-wrapper {
@@ -470,25 +485,7 @@ body {
   }
 
   .video-wrapper video {
-    height: 150px;
-  }
-}
-
-@media (max-width: 768px) {
-  /* 모바일에서 비디오 영역 세로 배치로 변경 */
-  .video-container {
-    flex-direction: column !important;
-    padding: 10px;
-    gap: 10px;
-  }
-
-  .video-wrapper {
-    width: 100%;
-    margin-bottom: 10px;
-  }
-
-  .video-wrapper video {
-    height: 180px;
+    height: calc(100% - 25px);
   }
 }
 
@@ -499,18 +496,18 @@ body {
   object-fit: cover;
   background-color: #1a1a1a; /* 비디오 로딩 중일 때 배경색 */
   display: block !important; /* 항상 표시되도록 설정 */
-  border-radius: 8px;
+  border-radius: 0 0 8px 8px;
   z-index: 1;
 }
 
 #localVideoContainer, #remoteVideoContainer {
   position: relative;
   overflow: hidden;
-  margin: 5px;
-  border-radius: 8px;
   background-color: #1a1a1a;
   box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-  min-height: 200px; /* 최소 높이 보장 */
+  border-radius: 8px;
+  height: 100%;
+  min-height: 150px; /* 최소 높이 보장 */
 }
 
 .video-status {
