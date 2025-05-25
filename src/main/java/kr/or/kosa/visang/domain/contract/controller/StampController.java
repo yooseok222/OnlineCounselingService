@@ -98,6 +98,10 @@ public class StampController {
             log.info("도장 업로드 완료 - 클라이언트 ID: {}, 도장 ID: {}, 파일: {}", 
                     clientId, stampDTO.getStampId(), stampDTO.getImagePath());
 
+        } catch (IllegalStateException e) {
+            log.warn("도장 업로드 거부 - 클라이언트 ID: {}, 사유: {}", 
+                    SecurityUtil.getCurrentUser().getClientId(), e.getMessage());
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
         } catch (IOException e) {
             log.error("도장 업로드 실패", e);
             redirectAttributes.addFlashAttribute("error", "도장 업로드 중 오류가 발생했습니다.");
@@ -192,13 +196,44 @@ public class StampController {
         Map<String, Object> response = new HashMap<>();
         
         try {
+            // 현재 로그인한 사용자 정보 확인
+            CustomUserDetails currentUser = SecurityUtil.getCurrentUser();
+            if (currentUser == null || currentUser.getClientId() == null) {
+                log.error("로그인하지 않았거나 고객 정보가 없습니다.");
+                response.put("success", false);
+                response.put("message", "로그인이 필요합니다.");
+                return ResponseEntity.status(401).body(response);
+            }
+
+            // 삭제하려는 도장 정보 조회
+            StampDTO stamp = stampService.getStampById(stampId);
+            if (stamp == null) {
+                response.put("success", false);
+                response.put("message", "도장을 찾을 수 없습니다.");
+                return ResponseEntity.ok(response);
+            }
+
+            // 도장 소유자 확인
+            if (!currentUser.getClientId().equals(stamp.getClientId())) {
+                log.error("권한 없음 - 도장 소유자: {}, 현재 사용자: {}", 
+                         stamp.getClientId(), currentUser.getClientId());
+                response.put("success", false);
+                response.put("message", "해당 도장을 삭제할 권한이 없습니다.");
+                return ResponseEntity.status(403).body(response);
+            }
+
+            log.info("도장 삭제 시작 - 클라이언트 ID: {}, 도장 ID: {}", 
+                    currentUser.getClientId(), stampId);
+
             int result = stampService.deleteStamp(stampId);
             if (result > 0) {
                 response.put("success", true);
                 response.put("message", "도장이 삭제되었습니다.");
+                log.info("도장 삭제 완료 - 클라이언트 ID: {}, 도장 ID: {}", 
+                        currentUser.getClientId(), stampId);
             } else {
                 response.put("success", false);
-                response.put("message", "도장을 찾을 수 없습니다.");
+                response.put("message", "도장 삭제에 실패했습니다.");
             }
         } catch (Exception e) {
             log.error("도장 삭제 실패", e);

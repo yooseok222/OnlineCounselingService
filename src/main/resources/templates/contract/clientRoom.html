@@ -707,20 +707,22 @@
               </div>
             `;
           } else {
-            let stampsHtml = '';
-            stamps.forEach(stamp => {
-              const date = new Date(stamp.createdAt).toLocaleDateString('ko-KR');
-              stampsHtml += `
-                <div class="uploaded-stamp-item" onclick="selectUploadedStamp(${stamp.stampId}, '${stamp.imagePath}')">
-                  <img src="/stamp/image/${stamp.imagePath}" class="uploaded-stamp-image" alt="도장">
-                  <div class="uploaded-stamp-info">
-                    <div>도장 #${stamp.stampId}</div>
-                    <div class="uploaded-stamp-date">${date}</div>
-                  </div>
+            // 첫 번째 도장만 표시 (한 고객당 하나의 도장만 허용)
+            const stamp = stamps[0];
+            const date = new Date(stamp.createdAt).toLocaleDateString('ko-KR');
+            const stampsHtml = `
+              <div class="uploaded-stamp-item selected" onclick="selectUploadedStamp(${stamp.stampId}, '${stamp.imagePath}')">
+                <img src="/stamp/image/${stamp.imagePath}" class="uploaded-stamp-image" alt="내 도장">
+                <div class="uploaded-stamp-info">
+                  <div>내 도장</div>
+                  <div class="uploaded-stamp-date">등록일: ${date}</div>
                 </div>
-              `;
-            });
+              </div>
+            `;
             stampsList.innerHTML = stampsHtml;
+            
+            // 자동으로 도장 선택
+            selectUploadedStamp(stamp.stampId, stamp.imagePath);
           }
         })
         .catch(error => {

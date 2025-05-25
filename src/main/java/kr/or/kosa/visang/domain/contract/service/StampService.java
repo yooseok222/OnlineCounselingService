@@ -32,8 +32,14 @@ public class StampService {
         return stampMapper.selectStampsByClientId(clientId);
     }
 
-    // 도장 이미지 업로드 및 저장
+    // 도장 이미지 업로드 및 저장 (기존 도장이 있으면 업로드 거부)
     public StampDTO uploadStamp(MultipartFile file, Long clientId) throws IOException {
+        // 기존 도장이 있는지 확인
+        List<StampDTO> existingStamps = getStampsByClientId(clientId);
+        if (!existingStamps.isEmpty()) {
+            throw new IllegalStateException("이미 등록된 도장이 있습니다. 새 도장을 업로드하려면 먼저 기존 도장을 삭제해주세요.");
+        }
+        
         // 업로드 폴더 생성
         File uploadDir = new File(UPLOAD_DIR);
         if (!uploadDir.exists()) {
