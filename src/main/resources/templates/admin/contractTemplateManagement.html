@@ -26,7 +26,8 @@
                 </thead>
                 <tbody>
                 <tr th:each="template, iterStat : ${templateList}">
-                    <td th:text="${iterStat.index + 1}"></td> <!-- 1부터 시작 -->
+<!--                <td th:text="${iterStat.index + 1}"></td> &lt;!&ndash; 1부터 시작 &ndash;&gt;-->
+                    <td th:text="${templateList.size() - iterStat.index}"></td><!-- 역순으로 표시 -->
                     <td th:text="${template.contractName}"></td>
                     <td th:text="${template.filePath}"></td>
                     <td th:text="${#strings.abbreviate(template.descript, 50)}"></td>
