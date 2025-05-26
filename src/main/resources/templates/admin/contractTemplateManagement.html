@@ -43,11 +43,15 @@
             </table>
         </div>
     </main>
+</div>
 
-    <script th:fragment="script">
-        function showTemplateForm(template = null) {
-            const area = document.getElementById("templateFormArea");
-            area.innerHTML = `
+<script th:fragment="script">
+    const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+    const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+    function showTemplateForm(template = null) {
+        const area = document.getElementById("templateFormArea");
+        area.innerHTML = `
         <div class="card p-4 mb-4">
           <h5 class="mb-3">${template ? '템플릿 수정' : '새 템플릿 등록'}</h5>
           <form onsubmit="saveTemplate(event, ${template ? template.contractTemplateId : null})">
@@ -76,68 +80,71 @@
             </div>
           </form>
         </div>`;
+    }
+
+    async function saveTemplate(e, id = null) {
+        e.preventDefault();
+
+        const form = e.target;
+
+        const formData = new FormData();
+        formData.append("contractName", form.contractName.value);
+        formData.append("descript", form.descript.value);
+        formData.append("version", form.version.value);
+        if (form.pdf.files.length > 0) {
+            formData.append("pdf", form.pdf.files[0]); // 새 파일만 전송
         }
+        formData.append("filePath", form.filePath.value || '');
 
-        async function saveTemplate(e, id = null) {
-            e.preventDefault();
-            const csrfToken = document.querySelector('meta[name="_csrf"]').content;
-            const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+        const url = id ? `/admin/template/${id}` : "/admin/template";
+        const method = id ? "PUT" : "POST";
 
-            const form = e.target;
+        try {
+            const res = await fetch(url, {
+                method,
+                body: formData,
+                headers: {
+                    [csrfHeader]: csrfToken,
+                }
+            });
 
-            const formData = new FormData();
-            formData.append("contractName", form.contractName.value);
-            formData.append("descript", form.descript.value);
-            formData.append("version", form.version.value);
-            if (form.pdf.files.length > 0) {
-                formData.append("pdf", form.pdf.files[0]); // 새 파일만 전송
-            }
-            formData.append("filePath", form.filePath.value || '');
-
-            const url = id ? `/admin/template/${id}` : "/admin/template";
-            const method = id ? "PUT" : "POST";
-
-            try {
-                const res = await fetch(url, {
-                    method,
-                    body: formData,
-                    headers: {
-                        [csrfHeader]: csrfToken,
-                    }
-                });
-
-                if (!res.ok) throw new Error("저장 실패");
-                location.reload();
-            } catch (e) {
-                alert("계약서 저장에 실패했습니다.");
-                console.error(e);
-            }
+            if (!res.ok) throw new Error("저장 실패");
+            location.reload();
+        } catch (e) {
+            alert("계약서 저장에 실패했습니다.");
+            console.error(e);
         }
+    }
 
-        async function editTemplate(templateId) {
-            try {
-                const res = await fetch(`/admin/template/${templateId}`);
-                console.log(res)
-                if (!res.ok) throw new Error("불러오기 실패");
-                const template = await res.json();
-                showTemplateForm(template);
-            } catch (e) {
-                alert("템플릿 정보를 불러올 수 없습니다.");
-                console.error(e);
-            }
+    async function editTemplate(templateId) {
+        try {
+            const res = await fetch(`/admin/template/${templateId}`);
+            console.log(res)
+            if (!res.ok) throw new Error("불러오기 실패");
+            const template = await res.json();
+            showTemplateForm(template);
+        } catch (e) {
+            alert("템플릿 정보를 불러올 수 없습니다.");
+            console.error(e);
         }
+    }
 
-        async function deleteTemplate(id) {
-            if (!confirm("정말 삭제하시겠습니까?")) return;
-            try {
-                const res = await fetch(`/admin/template/${id}`, { method: "DELETE" });
-                if (!res.ok) throw new Error();
-                alert("삭제되었습니다.");
-                location.reload();
-            } catch (e) {
-                alert("삭제 실패");
-                console.error(e);
-            }
+    async function deleteTemplate(id) {
+        if (!confirm("정말 삭제하시겠습니까?")) return;
+        try {
+            const res = await fetch(`/admin/template/${id}`, {
+                method: "DELETE",
+                headers: {
+                    [csrfHeader]: csrfToken,
+                }
+            });
+
+            if (!res.ok) throw new Error();
+            alert("삭제되었습니다.");
+            location.reload();
+        } catch (e) {
+            alert("삭제 실패");
+            console.error(e);
         }
-    </script>
-</div>
+    }
+</script>
