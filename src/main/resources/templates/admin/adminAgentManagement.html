@@ -136,6 +136,9 @@
 
 <!--  행 클릭 이동 스크립트 -->
 <script th:fragment="script">
+  const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+  const csrfParam = document.querySelector('meta[name="_csrf_parameter"]').content;
+
   document.addEventListener('click', function (e) {
     const btn = e.target.closest('.edit-button');
     if (!btn) return;
@@ -263,8 +266,10 @@
     <h5 class="mb-3">상담사 정보 수정</h5>
     <hr/>
     <form action="/admin/update/${agent.agentId}" method="post" enctype="multipart/form-data">
+      <input type="hidden" name="${csrfParam}" value="${csrfToken}"/>
       <div class="row">
         <!-- 프로필 이미지 업로드 -->
+
         <div class="col-md-3 text-center">
           <img src="${agent.profileImageUrl || '/images/profile/default_profile.png'}"
                alt="프로필 이미지"
