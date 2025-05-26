@@ -238,41 +238,43 @@
         ORDER BY c.contract_time
     </select>
 
+    <!-- PENDING, IN_PROGRESS 상태만 카운트 -->
     <select id="countByClientAndTime" parameterType="map"
             resultType="int">
         SELECT COUNT(*)
         FROM contract
         WHERE client_id = #{clientId}
         AND contract_time = #{contractTime}
+        AND status IN ('PENDING','IN_PROGRESS')
     </select>
 
+    <!-- PENDINGM IN_PROGRESS 상태만 카운트 -->
     <select id="countByAgentAndTime" resultType="int"
             parameterType="map">
         SELECT COUNT(*)
         FROM contract
         WHERE agent_id = #{agentId}
         AND contract_time = #{contractTime}
+        AND status IN ('PENDING','IN_PROGRESS')
     </select>
 
 
     <select id="countByClientAndTimeExcept" resultType="int">
-        SELECT
-        COUNT(*)
+        SELECT COUNT(*)
         FROM contract
         WHERE client_id = #{clientId}
-        AND contract_time =
-        #{contractTime}
+        AND contract_time = #{contractTime}
         AND contract_id != #{excludeContractId}
+        AND status IN ('PENDING','IN_PROGRESS')
     </select>
 
     <select id="countByAgentAndTimeExcept" resultType="int">
-        SELECT
-        COUNT(*)
+        SELECT COUNT(*)
         FROM contract
         WHERE agent_id = #{agentId}
-        AND contract_time =
-        #{contractTime}
+        AND contract_time = #{contractTime}
         AND contract_id != #{excludeContractId}
+        AND status IN ('PENDING','IN_PROGRESS')
     </select>
 
     <update id="updateSchedule">

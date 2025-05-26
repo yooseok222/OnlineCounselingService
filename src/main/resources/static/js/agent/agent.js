@@ -1,3 +1,9 @@
+function getCsrf() {
+  const token  = document.querySelector('meta[name="_csrf"]').content;
+  const header = document.querySelector('meta[name="_csrf_header"]').content;
+  return { header, token };
+}
+
 let currentPage = 1;
 let currentStatus = 'PENDING';
 let currentSortOrder = 'DESC';
@@ -179,6 +185,44 @@ document.addEventListener('DOMContentLoaded', function() {
 		});
 	}
 
+	// 통화하기 입장
+	function canEnterCall(reservationDateStr, reservationTimeStr) {
+      const now = new Date();
+
+      // 로컬 날짜 문자열 (YYYY-MM-DD) 생성
+      const localToday = [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, '0'),
+        String(now.getDate()).padStart(2, '0')
+      ].join('-');
+
+      const reservation = new Date(`${reservationDateStr}T${reservationTimeStr}:00`);
+
+      // 1) 날짜 확인
+      if (localToday !== reservationDateStr) {
+        Swal.fire({
+          icon: 'warning',
+          title: '입장 불가',
+          text: '오늘 날짜의 예약이 아닙니다.'
+        });
+        return false;
+      }
+
+      // 2) 예약 5분 전 확인
+      const earliest = new Date(reservation.getTime() - 5 * 60 * 1000);
+      if (now < earliest) {
+        Swal.fire({
+          icon: 'warning',
+          title: '아직 너무 이릅니다',
+          text: '예약시간 5분 전부터 입장 가능합니다.'
+        });
+        return false;
+      }
+
+      return true;
+    }
+
+
 	// 캘린더 초기화
 	const calendar = new FullCalendar.Calendar(calendarEl, {
 		initialView: 'dayGridMonth',
@@ -359,22 +403,40 @@ document.addEventListener('DOMContentLoaded', function() {
 				ul.innerHTML = '<li class="list-group-item text-center text-muted">오늘 계약 예정이 없습니다.</li>';
 				return;
 			}
-			list.forEach(c => {
-				const li = document.createElement('li');
-				li.className = 'list-group-item d-flex justify-content-between align-items-center';
-				li.innerHTML = `
-	        <div>
-	          <strong>${c.time}</strong>
-	          <span class="ms-2">${c.clientName}</span>
-	          <small class="text-muted ms-2">(${c.email})</small>
-	          <span class="badge bg-secondary ms-3">${c.invitationCode || '–'}</span>
-	        </div>
-	        <button class="btn btn-sm btn-primary start-webrtc-btn" data-contract-id="${c.contractId}">
-	          통화 시작
-	        </button>
-	      `;
-				ul.appendChild(li);
-			});
+			 list.forEach(c => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                li.innerHTML = `
+                  <div>
+                    <strong>${c.time}</strong>
+                    <span class="ms-2">${c.clientName}</span>
+                    <small class="text-muted ms-2">(${c.email})</small>
+                    <span class="badge bg-secondary ms-3">${c.invitationCode || '–'}</span>
+                  </div>
+                  <button
+                    class="btn btn-sm btn-primary start-webrtc-btn"
+                    data-contract-id="${c.contractId}"
+                    data-date="${iso}"
+                    data-time="${c.time}">
+                    통화 시작
+                  </button>
+                `;
+                ul.appendChild(li);
+              });
+               document.querySelectorAll('.start-webrtc-btn').forEach(btn => {
+                  btn.addEventListener('click', () => {
+                    const dateStr = btn.dataset.date;
+                    const timeStr = btn.dataset.time;
+
+                    if (!canEnterCall(dateStr, timeStr)) {
+                      return;
+                    }
+
+                    const contractId = btn.dataset.contractId;
+                    window.location.href = `/contract/room?contractId=${contractId}&role=agent`;
+                  });
+                });
+
 		} catch (err) {
 			console.error(err);
 		}
@@ -494,6 +556,8 @@ document.addEventListener('DOMContentLoaded', function() {
 	// 스케줄 저장
 	saveBtn.addEventListener('click', async e => {
 		e.preventDefault();
+		const { header: csrfHeader, token: csrfToken } = getCsrf();
+
 		if (saveBtn.disabled) return;
 
 		const form = document.getElementById('scheduleForm');
@@ -501,6 +565,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const date = fd.get('date');
         const time = fd.get('time');
+
 
         if (!date || !time) {
             alert('날짜와 시간을 모두 입력해주세요.');
@@ -516,9 +581,6 @@ document.addEventListener('DOMContentLoaded', function() {
 			memo: fd.get('memo'),
 			status: 'PENDING'
 		};
-
-		const csrfToken = getCookie('XSRF-TOKEN');
-		const csrfHeader = 'X-XSRF-TOKEN';
 
 		try {
 
@@ -598,6 +660,8 @@ document.addEventListener('DOMContentLoaded', function() {
 	// 일정 수정
 	document.getElementById('updateBtn').addEventListener('click', async e => {
 		e.preventDefault();
+	    const { header: csrfHeader, token: csrfToken } = getCsrf();
+
 		const form = document.getElementById('scheduleForm');
 		const fd = new FormData(form);
 
@@ -616,15 +680,12 @@ document.addEventListener('DOMContentLoaded', function() {
 			status: fd.get('contractStatus')
 		};
 
-		const csrfToken = getCookie('XSRF-TOKEN');
-
-
 		try {
 			const res = await fetch('/agent/schedule/update', {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
-					'X-XSRF-TOKEN': csrfToken
+					[csrfHeader]: csrfToken
 				},
 				body: JSON.stringify(payload)
 			});

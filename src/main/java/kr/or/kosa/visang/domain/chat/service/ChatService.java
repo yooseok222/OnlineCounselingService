@@ -1,22 +1,17 @@
 package kr.or.kosa.visang.domain.chat.service;
 
-import kr.or.kosa.visang.domain.chat.model.Chat;
 import kr.or.kosa.visang.domain.chat.model.ChatMessage;
 import kr.or.kosa.visang.domain.chat.repository.ChatMapper;
 import lombok.RequiredArgsConstructor;
-import org.apache.ibatis.annotations.Param;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -27,14 +22,6 @@ public class ChatService {
 
     private final ChatMapper chatMapper;
     private final RedisTemplate<String, ChatMessage> redis;
-
-//    public ChatService(
-//            ChatMapper chatMapper,
-//            @Qualifier("chatRedisTemplate") RedisTemplate<String, ChatMessage> redisTemplate
-//    ) {
-//        this.chatMapper = chatMapper;
-//        this.redis = redisTemplate;
-//    }
 
     @Transactional
     public List<ChatMessage> getHistory(Long roomId) {
@@ -87,25 +74,36 @@ public class ChatService {
     }
 
 
-    public void endAndExport(Long roomId, String username) {
+    /* 다운로드 링크 만들 때 호출 */
+    public String getExportPath(Long roomId) {
+        return chatMapper.getExportPath(roomId);
+    }
 
-        // 1) Redis 내역 꺼내기
+    @Transactional
+    public void endAndExport(Long roomId, String username) {
+        // 1) Redis 기록 꺼내고
         List<ChatMessage> history = deleteFromRedis(roomId);
 
         // 2) 파일 생성
         String filePath = exportFile(roomId, history);
 
-        // 3) chat 테이블의 최신 END 경로 업데이트
-        Map<String, Object> params = Map.of(
-                "roomId" , roomId,
+        // 3) END 메시지 INSERT → chatId 자동 채워짐
+        ChatMessage endMsg = ChatMessage.builder()
+                .roomId(roomId)
+                .sender(username)
+                .content("통화를 종료하고 이력을 파일로 저장했습니다.")
+                .type("END")
+                .build();
+        chatMapper.insertMessage(endMsg);
+
+        // 4) INSERT된 chat_id 로만 UPDATE
+        Long newChatId = endMsg.getChatId();
+        chatMapper.updateExportPathByChatId(Map.of(
+                "chatId", newChatId,
                 "filePath", filePath
-        );
-        chatMapper.updateExportPath(params);
+        ));
     }
 
-    /* 다운로드 링크 만들 때 호출 */
-    public String getExportPath(Long roomId) {
-        return chatMapper.getExportPath(roomId);
-    }
+
 }
 
