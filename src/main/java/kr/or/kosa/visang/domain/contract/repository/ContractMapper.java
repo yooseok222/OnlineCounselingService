@@ -112,4 +112,10 @@ public interface ContractMapper {
             @Param("status") String status
     );
 
+    // agent_id와 client_id로 기존 계약 조회 (PENDING 상태)
+    Contract selectContractByAgentAndClient(
+            @Param("agentId") Long agentId, 
+            @Param("clientId") Long clientId
+    );
+
 }

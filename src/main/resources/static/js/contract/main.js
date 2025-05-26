@@ -86,16 +86,21 @@ window.onload = function() {
 
   // 세션 ID 설정 로직 개선
   if (sessionParam) {
-    // URL에 세션 ID가 있는 경우
+    // URL에 세션 ID가 있는 경우 - 우선순위 1
     sessionId = sessionParam;
     sessionStorage.setItem("sessionId", sessionId);
     console.log("URL에서 세션 ID 로드:", sessionId);
   } else if (sessionStorage.getItem("sessionId")) {
-    // 세션 스토리지에 세션 ID가 있는 경우
+    // 세션 스토리지에 세션 ID가 있는 경우 - 우선순위 2
     sessionId = sessionStorage.getItem("sessionId");
     console.log("세션 스토리지에서 세션 ID 로드:", sessionId);
+    
+    // URL에도 세션 ID 추가 (동기화)
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.set('session', sessionId);
+    window.history.replaceState({}, '', newUrl);
   } else {
-    // 세션 ID가 없는 경우 새로 생성
+    // 세션 ID가 없는 경우 새로 생성 - 우선순위 3
     sessionId = generateSessionId();
     sessionStorage.setItem("sessionId", sessionId);
     console.log("새 세션 ID 생성:", sessionId);
@@ -109,8 +114,12 @@ window.onload = function() {
     // 고객 URL 표시 기능 제거됨 (불필요)
 
   // 세션 ID 확인 로그
+  console.log("=== 세션 정보 확인 ===");
   console.log("최종 설정된 세션 ID:", sessionId);
   console.log("최종 설정된 사용자 역할:", userRole);
+  console.log("URL 파라미터 세션:", sessionParam);
+  console.log("sessionStorage 세션:", sessionStorage.getItem("sessionId"));
+  console.log("=====================");
 
   // 사용자 역할 표시
   const userRoleDisplay = document.getElementById('userRoleDisplay');
@@ -131,8 +140,8 @@ window.onload = function() {
 
   // 상담원이 상담실에 입장하면 입장 상태를 자동으로 설정
   if (userRole === "agent") {
-    // 상담원 입장 상태 변경
-    updateAgentStatus(true);
+    // 상담원 입장 상태 변경 (세션 ID 포함)
+    updateAgentStatusWithSession(true, sessionId);
   }
 
   // 고객인 경우에는 상담원 상태 확인 후 활성화되어 있지 않으면 대기실로 이동
@@ -191,20 +200,17 @@ window.onload = function() {
     }
   }, 1500);
 
-  // 상담방 참여 - 무조건 실행!
-  console.log("=== 상담방 참여 강제 실행 ===");
+  // 상담방 참여 - 한 번만 실행
+  console.log("=== 상담방 참여 시작 ===");
   console.log("세션 ID:", sessionId);
   console.log("사용자 역할:", userRole);
   
-  // 1초 후에 상담방 참여 (확실히 실행되도록)
-  setTimeout(() => {
-    console.log("상담방 참여 함수 호출 - 강제 실행");
-    if (sessionId) {
-      joinConsultationRoom(sessionId);
-    } else {
-      console.error("세션 ID가 없어서 상담방 참여 불가");
-    }
-  }, 1000);
+  if (sessionId) {
+    console.log("상담방 참여 시도");
+    joinConsultationRoom(sessionId);
+  } else {
+    console.error("세션 ID가 없어서 상담방 참여 불가");
+  }
 
   // 상담 종료 버튼 이벤트 리스너 추가 (초기화 완료 후)
   setTimeout(() => {
@@ -292,6 +298,41 @@ function updateAgentStatus(isPresent) {
   .then(response => {
     if (response.ok) {
       console.log("상담원 상태 업데이트 성공:", isPresent ? "입장" : "퇴장");
+    } else {
+      console.error("상담원 상태 업데이트 실패");
+    }
+  })
+  .catch(error => {
+    console.error("상담원 상태 업데이트 오류:", error);
+  });
+}
+
+// 세션 ID를 포함한 상담원 상태 업데이트 함수
+function updateAgentStatusWithSession(isPresent, sessionId) {
+  if (userRole !== "agent") return; // 상담원만 상태 업데이트 가능
+
+  // CSRF 토큰 가져오기
+  const token = document.querySelector("meta[name='_csrf']").getAttribute("content");
+  const header = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
+
+  const requestBody = { 
+    present: isPresent,
+    sessionId: sessionId
+  };
+
+  console.log("상담원 상태 업데이트 요청:", requestBody);
+
+  fetch('/api/contract/status', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      [header]: token
+    },
+    body: JSON.stringify(requestBody)
+  })
+  .then(response => {
+    if (response.ok) {
+      console.log("상담원 상태 업데이트 성공:", isPresent ? "입장" : "퇴장", "세션:", sessionId);
     } else {
       console.error("상담원 상태 업데이트 실패");
     }
@@ -543,6 +584,11 @@ async function joinConsultationRoom(sessionId) {
             
             // 사용자 역할 표시 업데이트
             updateUserRoleDisplay(result.userRole, result.userEmail);
+            
+            // 상담원인 경우 상담원 상태 업데이트 (세션 ID 포함)
+            if (userRole === "agent") {
+                updateAgentStatusWithSession(true, sessionId);
+            }
         } else {
             console.error('상담방 참여 실패:', result.message);
         }
@@ -572,20 +618,52 @@ function updateUserRoleDisplay(role, email) {
  * 상담 종료 모달 표시
  */
 function showEndConsultationModal() {
+    console.log('=== 상담 종료 모달 표시 시작 ===');
+    console.log('현재 Contract ID:', currentContractId);
+    console.log('현재 세션 ID:', sessionId);
+    
     // 진행 중인 상담 ID가 없을 때 자동으로 API를 통해 현재 상담 정보 가져오기 시도
     if (!currentContractId) {
         console.log('상담 ID가 없어 상담 정보 조회 시도');
         
         // 세션 ID로 상담 정보 조회
         if (sessionId) {
+            console.log('세션 ID로 상담 정보 조회 시작:', sessionId);
+            
+            // CSRF 토큰 가져오기
+            const csrfToken = document.querySelector("meta[name='_csrf']");
+            const csrfHeader = document.querySelector("meta[name='_csrf_header']");
+            
+            const headers = {
+                'X-Requested-With': 'XMLHttpRequest'
+            };
+            
+            // CSRF 토큰이 있으면 추가
+            if (csrfToken && csrfHeader) {
+                headers[csrfHeader.getAttribute('content')] = csrfToken.getAttribute('content');
+                console.log('CSRF 토큰 추가됨');
+            }
+            
+            console.log('API 요청 URL:', `/api/consultation/session/${sessionId}`);
+            console.log('API 요청 헤더:', headers);
+            
             fetch(`/api/consultation/session/${sessionId}`, {
                 method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
+                headers: headers
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('상담 정보 조회 응답 상태:', response.status, response.statusText);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log('상담 정보 조회 응답 데이터:', data);
+                console.log('응답 success 값:', data.success);
+                console.log('응답 contractId 값:', data.contractId);
+                console.log('응답 message 값:', data.message);
+                
                 if (data.success && data.contractId) {
                     console.log('상담 정보 조회 성공:', data);
                     currentContractId = data.contractId;
@@ -595,19 +673,25 @@ function showEndConsultationModal() {
                     showEndConsultationModalInternal();
                 } else {
                     console.error('상담 정보 조회 실패:', data);
+                    console.error('실패 이유:', data.message || '알 수 없는 오류');
+                    alert('상담 정보를 찾을 수 없습니다. 상담방에 다시 입장해주세요.');
                 }
             })
             .catch(error => {
                 console.error('상담 정보 조회 오류:', error);
+                console.error('오류 스택:', error.stack);
+                alert('상담 정보 조회 중 오류가 발생했습니다: ' + error.message);
             });
         } else {
             console.log('세션 정보가 없어 상담을 종료할 수 없습니다.');
+            alert('세션 정보가 없습니다. 상담방에 다시 입장해주세요.');
         }
         
         return;
     }
     
     // Contract ID가 있는 경우 바로 모달 표시
+    console.log('Contract ID가 있어 바로 모달 표시');
     showEndConsultationModalInternal();
 }
 
@@ -668,27 +752,49 @@ async function endConsultation() {
     const memo = document.getElementById('consultationMemo').value.trim();
     
     if (!memo) {
-        console.log('상담 메모를 입력해주세요.');
+        alert('상담 메모를 입력해주세요.');
         return;
     }
     
     try {
-        console.log('상담 종료 시도:', currentContractId, memo);
+        console.log('=== 상담 종료 시작 ===');
+        console.log('Contract ID:', currentContractId);
+        console.log('Session ID:', sessionId);
+        console.log('User Role:', userRole);
+        console.log('Memo:', memo);
         
         // 1. PDF 생성 및 이메일 전송
         await generateAndSendPdf();
         
         // 2. 상담 종료 처리
+        // CSRF 토큰 가져오기
+        const csrfToken = document.querySelector("meta[name='_csrf']");
+        const csrfHeader = document.querySelector("meta[name='_csrf_header']");
+        
+        const headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        };
+        
+        // CSRF 토큰이 있으면 추가
+        if (csrfToken && csrfHeader) {
+            headers[csrfHeader.getAttribute('content')] = csrfToken.getAttribute('content');
+        }
+        
         const response = await fetch('/api/consultation/end', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: `contractId=${currentContractId}&memo=${encodeURIComponent(memo)}`
+            headers: headers,
+            body: `contractId=${currentContractId}&memo=${encodeURIComponent(memo)}&sessionId=${encodeURIComponent(sessionId)}`
         });
         
+        console.log('상담 종료 API 응답 상태:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const result = await response.json();
+        console.log('상담 종료 API 응답 데이터:', result);
         
         if (result.success) {
             console.log('상담 종료 성공:', result);
@@ -696,13 +802,33 @@ async function endConsultation() {
             // 모달 닫기
             closeEndConsultationModal();
             
-            // 완료 모달 표시
-            showCompletionModal();
+            // WebSocket을 통해 상대방에게 상담 종료 알림 전송 (추가 보장)
+            if (typeof stompClient !== 'undefined' && stompClient && stompClient.connected) {
+                try {
+                    const endMessage = {
+                        message: "상담이 종료되었습니다. 메인 페이지로 이동합니다.",
+                        contractId: currentContractId,
+                        redirectUrl: "/",
+                        sessionId: sessionId,
+                        sender: userRole
+                    };
+                    
+                    // 세션별 상담 종료 메시지 전송
+                    stompClient.send(`/app/sync/endConsult`, {}, JSON.stringify(endMessage));
+                    console.log('WebSocket 상담 종료 메시지 전송 완료');
+                } catch (wsError) {
+                    console.error('WebSocket 메시지 전송 오류:', wsError);
+                }
+            }
+            
+            // 상담 종료 완료 - 완료 모달 제거됨
         } else {
             console.error('상담 종료 실패:', result.message);
+            alert('상담 종료에 실패했습니다: ' + result.message);
         }
     } catch (error) {
         console.error('상담 종료 오류:', error);
+        alert('상담 종료 중 오류가 발생했습니다: ' + error.message);
     }
 }
 
@@ -796,15 +922,7 @@ async function generateAndSendPdf() {
     }
 }
 
-/**
- * 완료 모달 표시
- */
-function showCompletionModal() {
-    const completeModal = document.getElementById('completeModal');
-    if (completeModal) {
-        completeModal.style.display = 'block';
-    }
-}
+// showCompletionModal 함수 제거됨 - 불필요한 팝업 제거
 
 /**
  * 모달 스타일 추가
@@ -845,7 +963,7 @@ function addModalStyles() {
         .modal-content h3 {
             margin-top: 0;
             color: #333;
-            border-bottom: 2px solid #007bff;
+            border-bottom: 2px solid #0057d7;
             padding-bottom: 10px;
         }
         
@@ -887,12 +1005,12 @@ function addModalStyles() {
         }
         
         .btn-confirm {
-            background-color: #007bff;
+            background-color: #0057d7;
             color: white;
         }
         
         .btn-confirm:hover {
-            background-color: #0056b3;
+            background-color: #004bb5;
         }
         
         .btn-cancel {

@@ -473,7 +473,14 @@
         INSERT INTO contract (
         contract_id, status, created_at, client_id, agent_id, memo
         ) VALUES (
-        #{contractId}, #{status}, TO_DATE(#{createdAt}, 'YYYY-MM-DD HH24:MI:SS'), #{clientId}, #{agentId}, #{memo}
+        <!--#{contractId}, #{status}, TO_DATE(#{createdAt}, 'YYYY-MM-DD HH24:MI:SS'), #{clientId}, #{agentId}, #{memo}
+        -->
+        #{contractId, jdbcType=NUMERIC}, 
+        #{status, jdbcType=VARCHAR}, 
+        TO_DATE(#{createdAt}, 'YYYY-MM-DD HH24:MI:SS'), 
+        #{clientId, jdbcType=NUMERIC}, 
+        #{agentId, jdbcType=NUMERIC}, 
+        #{memo, jdbcType=CLOB}
         )
     </insert>
 
@@ -572,5 +579,19 @@
 				 JOIN agent a ON c.agent_id = a.agent_id
 				 JOIN contract_templates ct ON c.contract_template_id = ct.contract_template_id
 		WHERE c.contract_id = #{contractId}
+	</select>
+
+	<!-- agent_id와 client_id로 기존 계약 조회 (PENDING 상태) -->
+	<select id="selectContractByAgentAndClient" resultMap="ContractResultMap">
+		SELECT * FROM (
+			SELECT <include refid="baseColumns" />, 
+				   TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at,
+				   TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
+			FROM contract
+			WHERE agent_id = #{agentId}
+			AND client_id = #{clientId}
+			AND status = 'PENDING'
+			ORDER BY contract_id DESC
+		) WHERE ROWNUM &lt;= 1
 	</select>
 </mapper>

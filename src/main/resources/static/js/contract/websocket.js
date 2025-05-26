@@ -179,6 +179,12 @@ function createStompConnection() {
 
 // 메시지 수신을 위한 토픽 구독
 function subscribeToTopics() {
+  console.log("=== 웹소켓 구독 시작 ===");
+  console.log("stompClient 연결 상태:", stompClient ? stompClient.connected : "null");
+  console.log("세션 ID:", sessionId);
+  console.log("사용자 역할:", userRole);
+  console.log("========================");
+  
   if (!stompClient || !stompClient.connected || !sessionId) {
     console.error("구독할 WebSocket 연결이 없습니다.");
     return;
@@ -463,6 +469,34 @@ function subscribeToTopics() {
     }
   });
   
+  // 전역 상담 종료 메시지 구독
+  stompClient.subscribe('/topic/endConsult', function(message) {
+    try {
+      const endData = JSON.parse(message.body);
+      console.log("상담 종료 메시지 수신:", endData);
+      
+      // 상담 종료 처리
+      handleConsultationEnd(endData);
+    } catch (e) {
+      console.error("상담 종료 메시지 처리 오류:", e);
+      console.error("원본 메시지:", message.body);
+    }
+  });
+  
+  // 세션별 상담 종료 메시지 구독
+  stompClient.subscribe(`/topic/room/${sessionId}/endConsult`, function(message) {
+    try {
+      const endData = JSON.parse(message.body);
+      console.log("세션별 상담 종료 메시지 수신:", endData);
+      
+      // 상담 종료 처리
+      handleConsultationEnd(endData);
+    } catch (e) {
+      console.error("세션별 상담 종료 메시지 처리 오류:", e);
+      console.error("원본 메시지:", message.body);
+    }
+  });
+  
   console.log("모든 토픽 구독 완료");
 }
 
@@ -548,6 +582,353 @@ function handleChatMessage(chatData) {
   
   // 토스트 메시지로 채팅 표시
   showToast("메시지 수신", chatData.message, "info");
+}
+
+// 상담 종료 메시지 처리 함수
+function handleConsultationEnd(endData) {
+  console.log("=== 상담 종료 처리 시작 ===");
+  console.log("종료 데이터:", endData);
+  
+  // 고객인 경우 상담원과 동일한 스타일의 모달 표시
+  if (userRole === 'client') {
+    showClientConsultationEndModal();
+  } else {
+    // 상담원인 경우 기존 모달 표시
+    showConsultationEndModal(endData.message || "상담이 종료되었습니다.", endData.redirectUrl || "/");
+  }
+}
+
+// 상담 종료 모달 표시 함수
+function showConsultationEndModal(message, redirectUrl) {
+  // 기존 모달이 있으면 제거
+  const existingModal = document.getElementById('consultationEndModal');
+  if (existingModal) {
+    existingModal.remove();
+  }
+  
+  // 모달 HTML 생성
+  const modalHTML = `
+    <div id="consultationEndModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <i class="fas fa-check-circle modal-icon"></i>
+          <h3 class="modal-title">상담 종료</h3>
+        </div>
+        <p class="modal-message">${message}</p>
+        <div class="modal-buttons">
+          <button onclick="confirmConsultationEnd('${redirectUrl}')" class="btn-confirm">
+            <i class="fas fa-home"></i> 메인 페이지로 이동
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // 모달을 body에 추가
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  
+  // 모달 스타일 추가 (기존 스타일이 없는 경우)
+  if (!document.getElementById('consultationEndModalStyles')) {
+    const styles = `
+      <style id="consultationEndModalStyles">
+        #consultationEndModal .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          background-color: rgba(0, 0, 0, 0.7);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 99999;
+        }
+        
+        #consultationEndModal .modal-content {
+          background: white;
+          padding: 30px;
+          border-radius: 12px;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+          animation: modalFadeIn 0.3s ease-out;
+          position: relative;
+          margin: auto;
+          max-width: 400px;
+          width: 90%;
+        }
+        
+        @keyframes modalFadeIn {
+          from {
+            opacity: 0;
+            transform: scale(0.9) translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        
+        #consultationEndModal .btn-confirm {
+          background-color: #0057d7;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: background-color 0.2s;
+        }
+        
+        #consultationEndModal .btn-confirm:hover {
+          background-color: #004bb5;
+        }
+        
+        #consultationEndModal .modal-header {
+          text-align: center;
+          margin-bottom: 20px;
+        }
+        
+        #consultationEndModal .modal-icon {
+          font-size: 48px;
+          color: #0057d7;
+          margin-bottom: 15px;
+          display: block;
+        }
+        
+        #consultationEndModal .modal-title {
+          margin: 0;
+          color: #333;
+          font-size: 20px;
+          font-weight: bold;
+        }
+        
+        #consultationEndModal .modal-message {
+          margin: 20px 0;
+          font-size: 16px;
+          line-height: 1.5;
+          text-align: center;
+          color: #555;
+        }
+        
+        #consultationEndModal .btn-confirm {
+          width: 100%;
+          padding: 12px;
+          font-size: 16px;
+          font-weight: bold;
+        }
+      </style>
+    `;
+    document.head.insertAdjacentHTML('beforeend', styles);
+  }
+  
+  console.log("상담 종료 모달 표시 완료");
+}
+
+// 고객용 상담 종료 모달 표시 함수 (상담원과 동일한 스타일)
+function showClientConsultationEndModal() {
+  // 기존 모달이 있으면 제거
+  const existingModal = document.getElementById('clientEndConsultationModal');
+  if (existingModal) {
+    existingModal.remove();
+  }
+  
+  // 모달 HTML 생성 (상담원과 동일한 구조) - 인라인 스타일로 강제 적용
+  const modalHTML = `
+    <div id="clientEndConsultationModal" class="modal-overlay" style="position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; background-color: rgba(0, 0, 0, 0.7) !important; display: flex !important; justify-content: center !important; align-items: center !important; z-index: 999999 !important; margin: 0 !important; padding: 0 !important;">
+      <div class="modal-content" style="background: white !important; padding: 30px !important; border-radius: 12px !important; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important; max-width: 500px !important; width: 90% !important; position: relative !important; margin: 0 auto !important; transform: none !important;">
+        <h3 style="margin-top: 0 !important; margin-bottom: 20px !important; color: #333 !important; border-bottom: 2px solid #0057d7 !important; padding-bottom: 10px !important; text-align: center !important; font-size: 20px !important; font-weight: bold !important;"><i class="fas fa-clipboard-check"></i> 상담 종료</h3>
+        <p style="margin: 15px 0 !important; font-size: 16px !important; line-height: 1.5 !important; text-align: center !important; color: #555 !important;">상담이 종료되었습니다.</p>
+        <p style="margin: 15px 0 !important; font-size: 16px !important; line-height: 1.5 !important; text-align: center !important; color: #555 !important;">메인 페이지로 이동합니다.</p>
+        <div class="modal-buttons" style="display: flex !important; gap: 10px !important; justify-content: center !important; margin-top: 25px !important;">
+          <button onclick="confirmClientConsultationEnd()" class="btn-confirm" style="padding: 12px 24px !important; border: none !important; border-radius: 6px !important; cursor: pointer !important; font-size: 16px !important; font-weight: bold !important; background-color: #0057d7 !important; color: white !important; min-width: 200px !important;">
+            <i class="fas fa-home"></i> 메인 페이지로 이동
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // 모달을 body에 추가
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  
+  // 모달 스타일 추가 (main.js의 스타일과 동일)
+  addClientModalStyles();
+  
+  console.log("고객용 상담 종료 모달 표시 완료");
+}
+
+// 고객용 모달 스타일 추가 (main.js와 동일한 스타일)
+function addClientModalStyles() {
+  // 이미 스타일이 추가되어 있는지 확인
+  if (document.getElementById('clientModalStyles')) {
+    return;
+  }
+  
+  const style = document.createElement('style');
+  style.id = 'clientModalStyles';
+  style.textContent = `
+    /* 고객용 상담 종료 모달 - 최고 우선순위 */
+    div#clientEndConsultationModal.modal-overlay {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      background-color: rgba(0, 0, 0, 0.7) !important;
+      display: flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+      z-index: 999999 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    
+    div#clientEndConsultationModal .modal-content {
+      background: white !important;
+      padding: 30px !important;
+      border-radius: 12px !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+      max-width: 500px !important;
+      width: 90% !important;
+      max-height: 80vh !important;
+      overflow-y: auto !important;
+      position: relative !important;
+      margin: 0 auto !important;
+      transform: none !important;
+      animation: clientModalFadeIn 0.3s ease-out !important;
+    }
+    
+    @keyframes clientModalFadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+    
+    div#clientEndConsultationModal .modal-content h3 {
+      margin-top: 0 !important;
+      margin-bottom: 20px !important;
+      color: #333 !important;
+      border-bottom: 2px solid #0057d7 !important;
+      padding-bottom: 10px !important;
+      text-align: center !important;
+      font-size: 20px !important;
+      font-weight: bold !important;
+    }
+    
+    div#clientEndConsultationModal .modal-content p {
+      margin: 15px 0 !important;
+      font-size: 16px !important;
+      line-height: 1.5 !important;
+      text-align: center !important;
+      color: #555 !important;
+    }
+    
+    div#clientEndConsultationModal .modal-buttons {
+      display: flex !important;
+      gap: 10px !important;
+      justify-content: center !important;
+      margin-top: 25px !important;
+    }
+    
+    div#clientEndConsultationModal .btn-confirm {
+      padding: 12px 24px !important;
+      border: none !important;
+      border-radius: 6px !important;
+      cursor: pointer !important;
+      font-size: 16px !important;
+      font-weight: bold !important;
+      transition: background-color 0.2s !important;
+      background-color: #0057d7 !important;
+      color: white !important;
+      min-width: 200px !important;
+    }
+    
+    div#clientEndConsultationModal .btn-confirm:hover {
+      background-color: #004bb5 !important;
+    }
+    
+    div#clientEndConsultationModal .btn-confirm i {
+      margin-right: 8px !important;
+    }
+  `;
+  
+  document.head.appendChild(style);
+}
+
+// 고객용 상담 종료 확인 함수
+function confirmClientConsultationEnd() {
+  console.log("고객 상담 종료 확인");
+  
+  // 모달 제거
+  const modal = document.getElementById('clientEndConsultationModal');
+  if (modal) {
+    modal.remove();
+  }
+  
+  // WebSocket 연결 종료
+  if (stompClient && stompClient.connected) {
+    try {
+      stompClient.disconnect(() => {
+        console.log("WebSocket 연결 종료 완료");
+      });
+    } catch (e) {
+      console.error("WebSocket 연결 종료 오류:", e);
+    }
+  }
+  
+  // WebRTC 연결 종료
+  if (typeof cleanupWebRTC === 'function') {
+    try {
+      cleanupWebRTC();
+      console.log("WebRTC 연결 정리 완료");
+    } catch (e) {
+      console.error("WebRTC 연결 정리 오류:", e);
+    }
+  }
+  
+  // 페이지 이동
+  setTimeout(() => {
+    window.location.href = "/";
+  }, 500);
+}
+
+// 상담 종료 확인 함수
+function confirmConsultationEnd(redirectUrl) {
+  console.log("상담 종료 확인 - 리다이렉트 URL:", redirectUrl);
+  
+  // 모달 제거
+  const modal = document.getElementById('consultationEndModal');
+  if (modal) {
+    modal.remove();
+  }
+  
+  // WebSocket 연결 종료
+  if (stompClient && stompClient.connected) {
+    try {
+      stompClient.disconnect(() => {
+        console.log("WebSocket 연결 종료 완료");
+      });
+    } catch (e) {
+      console.error("WebSocket 연결 종료 오류:", e);
+    }
+  }
+  
+  // WebRTC 연결 종료
+  if (typeof cleanupWebRTC === 'function') {
+    try {
+      cleanupWebRTC();
+      console.log("WebRTC 연결 정리 완료");
+    } catch (e) {
+      console.error("WebRTC 연결 정리 오류:", e);
+    }
+  }
+  
+  // 페이지 이동
+  setTimeout(() => {
+    window.location.href = redirectUrl;
+  }, 500);
 }
 
 // 페이지 접속 시 WebSocket 연결 초기화
