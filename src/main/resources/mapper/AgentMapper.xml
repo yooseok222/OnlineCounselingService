@@ -65,7 +65,9 @@
             SELECT agent_seq.NEXTVAL FROM DUAL
         </selectKey>
         INSERT INTO agent (agent_id, company_id, name, email, password, phone_number, address, role, state, created_at, profile_image_url, email_verified)
-        VALUES (#{agentId}, #{companyId}, #{name}, #{email}, #{password}, #{phoneNumber}, #{address, jdbcType=VARCHAR}, #{role}, #{state}, #{createdAt}, #{profileImageUrl, jdbcType=VARCHAR}, #{emailVerified})
+        VALUES (#{agentId}, #{companyId}, #{name}, #{email}, #{password}, #{phoneNumber}, #{address, jdbcType=VARCHAR}, #{role}, #{state}, #{createdAt},
+            NVL(#{profileImageUrl, jdbcType=VARCHAR}, '/images/profile/default_profile.png'),
+            #{emailVerified})
     </insert>
 
     <update id="updateAgent" parameterType="kr.or.kosa.visang.domain.agent.model.UpdateAgentDto">

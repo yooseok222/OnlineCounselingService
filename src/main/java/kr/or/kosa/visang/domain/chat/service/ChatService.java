@@ -28,14 +28,6 @@ public class ChatService {
     private final ChatMapper chatMapper;
     private final RedisTemplate<String, ChatMessage> redis;
 
-//    public ChatService(
-//            ChatMapper chatMapper,
-//            @Qualifier("chatRedisTemplate") RedisTemplate<String, ChatMessage> redisTemplate
-//    ) {
-//        this.chatMapper = chatMapper;
-//        this.redis = redisTemplate;
-//    }
-
     @Transactional
     public List<ChatMessage> getHistory(Long roomId) {
         return chatMapper.findByContractId(roomId);
