@@ -43,6 +43,12 @@ public interface ContractMapper {
 
     // 계약 상세 조회
     ContractDetail selectContractDetail(Long contractId);
+    
+    // 계약 상세 조회 (템플릿 없이)
+    ContractDetail selectContractDetailBasic(Long contractId);
+    
+    // 계약 ID로 고객 이메일 조회
+    String selectClientEmailByContractId(Long contractId);
 
     // 고객 ID로 계약 목록 조회
     List<Contract> selectContractsByClientId(Long clientId);

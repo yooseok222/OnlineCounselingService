@@ -99,6 +99,28 @@ public class ContractService {
         System.out.println(cont);
         return cont;
     }
+    
+    // 계약 상세 조회 (템플릿 없이)
+    public ContractDetail getContractDetailBasic(Long contractId) {
+        try {
+            ContractDetail cont = contractMapper.selectContractDetailBasic(contractId);
+            System.out.println("Basic contract detail: " + cont);
+            return cont;
+        } catch (Exception e) {
+            System.err.println("계약 상세 조회 (Basic) 오류: " + e.getMessage());
+            return null;
+        }
+    }
+    
+    // 계약 ID로 고객 이메일 조회
+    public String getClientEmailByContractId(Long contractId) {
+        try {
+            return contractMapper.selectClientEmailByContractId(contractId);
+        } catch (Exception e) {
+            System.err.println("고객 이메일 조회 오류: " + e.getMessage());
+            return null;
+        }
+    }
 
     // 고객 ID로 계약 목록 조회
     public List<Contract> getContractsByClientId(Long clientId) {
@@ -429,11 +451,59 @@ public class ContractService {
             int memoResult = contractMapper.updateContractMemo(contractId, memo);
 
             System.out.println("상담 종료 완료 - 계약 ID: " + contractId + ", 메모: " + memo);
+            
+            // 상담 종료 후 자동으로 PDF 메일 발송 시도
+            try {
+                sendPdfEmailAfterConsultation(contractId);
+            } catch (Exception emailException) {
+                System.err.println("상담 종료 후 PDF 메일 발송 실패 (상담 종료는 성공): " + emailException.getMessage());
+                emailException.printStackTrace();
+                // PDF 메일 발송 실패해도 상담 종료는 성공으로 처리
+            }
+            
             return statusResult + memoResult;
         } catch (Exception e) {
             System.err.println("상담 종료 오류: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("상담 종료에 실패했습니다.", e);
+        }
+    }
+
+    /**
+     * 상담 종료 후 자동으로 PDF 메일 발송
+     * @param contractId 계약 ID
+     */
+    private void sendPdfEmailAfterConsultation(Long contractId) {
+        try {
+            System.out.println("=== 상담 종료 후 자동 PDF 메일 발송 시작 ===");
+            System.out.println("계약 ID: " + contractId);
+            
+            // 계약 상세 정보 조회 (고객 이메일 포함)
+            ContractDetail contractDetail = getContractDetail(contractId);
+            
+            if (contractDetail == null) {
+                System.err.println("계약 정보를 찾을 수 없습니다. 계약 ID: " + contractId);
+                return;
+            }
+            
+            String clientEmail = contractDetail.getClientEmail();
+            if (clientEmail == null || clientEmail.trim().isEmpty()) {
+                System.err.println("고객 이메일이 없습니다. 계약 ID: " + contractId);
+                return;
+            }
+            
+            System.out.println("고객 이메일: " + clientEmail);
+            
+            // PDF 데이터 없이 메일 발송 (상담 완료 알림)
+            // 실제 PDF 파일은 프론트엔드에서 생성되므로, 여기서는 상담 완료 알림만 발송
+            sendPdfToClient(contractId, null, clientEmail);
+            
+            System.out.println("상담 종료 후 자동 PDF 메일 발송 완료");
+            
+        } catch (Exception e) {
+            System.err.println("상담 종료 후 자동 PDF 메일 발송 오류: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("상담 종료 후 PDF 메일 발송에 실패했습니다: " + e.getMessage(), e);
         }
     }
 

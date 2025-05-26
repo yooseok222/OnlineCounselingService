@@ -184,8 +184,28 @@ public class ConsultationController {
         try {
             log.info("계약 정보 조회 요청 - 계약 ID: {}", contractId);
             
+            // 먼저 기본 계약 정보 조회
+            Contract basicContract = contractService.getContractById(contractId);
+            log.info("기본 계약 정보 조회 결과: {}", basicContract);
+            
+            if (basicContract == null) {
+                log.warn("기본 계약 정보를 찾을 수 없음 - 계약 ID: {}", contractId);
+                response.put("success", false);
+                response.put("message", "계약을 찾을 수 없습니다.");
+                return ResponseEntity.ok(response);
+            }
+            
             // 계약 상세 정보 조회 (고객 및 상담원 정보 포함)
-            ContractDetail contractDetail = contractService.getContractDetail(contractId);
+            // 먼저 템플릿 포함 조회 시도, 실패하면 기본 조회 사용
+            ContractDetail contractDetail = null;
+            try {
+                contractDetail = contractService.getContractDetail(contractId);
+                log.info("계약 상세 정보 조회 결과 (템플릿 포함): {}", contractDetail);
+            } catch (Exception e) {
+                log.warn("템플릿 포함 조회 실패, 기본 조회 시도: {}", e.getMessage());
+                contractDetail = contractService.getContractDetailBasic(contractId);
+                log.info("계약 상세 정보 조회 결과 (기본): {}", contractDetail);
+            }
             
             if (contractDetail != null) {
                 // 응답 데이터 구성
@@ -215,9 +235,32 @@ public class ConsultationController {
                 
                 log.info("계약 정보 조회 성공 - 계약 ID: {}, 고객 이메일: {}", contractId, contractDetail.getClientEmail());
             } else {
-                log.warn("계약을 찾을 수 없음 - 계약 ID: {}", contractId);
-                response.put("success", false);
-                response.put("message", "계약을 찾을 수 없습니다.");
+                // 상세 정보 조회 실패 시 기본 계약 정보로 대체
+                log.warn("계약 상세 정보 조회 실패, 기본 정보로 대체 - 계약 ID: {}", contractId);
+                
+                // 기본 계약 정보로 응답 구성
+                Map<String, Object> contractData = new HashMap<>();
+                contractData.put("contractId", basicContract.getContractId());
+                contractData.put("status", basicContract.getStatus());
+                contractData.put("createdAt", basicContract.getCreatedAt());
+                contractData.put("contractTime", basicContract.getContractTime());
+                contractData.put("clientId", basicContract.getClientId());
+                contractData.put("agentId", basicContract.getAgentId());
+                contractData.put("memo", basicContract.getMemo());
+                
+                // 고객 이메일 별도 조회
+                String clientEmail = contractService.getClientEmailByContractId(contractId);
+                if (clientEmail == null || clientEmail.isEmpty()) {
+                    clientEmail = "customer@example.com"; // 기본값
+                    log.warn("고객 이메일 조회 실패, 기본값 사용 - 계약 ID: {}", contractId);
+                }
+                contractData.put("clientEmail", clientEmail);
+                
+                response.put("success", true);
+                response.put("contract", contractData);
+                response.put("warning", "상세 정보 조회 실패로 기본 정보만 제공됩니다.");
+                
+                log.info("기본 계약 정보로 응답 구성 완료 - 계약 ID: {}", contractId);
             }
             
             return ResponseEntity.ok(response);
@@ -421,6 +464,49 @@ public class ConsultationController {
             log.error("디버깅 API 오류: {}", e.getMessage(), e);
             response.put("success", false);
             response.put("message", "디버깅 API 오류: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+    
+    /**
+     * 디버깅용 API - 특정 계약 ID 상세 정보
+     */
+    @GetMapping("/debug/contract/{contractId}")
+    public ResponseEntity<Map<String, Object>> debugContract(@PathVariable Long contractId) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            log.info("디버깅 - 계약 ID {} 상세 조회", contractId);
+            
+            // 1. 기본 계약 정보 조회
+            Contract basicContract = contractService.getContractById(contractId);
+            response.put("basicContract", basicContract);
+            
+            // 2. 계약 상세 정보 조회
+            ContractDetail contractDetail = contractService.getContractDetail(contractId);
+            response.put("contractDetail", contractDetail);
+            
+            // 3. 고객 이메일 조회
+            String clientEmail = contractService.getClientEmailByContractId(contractId);
+            response.put("clientEmail", clientEmail);
+            
+            // 4. 모든 계약 목록 (최근 10개)
+            List<Contract> allContracts = contractService.getAllContracts();
+            List<Contract> recentContracts = allContracts.stream()
+                .limit(10)
+                .toList();
+            response.put("recentContracts", recentContracts);
+            
+            response.put("success", true);
+            response.put("message", "디버깅 정보 조회 완료");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("디버깅 API 오류: {}", e.getMessage(), e);
+            response.put("success", false);
+            response.put("message", "디버깅 API 오류: " + e.getMessage());
+            response.put("error", e.toString());
             return ResponseEntity.internalServerError().body(response);
         }
     }

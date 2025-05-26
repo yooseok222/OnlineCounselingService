@@ -204,10 +204,36 @@ window.onload = function() {
   console.log("=== 상담방 참여 시작 ===");
   console.log("세션 ID:", sessionId);
   console.log("사용자 역할:", userRole);
+  console.log("현재 Contract ID:", currentContractId);
   
   if (sessionId) {
     console.log("상담방 참여 시도");
-    joinConsultationRoom(sessionId);
+    joinConsultationRoom(sessionId).then(() => {
+      // 상담방 참여 후 Contract ID 확인
+      console.log("상담방 참여 완료 후 Contract ID:", currentContractId);
+      
+      // Contract ID가 여전히 없으면 세션 ID로 조회 시도
+      if (!currentContractId) {
+        console.warn("상담방 참여 후에도 Contract ID가 없습니다. 세션 ID로 조회를 시도합니다.");
+        setTimeout(() => {
+          fetch(`/api/consultation/session/${sessionId}`)
+            .then(response => response.json())
+            .then(data => {
+              if (data.success && data.contractId) {
+                currentContractId = data.contractId;
+                console.log("세션 ID로 Contract ID 설정 완료:", currentContractId);
+              } else {
+                console.error("세션 ID로 Contract ID 조회 실패:", data.message);
+              }
+            })
+            .catch(error => {
+              console.error("세션 ID로 Contract ID 조회 오류:", error);
+            });
+        }, 2000);
+      }
+    }).catch(error => {
+      console.error("상담방 참여 실패:", error);
+    });
   } else {
     console.error("세션 ID가 없어서 상담방 참여 불가");
   }
@@ -763,10 +789,69 @@ async function endConsultation() {
         console.log('User Role:', userRole);
         console.log('Memo:', memo);
         
-        // 1. PDF 생성 및 이메일 전송
-        await generateAndSendPdf();
+        // 로딩 메시지 표시
+        const confirmButton = document.querySelector('#endConsultationModal .btn-confirm');
+        if (confirmButton) {
+            confirmButton.disabled = true;
+            confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 처리 중...';
+        }
+        
+        // Contract ID 재확인 및 설정
+        if (!currentContractId) {
+            console.warn('Contract ID가 없습니다. 세션 ID로 다시 조회를 시도합니다.');
+            try {
+                const sessionResponse = await fetch(`/api/consultation/session/${sessionId}`);
+                if (sessionResponse.ok) {
+                    const sessionResult = await sessionResponse.json();
+                    if (sessionResult.success && sessionResult.contractId) {
+                        currentContractId = sessionResult.contractId;
+                        console.log('세션 ID로 Contract ID 재설정 완료:', currentContractId);
+                    }
+                }
+            } catch (sessionError) {
+                console.error('세션 ID로 Contract ID 조회 실패:', sessionError);
+            }
+        }
+        
+        // 1. PDF 생성 및 이메일 전송 (실패해도 상담 종료는 진행)
+        try {
+            await generateAndSendPdf();
+            console.log('PDF 생성 및 메일 발송 완료');
+        } catch (pdfError) {
+            console.error('PDF 생성 및 메일 발송 실패 (상담 종료는 계속 진행):', pdfError);
+            
+                         // 오류 유형에 따른 메시지 구분
+             let errorMessage = "PDF 생성 또는 메일 발송에 실패했습니다.";
+             if (pdfError.message.includes('PDF가 업로드되지 않았습니다')) {
+                 errorMessage = "상담 문서(PDF)가 업로드되지 않아 메일 발송을 건너뜁니다.";
+             } else if (pdfError.message.includes('PDF 라이브러리')) {
+                 errorMessage = "PDF 처리 라이브러리 오류로 메일 발송에 실패했습니다.";
+             } else if (pdfError.message.includes('PDF 파일을 가져올 수 없습니다')) {
+                 errorMessage = "업로드된 PDF 파일에 접근할 수 없어 메일 발송에 실패했습니다.";
+             } else if (pdfError.message.includes('계약 ID가 없습니다') || pdfError.message.includes('계약 정보를 가져올 수 없습니다')) {
+                 errorMessage = "계약 정보를 찾을 수 없어 메일 발송에 실패했습니다.";
+             } else if (pdfError.message.includes('계약 정보 조회 HTTP 오류')) {
+                 errorMessage = "서버 오류로 인해 메일 발송에 실패했습니다.";
+             }
+            
+            // PDF 발송 실패 알림 (상담 종료는 계속 진행)
+            if (typeof showToast === 'function') {
+                showToast("PDF 발송 실패", errorMessage + " 상담은 정상적으로 종료됩니다.", "warning");
+            } else {
+                console.warn('PDF 생성/발송 실패: ' + errorMessage + ' 상담은 정상적으로 종료됩니다.');
+                alert('PDF 발송 실패: ' + errorMessage + ' 상담은 정상적으로 종료됩니다.');
+            }
+        }
         
         // 2. 상담 종료 처리
+        // Contract ID 최종 확인
+        if (!currentContractId) {
+            console.error('Contract ID가 여전히 없습니다. 상담 종료를 진행할 수 없습니다.');
+            throw new Error('계약 ID를 찾을 수 없어 상담을 종료할 수 없습니다. 페이지를 새로고침 후 다시 시도해주세요.');
+        }
+        
+        console.log('상담 종료 API 호출 준비 - Contract ID:', currentContractId);
+        
         // CSRF 토큰 가져오기
         const csrfToken = document.querySelector("meta[name='_csrf']");
         const csrfHeader = document.querySelector("meta[name='_csrf_header']");
@@ -781,10 +866,13 @@ async function endConsultation() {
             headers[csrfHeader.getAttribute('content')] = csrfToken.getAttribute('content');
         }
         
+        const endConsultationBody = `contractId=${currentContractId}&memo=${encodeURIComponent(memo)}&sessionId=${encodeURIComponent(sessionId)}`;
+        console.log('상담 종료 API 요청 바디:', endConsultationBody);
+        
         const response = await fetch('/api/consultation/end', {
             method: 'POST',
             headers: headers,
-            body: `contractId=${currentContractId}&memo=${encodeURIComponent(memo)}&sessionId=${encodeURIComponent(sessionId)}`
+            body: endConsultationBody
         });
         
         console.log('상담 종료 API 응답 상태:', response.status);
@@ -821,14 +909,29 @@ async function endConsultation() {
                 }
             }
             
-            // 상담 종료 완료 - 완료 모달 제거됨
+            // 상담 종료 완료
+            console.log('상담 종료 완료');
         } else {
             console.error('상담 종료 실패:', result.message);
             alert('상담 종료에 실패했습니다: ' + result.message);
+            
+            // 실패 시 버튼 복원
+            const confirmButton = document.querySelector('#endConsultationModal .btn-confirm');
+            if (confirmButton) {
+                confirmButton.disabled = false;
+                confirmButton.innerHTML = '<i class="fas fa-check"></i> 확인';
+            }
         }
     } catch (error) {
         console.error('상담 종료 오류:', error);
         alert('상담 종료 중 오류가 발생했습니다: ' + error.message);
+        
+        // 오류 발생 시 버튼 복원
+        const confirmButton = document.querySelector('#endConsultationModal .btn-confirm');
+        if (confirmButton) {
+            confirmButton.disabled = false;
+            confirmButton.innerHTML = '<i class="fas fa-check"></i> 확인';
+        }
     }
 }
 
@@ -841,6 +944,14 @@ async function generateAndSendPdf() {
         
         // PDF 생성 (기존 함수 사용)
         console.log('PDF 생성 함수 호출 시작');
+        console.log('현재 업로드된 PDF URL:', uploadedPdfUrl);
+        
+        // PDF가 업로드되지 않은 경우 처리
+        if (!uploadedPdfUrl) {
+            console.warn('PDF가 업로드되지 않았습니다. PDF 생성을 건너뜁니다.');
+            throw new Error('PDF가 업로드되지 않았습니다. 상담 문서가 없어 PDF를 생성할 수 없습니다.');
+        }
+        
         const pdfData = await savePdfWithStampAndSignature(true); // forEmail = true
         console.log('PDF 생성 함수 호출 완료');
         console.log('PDF 데이터 존재 여부:', !!pdfData);
@@ -859,11 +970,31 @@ async function generateAndSendPdf() {
         console.log('PDF 생성 성공 - 데이터 길이:', pdfData.length);
         
         // 계약 정보 조회하여 고객 이메일 가져오기
-        const contractResponse = await fetch(`/api/consultation/contract/${currentContractId}`);
+        console.log('계약 정보 조회 시작 - Contract ID:', currentContractId);
+        
+        if (!currentContractId) {
+            console.error('Contract ID가 null 또는 undefined입니다.');
+            throw new Error('계약 ID가 없습니다. 상담방에 다시 입장해주세요.');
+        }
+        
+        const contractApiUrl = `/api/consultation/contract/${currentContractId}`;
+        console.log('계약 정보 API 호출 URL:', contractApiUrl);
+        
+        const contractResponse = await fetch(contractApiUrl);
+        console.log('계약 정보 API 응답 상태:', contractResponse.status, contractResponse.statusText);
+        
+        if (!contractResponse.ok) {
+            const errorText = await contractResponse.text();
+            console.error('계약 정보 API HTTP 오류:', contractResponse.status, errorText);
+            throw new Error(`계약 정보 조회 HTTP 오류 (${contractResponse.status}): ${errorText}`);
+        }
+        
         const contractResult = await contractResponse.json();
+        console.log('계약 정보 API 응답 데이터:', contractResult);
         
         if (!contractResult.success) {
-            throw new Error('계약 정보를 가져올 수 없습니다.');
+            console.error('계약 정보 조회 실패:', contractResult.message);
+            throw new Error('계약 정보를 가져올 수 없습니다: ' + (contractResult.message || '알 수 없는 오류'));
         }
         
         const clientEmail = contractResult.contract.clientEmail; // DB JOIN으로 조회된 고객 이메일
@@ -914,11 +1045,17 @@ async function generateAndSendPdf() {
         
         if (emailResult.success) {
             console.log('PDF 이메일 전송 성공');
+            // 성공 알림 (선택적)
+            if (typeof showToast === 'function') {
+                showToast("PDF 발송 완료", "상담 문서가 고객 이메일로 전송되었습니다.", "success");
+            }
         } else {
             console.error('PDF 이메일 전송 실패:', emailResult.message);
+            throw new Error('PDF 이메일 전송 실패: ' + emailResult.message);
         }
     } catch (error) {
         console.error('PDF 생성 및 전송 오류:', error);
+        throw error; // 오류를 다시 던져서 상위에서 처리할 수 있도록 함
     }
 }
 

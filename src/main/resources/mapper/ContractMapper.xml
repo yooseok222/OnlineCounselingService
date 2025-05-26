@@ -583,6 +583,30 @@
 		WHERE c.contract_id = #{contractId}
 	</select>
 
+	<!-- 계약 상세조회 (템플릿 없이) -->
+	<select id="selectContractDetailBasic" resultMap="contractDetailResultMap">
+		SELECT
+			c.contract_id, c.status, 
+			TO_CHAR(c.created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at, 
+			TO_CHAR(c.contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time, 
+			c.client_id, c.agent_id, c.memo,
+			cl.name AS client_name, cl.email AS client_email, cl.phone_number AS client_phone_number, cl.address AS client_address,
+			a.name AS agent_name, a.email AS agent_email, a.phone_number AS agent_phone_number, a.address AS agent_address,
+			cl.profile_image_url AS client_profile_image_url, a.profile_image_url AS agent_profile_image_url
+		FROM contract c
+				 LEFT JOIN client cl ON c.client_id = cl.client_id
+				 LEFT JOIN agent a ON c.agent_id = a.agent_id
+		WHERE c.contract_id = #{contractId}
+	</select>
+
+	<!-- 계약 ID로 고객 이메일 조회 -->
+	<select id="selectClientEmailByContractId" resultType="string">
+		SELECT cl.email
+		FROM contract c
+		LEFT JOIN client cl ON c.client_id = cl.client_id
+		WHERE c.contract_id = #{contractId}
+	</select>
+
 	<!-- agent_id와 client_id로 기존 계약 조회 (PENDING 상태) -->
 	<select id="selectContractByAgentAndClient" resultMap="ContractResultMap">
 		SELECT * FROM (

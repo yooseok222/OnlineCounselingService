@@ -1161,11 +1161,20 @@ function handleSyncResponse(syncResponse) {
 // PDF에 도장과 서명 포함해서 저장하는 함수
 async function savePdfWithStampAndSignature(forEmail = false) {
   try {
+    console.log("PDF 라이브러리 확인 중...");
+    
+    // PDF 라이브러리 로드 대기
+    await checkPdfLibraryLoaded();
+    
     const PDFDocument = window.PDFLib.PDFDocument;
+    console.log("PDF 라이브러리 로드 확인됨");
 
     if (!uploadedPdfUrl) {
-      throw new Error("PDF 파일 경로를 찾을 수 없습니다.");
+      console.error("PDF 파일 경로가 없습니다. uploadedPdfUrl:", uploadedPdfUrl);
+      throw new Error("PDF 파일 경로를 찾을 수 없습니다. PDF를 먼저 업로드해주세요.");
     }
+    
+    console.log("PDF 생성 시작 - PDF URL:", uploadedPdfUrl);
 
     // 로딩 메시지 표시
     if (!forEmail) {
@@ -1175,8 +1184,20 @@ async function savePdfWithStampAndSignature(forEmail = false) {
     }
 
     // 원본 PDF 가져오기
-    const existingPdfBytes = await fetch(uploadedPdfUrl).then(res => res.arrayBuffer());
+    console.log("PDF 파일 다운로드 시작:", uploadedPdfUrl);
+    const pdfResponse = await fetch(uploadedPdfUrl);
+    
+    if (!pdfResponse.ok) {
+      console.error("PDF 파일 다운로드 실패:", pdfResponse.status, pdfResponse.statusText);
+      throw new Error(`PDF 파일을 가져올 수 없습니다. (${pdfResponse.status})`);
+    }
+    
+    const existingPdfBytes = await pdfResponse.arrayBuffer();
+    console.log("PDF 파일 다운로드 완료, 크기:", existingPdfBytes.byteLength, "bytes");
+    
+    console.log("PDF 문서 로드 시작...");
     const pdfDocLib = await PDFDocument.load(existingPdfBytes);
+    console.log("PDF 문서 로드 완료");
     const pages = pdfDocLib.getPages();
 
     // 페이지별로 도장과 서명 데이터 처리
@@ -1317,6 +1338,36 @@ function blobToBase64(blob) {
     reader.onloadend = () => resolve(reader.result);
     reader.onerror = reject;
     reader.readAsDataURL(blob);
+  });
+}
+
+// PDF 라이브러리 로드 상태 확인 함수
+function checkPdfLibraryLoaded() {
+  return new Promise((resolve, reject) => {
+    // 이미 로드되어 있으면 바로 resolve
+    if (window.PDFLib && window.PDFLib.PDFDocument) {
+      console.log("PDF 라이브러리가 이미 로드되어 있습니다.");
+      resolve(true);
+      return;
+    }
+    
+    // 최대 10초 동안 대기
+    let attempts = 0;
+    const maxAttempts = 100; // 100ms * 100 = 10초
+    
+    const checkInterval = setInterval(() => {
+      attempts++;
+      
+      if (window.PDFLib && window.PDFLib.PDFDocument) {
+        console.log(`PDF 라이브러리 로드 완료 (${attempts * 100}ms 후)`);
+        clearInterval(checkInterval);
+        resolve(true);
+      } else if (attempts >= maxAttempts) {
+        console.error("PDF 라이브러리 로드 타임아웃");
+        clearInterval(checkInterval);
+        reject(new Error("PDF 라이브러리 로드 타임아웃"));
+      }
+    }, 100);
   });
 }
 
