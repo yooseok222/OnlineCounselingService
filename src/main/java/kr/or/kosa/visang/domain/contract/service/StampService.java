@@ -3,6 +3,7 @@ package kr.or.kosa.visang.domain.contract.service;
 import kr.or.kosa.visang.domain.contract.model.StampDTO;
 import kr.or.kosa.visang.domain.contract.repository.StampMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -17,7 +18,8 @@ import java.util.UUID;
 @Service
 public class StampService {
 
-    private static final String UPLOAD_DIR = System.getProperty("user.dir") + "/uploads/stamps";
+    @Value("${file.upload-dir.stamp}")
+    private String UPLOAD_DIR;
 
     @Autowired
     private StampMapper stampMapper;
@@ -40,10 +42,16 @@ public class StampService {
             throw new IllegalStateException("이미 등록된 도장이 있습니다. 새 도장을 업로드하려면 먼저 기존 도장을 삭제해주세요.");
         }
         
+        // 업로드 경로를 절대 경로로 변환
+        Path uploadPath = Paths.get(UPLOAD_DIR).toAbsolutePath().normalize();
+        File uploadDir = uploadPath.toFile();
+        
         // 업로드 폴더 생성
-        File uploadDir = new File(UPLOAD_DIR);
         if (!uploadDir.exists()) {
-            uploadDir.mkdirs();
+            boolean created = uploadDir.mkdirs();
+            if (!created) {
+                throw new IOException("업로드 디렉토리를 생성할 수 없습니다: " + uploadPath);
+            }
         }
 
         // 고유한 파일명 생성
@@ -52,7 +60,7 @@ public class StampService {
         String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
 
         // 파일 저장 경로
-        Path filePath = Paths.get(UPLOAD_DIR, uniqueFilename);
+        Path filePath = uploadPath.resolve(uniqueFilename);
         file.transferTo(filePath.toFile());
 
         // 도장 정보 DB에 저장
@@ -76,7 +84,9 @@ public class StampService {
         StampDTO stamp = getStampById(stampId);
         if (stamp != null) {
             // 파일 시스템에서 삭제
-            File file = new File(UPLOAD_DIR, stamp.getImagePath());
+            Path uploadPath = Paths.get(UPLOAD_DIR).toAbsolutePath().normalize();
+            Path filePath = uploadPath.resolve(stamp.getImagePath());
+            File file = filePath.toFile();
             if (file.exists()) {
                 file.delete();
             }

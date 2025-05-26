@@ -6,6 +6,7 @@ import kr.or.kosa.visang.common.util.SecurityUtil;
 import kr.or.kosa.visang.common.config.security.CustomUserDetails;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
@@ -33,7 +34,8 @@ public class StampController {
     @Autowired
     private StampService stampService;
 
-    private static final String UPLOAD_DIR = System.getProperty("user.dir") + "/uploads/stamps";
+    @Value("${file.upload-dir.stamp}")
+    private String UPLOAD_DIR;
 
     /**
      * 도장 업로드 페이지 표시
@@ -250,7 +252,9 @@ public class StampController {
     @GetMapping("/image/{filename}")
     public ResponseEntity<Resource> getStampImage(@PathVariable String filename) {
         try {
-            Path filePath = Paths.get(UPLOAD_DIR).resolve(filename);
+            // 업로드 경로를 절대 경로로 변환
+            Path uploadPath = Paths.get(UPLOAD_DIR).toAbsolutePath().normalize();
+            Path filePath = uploadPath.resolve(filename);
             Resource resource = new UrlResource(filePath.toUri());
             
             if (resource.exists() && resource.isReadable()) {
@@ -259,6 +263,7 @@ public class StampController {
                         .contentType(MediaType.IMAGE_PNG)
                         .body(resource);
             } else {
+                log.warn("도장 이미지 파일을 찾을 수 없습니다: {}", filePath);
                 return ResponseEntity.notFound().build();
             }
         } catch (Exception e) {
