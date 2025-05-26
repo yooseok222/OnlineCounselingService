@@ -80,17 +80,36 @@
     });
 
     function handleExport() {
-      console.log('[DEBUG] handleExport() 호출');
-      fetch(`/api/chat/export/${roomId}`)
-        .then(res => res.json())
-        .then(data => {
-          const link = document.getElementById('exportLink');
-          link.href = data.fileUrl;
-          link.download = data.fileName;
-          link.style.display = 'inline';
-        })
-        .catch(console.error);
-    }
+        console.log('[DEBUG] handleExport() 호출');
+
+          const xsrfCookie = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('XSRF-TOKEN='));
+          const xsrfToken = xsrfCookie && xsrfCookie.split('=')[1];
+
+          fetch(`/api/chat/export/${roomId}`, {
+            method: 'GET',
+            credentials: 'same-origin',    // 쿠키 전송을 위해 필요
+            headers: {
+              'X-XSRF-TOKEN': xsrfToken
+            }
+          })
+          .then(res => {
+            if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+            return res.blob();
+          })
+          .then(blob => {
+            const url = URL.createObjectURL(blob);
+            const link = document.getElementById('exportLink');
+            link.href = url;
+            link.download = `chat_${roomId}.txt`;
+            link.style.display = 'inline';
+            link.textContent = '상담 내역 다운로드';
+          })
+          .catch(err => {
+            console.error('파일 다운로드 실패:', err);
+          });
+        }
 
     function showMessage(msg) {
       console.log('▶ showMessage 호출, msg =', msg);
