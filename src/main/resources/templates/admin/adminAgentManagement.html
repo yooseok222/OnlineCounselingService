@@ -213,7 +213,7 @@
               <input type="hidden" name="state" value="RETIRED"/>
               <button type="submit" class="btn btn-sm btn-outline-dark">퇴직</button>
             </form>` : ''}
-          <a href="#" class="btn btn-sm btn-outline-primary edit-button" th:attr="data-id=${agent.agentId}">
+          <a href="#" class="btn btn-sm btn-outline-primary edit-button" data-id="${agent.agentId}">
             수정
             </a>
 
