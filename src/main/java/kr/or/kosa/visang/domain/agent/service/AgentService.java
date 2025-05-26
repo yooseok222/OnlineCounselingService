@@ -106,10 +106,12 @@ public class AgentService {
             } catch (IOException e) {
                 throw new RuntimeException("이미지 저장 실패", e);
             }
-        } else {
-            // 이미지가 없으면 기본 이미지 설정
-            agent.setProfileImageUrl("/images/default-profile.png");
         }
+        // 이미지가 없는 경우 이전 이미지 유지
+//        else {
+//            // 이미지가 없으면 기본 이미지 설정
+//            agent.setProfileImageUrl("/images/default-profile.png");
+//        }
 
         // Mapper를 통해 수정
         agent.setAgentId(id); // 에이전트 ID 설정

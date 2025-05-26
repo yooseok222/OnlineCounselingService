@@ -32,6 +32,7 @@
         SELECT contract_template_id, company_id, contract_name, descript, file_path, version, created_at, updated_at
         FROM contract_templates
         WHERE company_id = #{companyId}
+        ORDER BY created_at DESC
     </select>
 
     <insert id="insertTemplate">
@@ -45,7 +46,7 @@
 
     <update id="updateTemplate">
         UPDATE contract_templates
-        SET company_id = #{companyId},
+        SET company_id = #{companyId, jdbcType=BIGINT},
             contract_name = #{contractName},
             descript = #{descript},
             file_path = #{filePath},

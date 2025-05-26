@@ -49,10 +49,14 @@ public class AdminContractTemplateController {
         return new ResponseEntity<String>("success", HttpStatus.CREATED);
     }
 
-    @PutMapping("/template/{id}")
-    public ResponseEntity<String> updateTemplate(@PathVariable Long id, ContractTemplate contractTemplate) {
-        // 계약서 템플릿 수정 로직
-        contractTemplateService.updateTemplate(id, contractTemplate);
+    @PutMapping("/template/{templateId}")
+    public ResponseEntity<String> updateTemplate(@AuthenticationPrincipal CustomUserDetails admin,
+                                                 @PathVariable Long templateId,
+                                                 ContractTemplate contractTemplate
+    ) {
+        Long companyId = admin.getCompanyId(); // 로그인한 사용자의 회사 ID
+
+        contractTemplateService.updateTemplate(templateId, companyId, contractTemplate);
         return new ResponseEntity<String>("success", HttpStatus.OK);
     }
 

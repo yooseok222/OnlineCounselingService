@@ -13,6 +13,7 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.security.authentication.RememberMeAuthenticationProvider;
 import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 
@@ -185,6 +186,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf
                 // H2 콘솔 및 API는 CSRF 비활성화
                 .ignoringRequestMatchers("/h2-console/**", "/api/**")
+                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
             )
             // H2 콘솔 사용을 위한 설정
             .headers(headers -> headers

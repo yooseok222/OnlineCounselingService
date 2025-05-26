@@ -1,5 +1,6 @@
 package kr.or.kosa.visang.domain.agent.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import kr.or.kosa.visang.common.config.security.CustomUserDetails;
 import kr.or.kosa.visang.domain.agent.service.AgentService;
 import kr.or.kosa.visang.domain.client.model.Client;
@@ -34,9 +35,15 @@ public class AgentController {
 
 
     @GetMapping("/dashboard")
-    public String dashboard(@AuthenticationPrincipal CustomUserDetails user, Model model) {
+    public String dashboard(@AuthenticationPrincipal CustomUserDetails user,
+                            Model model) {
+
+
         if ("AGENT".equals(user.getRole())) {
             model.addAttribute("agentId", user.getAgentId());
+            model.addAttribute("contentFragment", "agent/agentDashboard");
+            model.addAttribute("scriptFragment", "agent/agentDashboard");
+            model.addAttribute("sideFragment", "agent/agentSidebar");
         }
         return "layout/main";
     }

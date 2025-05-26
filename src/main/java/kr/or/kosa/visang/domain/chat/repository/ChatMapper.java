@@ -4,7 +4,6 @@ import kr.or.kosa.visang.domain.chat.model.ChatMessage;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -17,5 +16,7 @@ public interface ChatMapper {
 
     void updateExportPath(Map<String, Object> params);
 
-    String getExportPath(Long roomId);
+    String getExportPath(@Param("roomId") Long roomId);
+
+    void updateExportPathByChatId(Map<String, Object> params);
 }

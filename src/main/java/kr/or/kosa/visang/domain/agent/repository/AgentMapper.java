@@ -91,6 +91,8 @@ public interface AgentMapper {
      */
     int updateEmailVerificationStatus(@Param("email") String email, @Param("verified") boolean verified);
 
+    List<Contract> getRecentCompletedContracts(Long agentId);
+
     Agent findByEmailSelect(String email);
 
     List<Map<String, Object>> countContractByStatus(Long agentId);
