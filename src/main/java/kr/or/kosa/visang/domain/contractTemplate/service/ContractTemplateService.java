@@ -48,9 +48,10 @@ public class ContractTemplateService {
     }
 
     // 계약서 템플릿 수정
-    public void updateTemplate(Long contractTemplateId, ContractTemplate contractTemplate) {
+    public void updateTemplate(Long contractTemplateId, Long companyId, ContractTemplate contractTemplate) {
         // 계약서 템플릿 ID를 사용하여 기존 템플릿을 조회
         contractTemplate.setContractTemplateId(contractTemplateId);
+        contractTemplate.setCompanyId(companyId);
 
         // 파일이 새로 업로드된 경우에만 새로 저장
         if (contractTemplate.getPdf() != null && !contractTemplate.getPdf().isEmpty()) {

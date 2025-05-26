@@ -46,7 +46,7 @@
 
     <update id="updateTemplate">
         UPDATE contract_templates
-        SET company_id = #{companyId},
+        SET company_id = #{companyId, jdbcType=BIGINT},
             contract_name = #{contractName},
             descript = #{descript},
             file_path = #{filePath},
