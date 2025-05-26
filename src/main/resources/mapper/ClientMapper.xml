@@ -47,7 +47,9 @@
             SELECT client_seq.NEXTVAL FROM DUAL
         </selectKey>
         INSERT INTO client (client_id, ssn, name, email, password, phone_number, address, role, created_at, profile_image_url, email_verified)
-        VALUES (#{clientId}, #{ssn}, #{name}, #{email}, #{password}, #{phoneNumber}, #{address, jdbcType=VARCHAR}, #{role}, #{createdAt}, #{profileImageUrl, jdbcType=VARCHAR}, #{emailVerified})
+        VALUES (#{clientId}, #{ssn}, #{name}, #{email}, #{password}, #{phoneNumber}, #{address, jdbcType=VARCHAR}, #{role}, #{createdAt},
+        NVL(#{profileImageUrl, jdbcType=VARCHAR}, '/images/profile/default_profile.png'),
+        #{emailVerified})
     </insert>
 
     <select id="isSsnExists" resultType="int">
