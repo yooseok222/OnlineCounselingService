@@ -1,6 +1,7 @@
 package kr.or.kosa.visang.common.config.security;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -23,6 +24,12 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+
+    @Value("${http.port}")
+    private int httpPort;
+
+    @Value("${server.port}")
+    private int httpsPort;
 
     private final CustomUserDetailsService userDetailsService;
     private final String REMEMBER_ME_KEY = "visangSecretKey";
@@ -128,7 +135,11 @@ public class SecurityConfig {
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
+        http.requiresChannel(channel -> channel.anyRequest().requiresSecure())
+                // 포트 매핑은 동일하게 지정
+                .portMapper(mapper -> mapper
+                        .http(httpPort).mapsTo(httpsPort)
+                )
             .authorizeHttpRequests(authorize -> authorize
                 // 정적 리소스 접근 허용
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico").permitAll()

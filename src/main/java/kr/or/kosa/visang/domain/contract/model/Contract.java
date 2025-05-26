@@ -20,7 +20,7 @@ public class Contract {
     // 추가 필드 - JOIN 시 사용
     private String clientEmail; // 고객 이메일 (JOIN으로 조회)
 
-    private Long templateId; // 계약서 템플릿 ID
+    private Long contractTemplateId; // 계약서 템플릿 ID
     private String  memo; // 계약 메모
 
     private String clientName;
