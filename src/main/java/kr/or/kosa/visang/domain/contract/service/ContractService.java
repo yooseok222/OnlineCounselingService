@@ -101,13 +101,13 @@ public class ContractService {
     }
     
     // 계약 상세 조회 (템플릿 없이)
-    public ContractDetail getContractDetailBasic(Long contractId) {
+    public ContractDetail getContractDetailWithEmail(Long contractId) {
         try {
-            ContractDetail cont = contractMapper.selectContractDetailBasic(contractId);
-            System.out.println("Basic contract detail: " + cont);
+            ContractDetail cont = contractMapper.selectContractDetailWithEmail(contractId);
+            System.out.println("Contract detail with email: " + cont);
             return cont;
         } catch (Exception e) {
-            System.err.println("계약 상세 조회 (Basic) 오류: " + e.getMessage());
+            System.err.println("계약 상세 조회 (WithEmail) 오류: " + e.getMessage());
             return null;
         }
     }

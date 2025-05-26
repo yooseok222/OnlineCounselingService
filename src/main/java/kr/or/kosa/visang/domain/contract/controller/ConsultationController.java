@@ -202,9 +202,9 @@ public class ConsultationController {
                 contractDetail = contractService.getContractDetail(contractId);
                 log.info("계약 상세 정보 조회 결과 (템플릿 포함): {}", contractDetail);
             } catch (Exception e) {
-                log.warn("템플릿 포함 조회 실패, 기본 조회 시도: {}", e.getMessage());
-                contractDetail = contractService.getContractDetailBasic(contractId);
-                log.info("계약 상세 정보 조회 결과 (기본): {}", contractDetail);
+                log.warn("템플릿 포함 조회 실패, 이메일 포함 조회 시도: {}", e.getMessage());
+                contractDetail = contractService.getContractDetailWithEmail(contractId);
+                log.info("계약 상세 정보 조회 결과 (이메일 포함): {}", contractDetail);
             }
             
             if (contractDetail != null) {

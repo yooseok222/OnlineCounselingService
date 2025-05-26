@@ -584,7 +584,7 @@
 	</select>
 
 	<!-- 계약 상세조회 (템플릿 없이) -->
-	<select id="selectContractDetailBasic" resultMap="contractDetailResultMap">
+	<select id="selectContractDetailWithEmail" resultMap="contractDetailResultMap">
 		SELECT
 			c.contract_id, c.status, 
 			TO_CHAR(c.created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at, 
