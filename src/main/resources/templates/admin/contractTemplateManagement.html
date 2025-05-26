@@ -69,7 +69,8 @@
             </div>
             <div class="mb-2">
                 <label class="form-label">계약서 템플릿</label>
-                <input type="file" class="form-control" name="pdf" />
+                <input type="file" class="form-control" name="pdf"
+                 ${!template ? 'required' : ''}/>
                 ${template?.filePath ? `<div class="form-text">기존 파일: ${template.filePath}</div>` : ''}
                 <input type="hidden" name="filePath" value="${template?.filePath || ''}" />
             </div>
