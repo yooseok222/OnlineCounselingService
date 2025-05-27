@@ -142,11 +142,11 @@ function createStompConnection() {
       
       // 방 입장 메시지 전송 (상담원, 고객 모두 입장 메시지 전송)
       stompClient.send(`/app/room/${sessionId}/join`, {}, JSON.stringify({
-        type: "join",
-        userId: `${userRole}_${Date.now()}`,
-        role: userRole,
-        sessionId: sessionId,
-        timestamp: Date.now()
+        type: "JOIN",
+        sender: userRole,
+        senderName: userRole === 'agent' ? '상담원' : '고객',
+        sessionId: sessionId
+        // timestamp는 서버에서 설정
       }));
       
       // 페이지가 준비되었음을 알리는 사용자 정의 이벤트 발생
@@ -516,6 +516,22 @@ function subscribeToTopics() {
     }
   });
   
+  // 채팅 메시지 구독
+  stompClient.subscribe(`/topic/room/${sessionId}/chat`, function(message) {
+    try {
+      const chatData = JSON.parse(message.body);
+      console.log("채팅 메시지 수신:", chatData);
+      
+      // 본인이 보낸 메시지가 아닌 경우에만 처리
+      if (chatData.sender !== userRole) {
+        handleChatMessage(chatData);
+      }
+    } catch (e) {
+      console.error("채팅 메시지 처리 오류:", e);
+      console.error("원본 메시지:", message.body);
+    }
+  });
+  
   console.log("모든 토픽 구독 완료");
 }
 
@@ -596,11 +612,54 @@ function sendRtcMessage(type, data = {}) {
 
 // 채팅 메시지 처리 함수
 function handleChatMessage(chatData) {
-  // 채팅 기능이 있다면 여기서 처리
-  console.log("채팅 메시지:", chatData.message);
+  console.log("채팅 메시지 처리:", chatData);
   
-  // 토스트 메시지로 채팅 표시
-  showToast("메시지 수신", chatData.message, "info");
+  // 채팅 UI가 있으면 채팅창에 메시지 추가
+  if (typeof addChatMessageToUI === 'function') {
+    addChatMessageToUI(chatData);
+  } else {
+    // 채팅 UI가 없으면 토스트 메시지로 표시
+    const displayMessage = chatData.content || chatData.message || "새 메시지";
+    const senderName = chatData.senderName || (chatData.sender === 'agent' ? '상담원' : '고객');
+    showToast(senderName, displayMessage, "info");
+  }
+}
+
+// 채팅 메시지 전송 함수
+function sendChatMessage(content, type = "CHAT") {
+  if (!stompClient || !stompClient.connected) {
+    console.error("WebSocket 연결이 없어 채팅 메시지를 전송할 수 없습니다.");
+    showToast("전송 실패", "연결이 끊어졌습니다. 다시 시도해주세요.", "error");
+    return;
+  }
+  
+  if (!content || content.trim() === "") {
+    console.warn("빈 메시지는 전송할 수 없습니다.");
+    return;
+  }
+  
+  try {
+    const message = {
+      type: type,
+      sender: userRole,
+      senderName: userRole === 'agent' ? '상담원' : '고객',
+      content: content.trim(),
+      sessionId: sessionId
+      // timestamp는 서버에서 설정
+    };
+    
+    console.log("채팅 메시지 전송:", message);
+    stompClient.send(`/app/room/${sessionId}/chat.send`, {}, JSON.stringify(message));
+    
+    // 본인 메시지도 UI에 추가 (에코 방지를 위해 직접 추가)
+    if (typeof addChatMessageToUI === 'function') {
+      addChatMessageToUI(message);
+    }
+    
+  } catch (e) {
+    console.error("채팅 메시지 전송 오류:", e);
+    showToast("전송 실패", "메시지 전송에 실패했습니다.", "error");
+  }
 }
 
 // 상담 종료 메시지 처리 함수

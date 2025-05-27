@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +30,7 @@ public class ChatService {
     }
 
     public void saveMessageToRedis(ChatMessage msg) {
-        String key = "chat:room:" + msg.getRoomId();
+        String key = "chat:room:" + msg.getContractId();
         redis.opsForList().rightPush(key, msg);
     }
 
@@ -61,7 +62,7 @@ public class ChatService {
             try (BufferedWriter writer = Files.newBufferedWriter(path)) {
                 for (ChatMessage msg : msgHistory) {
                     writer.write(String.format("[%s] %s: %s",
-                            msg.getSendTime(),
+                            msg.getTimestamp(),
                             msg.getSender(),
                             msg.getContent()));
                     writer.newLine();
@@ -89,15 +90,16 @@ public class ChatService {
 
         // 3) END 메시지 INSERT → chatId 자동 채워짐
         ChatMessage endMsg = ChatMessage.builder()
-                .roomId(roomId)
+                .contractId(roomId)
                 .sender(username)
                 .content("통화를 종료하고 이력을 파일로 저장했습니다.")
-                .type("END")
+                .type(ChatMessage.MessageType.SYSTEM)
+                .timestamp(LocalDateTime.now())
                 .build();
         chatMapper.insertMessage(endMsg);
 
         // 4) INSERT된 chat_id 로만 UPDATE
-        Long newChatId = endMsg.getChatId();
+        Long newChatId = endMsg.getMessageId();
         chatMapper.updateExportPathByChatId(Map.of(
                 "chatId", newChatId,
                 "filePath", filePath
