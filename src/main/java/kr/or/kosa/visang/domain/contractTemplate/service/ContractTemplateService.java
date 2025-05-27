@@ -35,8 +35,37 @@ public class ContractTemplateService {
     }
 
     public Resource getTemplateResource(Long contractTemplateId) {
-        String path = contractTemplateMapper.getPath(contractTemplateId);
-        if (path == null) throw new RuntimeException("DB에 경로 없음");
+        //1. DB에서 파일 경로 + 해시값 조회
+        ContractTemplate template = contractTemplateMapper.getPathAndHash(contractTemplateId);
+        if (template == null) throw new RuntimeException("해당 계약서 템플릿이 존재하지 않습니다.");
+
+        String path = template.getFilePath();
+        if (path == null || path.isEmpty()) {
+            throw new RuntimeException("계약서 템플릿 파일 경로가 비어있습니다.");
+        }
+        String fileHash = template.getFileHash();
+        if (fileHash == null || fileHash.isEmpty()) {
+            throw new RuntimeException("계약서 템플릿 파일 해시값이 비어있습니다.");
+        }
+
+        //2. 파일 경로를 실제 경로로 변환
+        Path filePath = Paths.get(uploadDirPdf, Paths.get(path).getFileName().toString());
+
+        //3. 해시값 검증
+        try {
+            String calculatedHash = HashUtil.sha256(filePath.toString());
+
+            if (!calculatedHash.equals(fileHash)) {
+                throw new SecurityException("❌ 템플릿 파일이 위변조되었습니다. 해시 불일치");
+            }
+
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("해시값 계산 중 오류가 발생했습니다.", e);
+        } catch (IOException e) {
+            throw new RuntimeException("계약서 템플릿 파일을 읽는 중 오류가 발생했습니다.", e);
+        }
+
+
         return fileStorageService.loadTemplateAsResource(path);
     }
 

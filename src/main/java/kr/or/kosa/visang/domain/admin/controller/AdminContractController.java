@@ -58,15 +58,11 @@ public class AdminContractController {
     ) {
         Long companyId = admin.getCompanyId(); // 로그인한 사용자의 회사 ID
         PageRequest pr = new PageRequest(page, size);
-
-        System.out.println("request = " + request);
-        System.out.println("page = " + page);
-        System.out.println("size = " + size);
-
+        
         request.setCompanyId(companyId); // 검색 요청에 회사 ID 추가
-        PageResult<Contract> con =  contractService.searchContracts(request, pr);
-        System.out.println("con = " + con);
-        return con; // 계약 목록을 반환합니다.
+        
+        
+        return contractService.searchContracts(request, pr);// 계약 목록 반환
     }
 
     @GetMapping("/contract/{contractId}")
