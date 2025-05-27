@@ -106,21 +106,6 @@ public class PdfUploadController {
             return ResponseEntity.badRequest().body("PDF 조회 실패: " + e.getMessage());
         }
     }
-    
-    @DeleteMapping("/api/pdfs/{pdfId}")
-    @ResponseBody
-    public ResponseEntity<?> deletePdf(@PathVariable Long pdfId) {
-        try {
-            int result = pdfService.deletePdf(pdfId);
-            if (result > 0) {
-                return ResponseEntity.ok("PDF가 성공적으로 삭제되었습니다.");
-            } else {
-                return ResponseEntity.badRequest().body("PDF 삭제 실패: 해당 ID의 PDF를 찾을 수 없습니다.");
-            }
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("PDF 삭제 실패: " + e.getMessage());
-        }
-    }
 
     // 이전 URL 경로도 지원 (하위 호환성)
     @GetMapping("/pdf/{fileId}")
