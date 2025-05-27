@@ -43,6 +43,12 @@ public interface ContractMapper {
 
     // 계약 상세 조회
     ContractDetail selectContractDetail(Long contractId);
+    
+    // 계약 상세 조회 (템플릿 없이)
+    ContractDetail selectContractDetailWithEmail(Long contractId);
+    
+    // 계약 ID로 고객 이메일 조회
+    String selectClientEmailByContractId(Long contractId);
 
     // 고객 ID로 계약 목록 조회
     List<Contract> selectContractsByClientId(Long clientId);
@@ -67,6 +73,9 @@ public interface ContractMapper {
 
     // 계약의 고객 ID 업데이트
     int updateContractClientId(@Param("contractId") Long contractId, @Param("clientId") Long clientId);
+
+    // 상담 종료 (상태 변경 및 메모 업데이트)
+    int endConsultation(@Param("param1") Long contractId, @Param("param2") String memo);
 
     // 세션 ID로 계약 조회
     Contract selectContractBySessionId(@Param("sessionId") String sessionId);
@@ -110,6 +119,12 @@ public interface ContractMapper {
     int countContractsByAgentAndStatus(
             @Param("agentId") Long agentId,
             @Param("status") String status
+    );
+
+    // agent_id와 client_id로 기존 계약 조회 (PENDING 상태)
+    Contract selectContractByAgentAndClient(
+            @Param("agentId") Long agentId, 
+            @Param("clientId") Long clientId
     );
 
 }

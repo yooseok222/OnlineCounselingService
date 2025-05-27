@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.or.kosa.visang.domain.contract.repository.VoiceRecordMapper">
+
+    <!-- VoiceRecord ResultMap -->
+    <resultMap id="VoiceRecordResultMap" type="kr.or.kosa.visang.domain.contract.model.VoiceRecord">
+        <id property="voiceId" column="voice_id"/>
+        <result property="filePath" column="file_path"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="contractId" column="contract_id"/>
+    </resultMap>
+
+    <!-- 녹음 파일 정보 저장 -->
+    <insert id="insertVoiceRecord" parameterType="kr.or.kosa.visang.domain.contract.model.VoiceRecord">
+        <selectKey keyProperty="voiceId" resultType="Long" order="BEFORE">
+            SELECT voice_record_seq.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO voice_record (
+            voice_id,
+            file_path,
+            created_at,
+            contract_id
+        ) VALUES (
+            #{voiceId},
+            #{filePath},
+            #{createdAt},
+            #{contractId}
+        )
+    </insert>
+
+    <!-- 계약 ID로 녹음 파일 목록 조회 -->
+    <select id="findByContractId" parameterType="Long" resultMap="VoiceRecordResultMap">
+        SELECT voice_id, file_path, created_at, contract_id
+        FROM voice_record
+        WHERE contract_id = #{contractId}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 녹음 파일 ID로 조회 -->
+    <select id="findById" parameterType="Long" resultMap="VoiceRecordResultMap">
+        SELECT voice_id, file_path, created_at, contract_id
+        FROM voice_record
+        WHERE voice_id = #{voiceId}
+    </select>
+
+    <!-- 녹음 파일 삭제 -->
+    <delete id="deleteById" parameterType="Long">
+        DELETE FROM voice_record
+        WHERE voice_id = #{voiceId}
+    </delete>
+
+</mapper> 

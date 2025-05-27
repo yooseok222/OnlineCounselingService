@@ -1,9 +1,12 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>고객 입장 | 전자계약 원스톱 AI 서비스</title>
+    <!-- CSRF 토큰을 위한 메타 태그 추가 -->
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
     
     <!-- 부트스트랩 5 CSS CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -84,6 +87,73 @@
             margin-bottom: 1rem;
             color: #0064E1;
         }
+        
+        /* 도장 선택 영역 스타일 */
+        .stamp-selection-area {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+        }
+        
+        .stamp-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            border: 1px solid #e9ecef;
+            border-radius: 0.25rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .stamp-item:hover {
+            background-color: #f8f9fa;
+            border-color: #0064E1;
+        }
+        
+        .stamp-item.selected {
+            background-color: #e3f2fd;
+            border-color: #0064E1;
+            box-shadow: 0 0 0 0.2rem rgba(0, 100, 225, 0.25);
+        }
+        
+        .stamp-item img {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            margin-right: 0.75rem;
+        }
+        
+        .stamp-info {
+            flex: 1;
+            text-align: left;
+        }
+        
+        .stamp-info .stamp-id {
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .stamp-info .stamp-date {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        
+        .empty-stamps {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: #6c757d;
+        }
+        
+        .empty-stamps i {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: #dee2e6;
+        }
     </style>
 </head>
 <body>
@@ -104,13 +174,40 @@
                         <div class="icon-wrapper">
                             <i class="bi bi-file-earmark-image"></i>
                         </div>
-                        <p>도장 이미지를 업로드하고 상담에 참여합니다.</p>
+                        <p>저장된 도장을 선택하고 상담에 참여합니다.</p>
+                        
+                        <!-- 도장 선택 영역 -->
                         <div class="mb-3">
-                            <input class="form-control" type="file" id="stampUpload" accept="image/*">
+                            <div id="stampList" class="stamp-selection-area">
+                                <p class="text-muted">도장을 불러오는 중...</p>
+                            </div>
                         </div>
-                        <button class="btn btn-primary w-100" onclick="enterWithStamp()">
-                            <i class="bi bi-upload me-1"></i> 도장 업로드 후 입장
+                        
+                        <!-- 새 도장 업로드 옵션 -->
+                        <div class="mb-3">
+                            <button id="uploadToggleBtn" class="btn btn-outline-secondary btn-sm" onclick="toggleUploadMode()">
+                                <i class="bi bi-plus-circle me-1"></i> 새 도장 업로드
+                            </button>
+                        </div>
+                        
+                        <!-- 업로드 모드 (숨김) -->
+                        <div id="uploadMode" class="mb-3" style="display: none;">
+                            <input class="form-control mb-2" type="file" id="stampUpload" accept="image/*">
+                            <button class="btn btn-secondary btn-sm" onclick="uploadNewStamp()">
+                                <i class="bi bi-upload me-1"></i> 업로드
+                            </button>
+                        </div>
+                        
+                        <button class="btn btn-primary w-100" onclick="enterWithSelectedStamp()" id="enterStampBtn" disabled>
+                            <i class="bi bi-box-arrow-in-right me-1"></i> 선택한 도장으로 입장
                         </button>
+                        
+                        <!-- 도장 관리 링크 -->
+                        <div class="mt-2">
+                            <a href="/stamp/upload" target="_blank" class="btn btn-link btn-sm">
+                                <i class="bi bi-gear me-1"></i> 도장 관리
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -153,78 +250,274 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        function enterWithStamp() {
+        let selectedStampId = null;
+        let selectedStampImage = null;
+        
+        // 페이지 로드 시 도장 목록 불러오기
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('페이지 로드 완료, 도장 목록 로드 시작');
+            loadStampList();
+        });
+        
+        // 도장 목록 불러오기
+        function loadStampList() {
+            const stampList = document.getElementById('stampList');
+            const uploadToggleBtn = document.getElementById('uploadToggleBtn');
+            stampList.innerHTML = '<p class="text-muted">도장을 불러오는 중...</p>';
+            
+            console.log('도장 목록 로드 시작...');
+            
+            // 현재 로그인한 사용자의 도장 목록 조회
+            fetch('/stamp/api/list')
+                .then(response => {
+                    console.log('응답 상태:', response.status);
+                    
+                    if (response.status === 401) {
+                        console.log('401 오류: 로그인 필요');
+                        stampList.innerHTML = `
+                            <div class="empty-stamps">
+                                <i class="bi bi-exclamation-triangle text-warning"></i>
+                                <p>로그인이 필요합니다.</p>
+                                <a href="/login" class="btn btn-sm btn-primary">로그인</a>
+                            </div>
+                        `;
+                        uploadToggleBtn.disabled = false;
+                        uploadToggleBtn.innerHTML = '<i class="bi bi-plus-circle me-1"></i> 새 도장 업로드';
+                        uploadToggleBtn.className = 'btn btn-outline-secondary btn-sm';
+                        return;
+                    }
+                    if (response.status === 403) {
+                        console.log('403 오류: 권한 없음');
+                        stampList.innerHTML = `
+                            <div class="empty-stamps">
+                                <i class="bi bi-exclamation-triangle text-danger"></i>
+                                <p>접근 권한이 없습니다.</p>
+                                <a href="/login" class="btn btn-sm btn-primary">다시 로그인</a>
+                            </div>
+                        `;
+                        uploadToggleBtn.disabled = false;
+                        uploadToggleBtn.innerHTML = '<i class="bi bi-plus-circle me-1"></i> 새 도장 업로드';
+                        uploadToggleBtn.className = 'btn btn-outline-secondary btn-sm';
+                        return;
+                    }
+                    if (!response.ok) {
+                        console.log('HTTP 오류:', response.status);
+                        throw new Error(`HTTP ${response.status}: 도장 목록을 불러올 수 없습니다.`);
+                    }
+                    return response.json();
+                })
+                .then(stamps => {
+                    if (!stamps) return; // 에러 처리에서 return된 경우
+                    
+                    console.log('받은 도장 데이터:', stamps);
+                    
+                    if (stamps.length === 0) {
+                        stampList.innerHTML = `
+                            <div class="empty-stamps">
+                                <i class="bi bi-stamp"></i>
+                                <p>등록된 도장이 없습니다.</p>
+                                <p class="small">도장 관리에서 도장을 등록하세요.</p>
+                            </div>
+                        `;
+                        // 도장이 없으면 업로드 버튼 활성화
+                        uploadToggleBtn.disabled = false;
+                        uploadToggleBtn.innerHTML = '<i class="bi bi-plus-circle me-1"></i> 새 도장 업로드';
+                        uploadToggleBtn.className = 'btn btn-outline-secondary btn-sm';
+                    } else {
+                        // 첫 번째 도장만 표시 (한 고객당 하나의 도장만 허용)
+                        const stamp = stamps[0];
+                        const date = new Date(stamp.createdAt).toLocaleDateString('ko-KR');
+                        const stampsHtml = `
+                            <div class="stamp-item selected" onclick="selectStamp(${stamp.stampId}, '${stamp.imagePath}', this)">
+                                <img src="/stamp/image/${stamp.imagePath}" alt="내 도장">
+                                <div class="stamp-info">
+                                    <div class="stamp-id">내 도장</div>
+                                    <div class="stamp-date">등록일: ${date}</div>
+                                </div>
+                            </div>
+                        `;
+                        stampList.innerHTML = stampsHtml;
+                        
+                        // 자동으로 도장 선택 - setTimeout을 사용해 DOM이 완전히 렌더링된 후 실행
+                        setTimeout(() => {
+                            const stampElement = stampList.querySelector('.stamp-item');
+                            if (stampElement) {
+                                selectStamp(stamp.stampId, stamp.imagePath, stampElement);
+                            }
+                        }, 0);
+                        
+                        // 도장이 있으면 업로드 버튼 비활성화
+                        uploadToggleBtn.disabled = true;
+                        uploadToggleBtn.innerHTML = '<i class="bi bi-lock me-1"></i> 업로드 불가 (기존 도장 삭제 필요)';
+                        uploadToggleBtn.className = 'btn btn-outline-secondary btn-sm disabled';
+                    }
+                })
+                .catch(error => {
+                    console.error('도장 목록 로드 실패:', error);
+                    stampList.innerHTML = `
+                        <div class="empty-stamps">
+                            <i class="bi bi-exclamation-triangle text-danger"></i>
+                            <p>도장 목록을 불러올 수 없습니다.</p>
+                            <p class="small">${error.message}</p>
+                            <button class="btn btn-sm btn-outline-primary" onclick="loadStampList()">다시 시도</button>
+                        </div>
+                    `;
+                    
+                    // 오류 시에도 업로드 버튼 활성화
+                    uploadToggleBtn.disabled = false;
+                    uploadToggleBtn.innerHTML = '<i class="bi bi-plus-circle me-1"></i> 새 도장 업로드';
+                    uploadToggleBtn.className = 'btn btn-outline-secondary btn-sm';
+                });
+        }
+        
+        // 도장 선택
+        function selectStamp(stampId, imagePath, element) {
+            console.log('selectStamp 호출:', stampId, imagePath, element);
+            
+            try {
+                // 기존 선택 해제
+                document.querySelectorAll('.stamp-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                
+                // 새 선택 표시 - element가 전달되면 사용, 아니면 이벤트에서 가져오기
+                let targetElement = element;
+                if (!targetElement && typeof event !== 'undefined' && event && event.currentTarget) {
+                    targetElement = event.currentTarget;
+                }
+                
+                if (targetElement) {
+                    targetElement.classList.add('selected');
+                    console.log('도장 선택됨:', targetElement);
+                } else {
+                    console.warn('선택할 요소를 찾을 수 없습니다.');
+                }
+                
+                selectedStampId = stampId;
+                selectedStampImage = `/stamp/image/${imagePath}`;
+                
+                // 입장 버튼 활성화
+                const enterBtn = document.getElementById('enterStampBtn');
+                if (enterBtn) {
+                    enterBtn.disabled = false;
+                    console.log('입장 버튼 활성화됨');
+                }
+            } catch (error) {
+                console.error('selectStamp 오류:', error);
+            }
+        }
+        
+        // 선택한 도장으로 입장
+        function enterWithSelectedStamp() {
+            if (!selectedStampId || !selectedStampImage) {
+                alert('도장을 선택해주세요.');
+                return;
+            }
+            
+            // 선택된 도장 이미지를 캔버스로 처리
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d', { alpha: true, willReadFrequently: true });
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                
+                const processedImageData = canvas.toDataURL('image/png');
+                
+                sessionStorage.setItem("role", "client");
+                sessionStorage.setItem("stampImage", processedImageData);
+                sessionStorage.setItem("entryType", "stamp");
+                sessionStorage.setItem("selectedStampId", selectedStampId);
+                
+                // 대기실로 이동
+                location.href = "/waiting-room";
+            };
+            img.src = selectedStampImage;
+        }
+        
+        // 업로드 모드 토글
+        function toggleUploadMode() {
+            const uploadToggleBtn = document.getElementById('uploadToggleBtn');
+            
+            // 버튼이 비활성화된 경우 업로드 모드를 열지 않음
+            if (uploadToggleBtn.disabled) {
+                alert('이미 등록된 도장이 있습니다. 새 도장을 업로드하려면 먼저 기존 도장을 삭제해주세요.');
+                return;
+            }
+            
+            const uploadMode = document.getElementById('uploadMode');
+            if (uploadMode.style.display === 'none') {
+                uploadMode.style.display = 'block';
+            } else {
+                uploadMode.style.display = 'none';
+            }
+        }
+        
+        // 새 도장 업로드
+        function uploadNewStamp() {
             const fileInput = document.getElementById("stampUpload");
             const file = fileInput.files[0];
-            if (!file) return alert("도장 이미지를 선택하세요.");
+            if (!file) {
+                alert("도장 이미지를 선택하세요.");
+                return;
+            }
 
-            // 파일 크기 검증 추가
+            // 파일 유효성 검사
             if (file.size <= 0) {
-                return alert("올바른 도장 이미지 파일을 선택하세요.");
+                alert("올바른 도장 이미지 파일을 선택하세요.");
+                return;
             }
 
-            // 이미지 타입 검증 추가
             if (!file.type.startsWith('image/')) {
-                return alert("이미지 파일만 업로드 가능합니다.");
+                alert("이미지 파일만 업로드 가능합니다.");
+                return;
             }
 
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                // 이미지 투명도 유지를 위해 캔버스를 통해 처리
-                const img = new Image();
-                img.onload = function() {
-                    // 캔버스 생성 및 이미지 그리기
-                    const canvas = document.createElement('canvas');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    
-                    // willReadFrequently 옵션 추가 및 투명도 지원 확실히 설정
-                    const ctx = canvas.getContext('2d', { alpha: true, willReadFrequently: true });
-                    
-                    // 캔버스 완전히 투명하게 초기화
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    
-                    // 이미지 그리기 전 투명도 설정
-                    ctx.globalCompositeOperation = 'source-over';
-                    
-                    // 이미지 그리기
-                    ctx.drawImage(img, 0, 0);
-                    
-                    // 투명 픽셀 처리 - 배경색이 흰색이면 투명하게 만들기
-                    if (file.type !== 'image/png') {
-                        try {
-                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                            const data = imageData.data;
-                            
-                            // 흰색 배경을 투명하게 변환 (약간의 여유를 두고 처리)
-                            for (let i = 0; i < data.length; i += 4) {
-                                // 흰색에 가까운 픽셀(모든 RGB 값이 높은 경우)을 투명하게 설정
-                                if (data[i] > 240 && data[i + 1] > 240 && data[i + 2] > 240) {
-                                    // 알파 채널(투명도)을 0으로 설정
-                                    data[i + 3] = 0;
-                                }
-                            }
-                            
-                            // 처리된 이미지 데이터를 다시 캔버스에 그리기
-                            ctx.putImageData(imageData, 0, 0);
-                        } catch (e) {
-                            console.error("이미지 처리 중 오류 발생:", e);
-                        }
-                    }
-                    
-                    // 반드시 PNG 형식으로 변환 (투명도 유지를 위해)
-                    const processedImageData = canvas.toDataURL('image/png');
-                    
-                    sessionStorage.setItem("role", "client");
-                    sessionStorage.setItem("stampImage", processedImageData);
-                    sessionStorage.setItem("entryType", "stamp");
-                    
-                    // 대기실로 이동
-                    location.href = "/waiting-room";
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
+            // FormData로 파일 업로드
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // CSRF 토큰 가져오기
+            const token = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const header = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+
+            fetch('/stamp/upload', {
+                method: 'POST',
+                headers: {
+                    [header]: token
+                },
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('도장이 성공적으로 업로드되었습니다.');
+                    // 업로드 모드 숨기기
+                    document.getElementById('uploadMode').style.display = 'none';
+                    // 파일 입력 초기화
+                    fileInput.value = '';
+                    // 도장 목록 새로고침
+                    loadStampList();
+                } else if (response.status === 400) {
+                    // 기존 도장이 있어서 업로드가 거부된 경우
+                    return response.text().then(errorMessage => {
+                        alert('업로드 실패: 이미 등록된 도장이 있습니다. 새 도장을 업로드하려면 먼저 기존 도장을 삭제해주세요.');
+                    });
+                } else {
+                    alert('도장 업로드에 실패했습니다.');
+                }
+            })
+            .catch(error => {
+                console.error('업로드 오류:', error);
+                alert('도장 업로드 중 오류가 발생했습니다.');
+            });
+        }
+        
+        // 기존 함수 (호환성 유지)
+        function enterWithStamp() {
+            enterWithSelectedStamp();
         }
 
         const signCanvas = document.getElementById('signCanvas');

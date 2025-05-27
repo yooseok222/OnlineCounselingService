@@ -136,6 +136,10 @@
             // 고유한 세션 ID 생성
             const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
             
+            // 세션 ID를 sessionStorage에 저장
+            sessionStorage.setItem("sessionId", sessionId);
+            console.log("상담원 세션 ID 생성 및 저장:", sessionId);
+            
             // 새로고침 방지 이벤트 제거 (상담실로 이동 전) - 저장된 핸들러 사용
             window.removeEventListener('beforeunload', beforeUnloadHandler);
             

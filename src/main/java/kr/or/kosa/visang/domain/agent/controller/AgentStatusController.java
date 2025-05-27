@@ -19,6 +19,9 @@ public class AgentStatusController {
 
     // 세션 ID 저장을 위한 Map (여러 세션 지원)
     private ConcurrentHashMap<String, Date> activeSessions = new ConcurrentHashMap<>();
+    
+    // 현재 활성 세션 ID (가장 최근에 생성된 세션)
+    private volatile String currentActiveSessionId = null;
 
     /**
      * 상담원 입장 상태 확인
@@ -32,13 +35,17 @@ public class AgentStatusController {
         Map<String, Object> response = new HashMap<>();
         response.put("present", isPresent);
         
-        // 최근 세션 ID를 응답에 추가
-        if (!activeSessions.isEmpty()) {
-            // 가장 최근 세션 선택 (마지막으로 업데이트된 세션)
+        // 현재 활성 세션 ID를 응답에 추가
+        if (currentActiveSessionId != null) {
+            response.put("sessionId", currentActiveSessionId);
+            System.out.println("현재 활성 세션 ID 응답: " + currentActiveSessionId);
+        } else if (!activeSessions.isEmpty()) {
+            // 백업: 가장 최근 세션 선택
             String latestSessionId = getLatestSessionId();
             if (latestSessionId != null) {
                 response.put("sessionId", latestSessionId);
-                System.out.println("세션 ID 응답: " + latestSessionId);
+                currentActiveSessionId = latestSessionId; // 현재 활성 세션으로 설정
+                System.out.println("백업 세션 ID 응답: " + latestSessionId);
             }
         }
         
@@ -84,10 +91,16 @@ public class AgentStatusController {
                 if (present) {
                     // 입장 상태이면 세션 추가
                     activeSessions.put(sessionId, new Date());
-                    System.out.println("세션 활성화: " + sessionId);
+                    currentActiveSessionId = sessionId; // 현재 활성 세션으로 설정
+                    System.out.println("세션 활성화: " + sessionId + " (현재 활성 세션으로 설정)");
                 } else {
                     // 퇴장 상태이면 해당 세션 제거
                     activeSessions.remove(sessionId);
+                    // 현재 활성 세션이 제거되는 세션이면 null로 설정
+                    if (sessionId.equals(currentActiveSessionId)) {
+                        currentActiveSessionId = null;
+                        System.out.println("현재 활성 세션 해제: " + sessionId);
+                    }
                     System.out.println("세션 비활성화: " + sessionId);
                 }
             }
