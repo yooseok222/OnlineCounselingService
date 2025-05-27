@@ -104,7 +104,7 @@ public class ContractTemplateService {
     }
 
     // 계약서 템플릿 수정
-    public void updateTemplate(Long contractTemplateId, Long companyId, ContractTemplate contractTemplate) {
+    public void updateTemplate(Long contractTemplateId, Long companyId, ContractTemplate contractTemplate) throws IOException, NoSuchAlgorithmException {
         // 계약서 템플릿 ID를 사용하여 기존 템플릿을 조회
         contractTemplate.setContractTemplateId(contractTemplateId);
         contractTemplate.setCompanyId(companyId);
@@ -112,6 +112,19 @@ public class ContractTemplateService {
         // 파일이 새로 업로드된 경우에만 새로 저장
         if (contractTemplate.getPdf() != null && !contractTemplate.getPdf().isEmpty()) {
             String newPath = savePDF(contractTemplate);
+            if (newPath == null || newPath.isEmpty()) {
+                throw new RuntimeException("새로운 PDF 파일이 비어있거나 저장에 실패했습니다.");
+            }
+            String hash = HashUtil.sha256(Paths.get(uploadDirPdf, Paths.get(newPath).getFileName().toString()).toString());
+
+            // 해시 중복 확인
+            Optional<ContractTemplate> existing = contractTemplateMapper.findByFileHash(hash);
+            if (existing.isPresent() && !existing.get().getContractTemplateId().equals(contractTemplateId)) {
+                // 중복 발생 → 저장 중단
+                throw new RuntimeException("이미 동일한 템플릿이 존재합니다. 이름: " + existing.get().getContractName());
+            }
+            // 계약서 템플릿에 새 파일 경로와 해시값 설정
+            contractTemplate.setFileHash(hash);
             contractTemplate.setFilePath(newPath);
         }
         contractTemplateMapper.updateTemplate(contractTemplate);

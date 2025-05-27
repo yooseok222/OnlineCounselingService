@@ -53,7 +53,8 @@
             descript = #{descript},
             file_path = #{filePath},
             version = #{version},
-            updated_at = SYSTIMESTAMP
+            updated_at = SYSTIMESTAMP,
+            file_hash = #{fileHash}
         WHERE contract_template_id = #{contractTemplateId}
     </update>
     <delete id="deleteTemplate" >

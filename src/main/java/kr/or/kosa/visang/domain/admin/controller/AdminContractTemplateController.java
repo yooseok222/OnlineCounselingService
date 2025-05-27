@@ -58,8 +58,11 @@ public class AdminContractTemplateController {
                                                  ContractTemplate contractTemplate
     ) {
         Long companyId = admin.getCompanyId(); // 로그인한 사용자의 회사 ID
-
-        contractTemplateService.updateTemplate(templateId, companyId, contractTemplate);
+        try{
+            contractTemplateService.updateTemplate(templateId, companyId, contractTemplate);
+        }catch (Exception e){
+            return new ResponseEntity<String>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
         return new ResponseEntity<String>("success", HttpStatus.OK);
     }
 
