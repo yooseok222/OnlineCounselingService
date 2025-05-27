@@ -37,10 +37,10 @@
 
     <insert id="insertTemplate">
         INSERT INTO contract_templates (
-        contract_template_id, company_id, contract_name, descript, file_path, version, created_at, updated_at
+        contract_template_id, company_id, contract_name, descript, file_path, version, created_at, updated_at, file_hash
         )
         VALUES (
-        #{contractTemplateId}, #{companyId}, #{contractName}, #{descript}, #{filePath}, #{version}, SYSTIMESTAMP, SYSTIMESTAMP
+        #{contractTemplateId}, #{companyId}, #{contractName}, #{descript}, #{filePath}, #{version}, SYSTIMESTAMP, SYSTIMESTAMP, #{fileHash}
         )
     </insert>
 
@@ -58,4 +58,10 @@
         DELETE FROM contract_templates
         WHERE contract_template_id = #{contractTemplateId}
     </delete>
+
+    <select id="findByFileHash" resultMap="ContractTemplateResultMap">
+        SELECT contract_template_id, company_id, contract_name, descript, file_path, version, created_at, updated_at
+        FROM contract_templates
+        WHERE file_hash = #{fileHash}
+    </select>
 </mapper>

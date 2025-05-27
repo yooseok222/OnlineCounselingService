@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 @Mapper
 public interface ContractTemplateMapper {
@@ -16,4 +17,5 @@ public interface ContractTemplateMapper {
     void insertTemplate(ContractTemplate template);
     void updateTemplate(ContractTemplate template);
     void deleteTemplate(Long contractTemplateId);
+    Optional<ContractTemplate> findByFileHash(String fileHash);
 }

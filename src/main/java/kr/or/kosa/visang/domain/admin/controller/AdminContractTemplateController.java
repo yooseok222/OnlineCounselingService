@@ -11,6 +11,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+
 @Controller
 @RequestMapping("/admin")
 @RequiredArgsConstructor
@@ -40,7 +43,7 @@ public class AdminContractTemplateController {
 
     @PostMapping("/template")
     public ResponseEntity<String> createTemplate(@AuthenticationPrincipal CustomUserDetails admin,
-                                                 ContractTemplate contractTemplate) {
+                                                 ContractTemplate contractTemplate) throws IOException, NoSuchAlgorithmException {
         Long companyId = admin.getCompanyId(); // 로그인한 사용자의 회사 ID
         contractTemplate.setCompanyId(companyId);
 
