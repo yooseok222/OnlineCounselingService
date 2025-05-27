@@ -402,6 +402,25 @@ function subscribeToTopics() {
       console.error("스크롤 동기화 데이터 처리 오류:", e);
     }
   });
+
+  // 미디어 상태 동기화 이벤트 구독
+  stompClient.subscribe(`/topic/room/${sessionId}/media`, function(message) {
+    try {
+      const mediaData = JSON.parse(message.body);
+      console.log("미디어 상태 데이터 수신:", mediaData);
+      
+      // 본인이 보낸 메시지가 아닌 경우에만 처리
+      if (mediaData.sender !== userRole) {
+        if (typeof handleRemoteMediaState === 'function') {
+          handleRemoteMediaState(mediaData);
+        } else {
+          console.error("미디어 상태 핸들러가 정의되지 않았습니다.");
+        }
+      }
+    } catch (e) {
+      console.error("미디어 상태 데이터 처리 오류:", e);
+    }
+  });
   
   // 방 입장 이벤트 구독
   stompClient.subscribe(`/topic/room/${sessionId}/join`, function(message) {

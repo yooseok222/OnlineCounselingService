@@ -64,6 +64,14 @@
           <h4>내 화면</h4>
           <video id="localVideo" autoplay playsinline muted></video>
           <div id="localVideoStatus" class="video-status">연결 중...</div>
+          <div class="media-controls">
+            <button id="toggleMicBtn" class="media-btn mic-on" onclick="toggleMicrophone()" title="마이크 끄기">
+              <i class="fas fa-microphone"></i>
+            </button>
+            <button id="toggleCameraBtn" class="media-btn camera-on" onclick="toggleCamera()" title="카메라 끄기">
+              <i class="fas fa-video"></i>
+            </button>
+          </div>
         </div>
         <div id="remoteVideoContainer" class="video-wrapper">
           <h4>고객 화면</h4>
