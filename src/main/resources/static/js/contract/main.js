@@ -909,7 +909,7 @@ async function endConsultation() {
                     const endMessage = {
                         message: "상담이 종료되었습니다. 메인 페이지로 이동합니다.",
                         contractId: currentContractId,
-                        redirectUrl: "/",
+                        redirectUrl: userRole === 'agent' ? "/agent/dashboard" : "/",
                         sessionId: sessionId,
                         sender: userRole
                     };
@@ -924,6 +924,13 @@ async function endConsultation() {
             
             // 상담 종료 완료
             console.log('상담 종료 완료');
+            
+            // 상담원인 경우 대시보드로, 고객인 경우 메인 페이지로 이동
+            setTimeout(() => {
+                const redirectUrl = userRole === 'agent' ? '/agent/dashboard' : '/';
+                console.log(`상담 종료 후 페이지 이동: ${redirectUrl}`);
+                window.location.href = redirectUrl;
+            }, 1000);
         } else {
             console.error('상담 종료 실패:', result.message);
             alert('상담 종료에 실패했습니다: ' + result.message);

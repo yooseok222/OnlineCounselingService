@@ -612,8 +612,9 @@ function handleConsultationEnd(endData) {
   if (userRole === 'client') {
     showClientConsultationEndModal();
   } else {
-    // 상담원인 경우 기존 모달 표시
-    showConsultationEndModal(endData.message || "상담이 종료되었습니다.", endData.redirectUrl || "/");
+    // 상담원인 경우 기존 모달 표시 - 대시보드로 이동
+    const redirectUrl = userRole === 'agent' ? "/agent/dashboard" : (endData.redirectUrl || "/");
+    showConsultationEndModal(endData.message || "상담이 종료되었습니다.", redirectUrl);
   }
 }
 
@@ -636,7 +637,7 @@ function showConsultationEndModal(message, redirectUrl) {
         <p class="modal-message">${message}</p>
         <div class="modal-buttons">
           <button onclick="confirmConsultationEnd('${redirectUrl}')" class="btn-confirm">
-            <i class="fas fa-home"></i> 메인 페이지로 이동
+            <i class="fas fa-${userRole === 'agent' ? 'tachometer-alt' : 'home'}"></i> ${userRole === 'agent' ? '대시보드로 이동' : '메인 페이지로 이동'}
           </button>
         </div>
       </div>
