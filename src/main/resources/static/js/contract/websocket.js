@@ -1307,6 +1307,9 @@ async function savePdfWithStampAndSignature(forEmail = false) {
     const timestamp = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
     const fileName = `상담문서_${timestamp}.pdf`;
     
+    // 최종 PDF를 서버에 저장
+    await uploadFinalPdfToServer(blob, fileName);
+    
     // 로컬 다운로드 (이메일 전송이 아닌 경우)
     if (!forEmail) {
       const link = document.createElement("a");
@@ -1327,6 +1330,49 @@ async function savePdfWithStampAndSignature(forEmail = false) {
     } else {
       showToast("PDF 생성 실패", "PDF 저장 중 오류가 발생했습니다: " + error.message, "error");
     }
+    throw error;
+  }
+}
+
+// 최종 PDF를 서버에 업로드하는 함수
+async function uploadFinalPdfToServer(blob, fileName) {
+  try {
+    console.log("최종 PDF 서버 업로드 시작:", fileName);
+    
+    // FormData 생성
+    const formData = new FormData();
+    formData.append('file', blob, fileName);
+    
+    // 현재 계약 ID가 있으면 추가 (전역 변수에서 가져오기)
+    if (typeof currentContractId !== 'undefined' && currentContractId) {
+      formData.append('contractId', currentContractId);
+    }
+    
+    // CSRF 토큰 가져오기
+    const token = document.querySelector("meta[name='_csrf']").getAttribute("content");
+    const header = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
+    
+    // 서버로 업로드
+    const response = await fetch('/upload', {
+      method: 'POST',
+      headers: {
+        [header]: token,
+      },
+      body: formData
+    });
+    
+    if (!response.ok) {
+      throw new Error(`서버 업로드 실패: ${response.status}`);
+    }
+    
+    const result = await response.text();
+    console.log("최종 PDF 서버 업로드 성공:", result);
+    showToast("PDF 저장", "최종 상담 문서가 서버에 저장되었습니다.", "success");
+    
+    return result;
+  } catch (error) {
+    console.error("최종 PDF 서버 업로드 오류:", error);
+    showToast("PDF 저장 실패", "서버 저장 중 오류가 발생했습니다: " + error.message, "error");
     throw error;
   }
 }

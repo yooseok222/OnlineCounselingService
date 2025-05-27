@@ -167,7 +167,7 @@ BEGIN
   EXECUTE IMMEDIATE '
   CREATE TABLE contract (
       contract_id NUMBER(19) PRIMARY KEY,
-      status VARCHAR2(20) DEFAULT ''진행중'' NOT NULL,
+      status VARCHAR2(20) DEFAULT ''IN_PROGRESS'' NOT NULL,
       created_at TIMESTAMP NOT NULL,
       contract_time TIMESTAMP,
       client_id VARCHAR2(100),
