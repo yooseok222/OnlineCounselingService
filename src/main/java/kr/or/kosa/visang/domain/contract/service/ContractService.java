@@ -444,24 +444,20 @@ public class ContractService {
     @Transactional
     public int endConsultation(Long contractId, String memo) {
         try {
-            // 상태를 '완료'로 변경
-            int statusResult = contractMapper.updateContractStatus(contractId, "완료");
-
-            // 메모 업데이트 (기존 세션 ID 정보는 덮어쓰기)
-            int memoResult = contractMapper.updateContractMemo(contractId, memo);
-
-            System.out.println("상담 종료 완료 - 계약 ID: " + contractId + ", 메모: " + memo);
+            System.out.println("=== 상담 종료 시작 ===");
+            System.out.println("계약 ID: " + contractId);
+            System.out.println("메모: " + memo);
             
-            // 상담 종료 후 자동으로 PDF 메일 발송 시도
-            try {
-                sendPdfEmailAfterConsultation(contractId);
-            } catch (Exception emailException) {
-                System.err.println("상담 종료 후 PDF 메일 발송 실패 (상담 종료는 성공): " + emailException.getMessage());
-                emailException.printStackTrace();
-                // PDF 메일 발송 실패해도 상담 종료는 성공으로 처리
+            // 계약 상태를 '완료'로 변경하고 메모 업데이트
+            int result = contractMapper.endConsultation(contractId, memo);
+            
+            if (result > 0) {
+                System.out.println("상담 종료 성공");
+            } else {
+                System.out.println("상담 종료 실패 - 업데이트된 행이 없음");
             }
             
-            return statusResult + memoResult;
+            return result;
         } catch (Exception e) {
             System.err.println("상담 종료 오류: " + e.getMessage());
             e.printStackTrace();
@@ -601,44 +597,23 @@ public class ContractService {
      */
     public Contract getContractBySessionId(String sessionId) {
         try {
-            System.out.println("=== 세션 ID로 계약 조회 시작 ===");
-            System.out.println("요청된 세션 ID: " + sessionId);
-            System.out.println("세션 ID 길이: " + (sessionId != null ? sessionId.length() : "null"));
+            System.out.println("=== 세션 ID로 계약 조회 ===");
+            System.out.println("세션 ID: " + sessionId);
             
-            if (sessionId == null || sessionId.trim().isEmpty()) {
-                System.out.println("세션 ID가 null이거나 비어있음");
-                return null;
-            }
-
-            // 먼저 모든 계약을 조회해서 DB 연결 상태 확인
-            System.out.println("DB 연결 상태 확인을 위해 전체 계약 수 조회...");
-            List<Contract> allContracts = contractMapper.selectAllContracts();
-            System.out.println("전체 계약 수: " + (allContracts != null ? allContracts.size() : "null"));
-            
-            // 세션 ID가 포함된 계약이 있는지 확인
-            if (allContracts != null) {
-                System.out.println("세션 ID 패턴 검색 중...");
-                for (Contract c : allContracts) {
-                    if (c.getMemo() != null && c.getMemo().contains(sessionId)) {
-                        System.out.println("매칭되는 계약 발견: " + c.getContractId() + ", 메모: " + c.getMemo());
-                    }
-                }
-            }
-
-            // 세션 ID로 계약 정보 조회
+            // 메모에서 세션 ID를 포함하는 계약 조회
             Contract contract = contractMapper.selectContractBySessionId(sessionId);
-
+            
             if (contract != null) {
-                System.out.println("세션 ID로 계약 조회 성공: " + contract);
-                return contract;
+                System.out.println("계약 조회 성공: " + contract.toString());
             } else {
-                System.out.println("세션 ID에 해당하는 계약 정보 없음: " + sessionId);
-                return null;
+                System.out.println("해당 세션 ID의 계약을 찾을 수 없습니다.");
             }
+            
+            return contract;
         } catch (Exception e) {
             System.err.println("세션 ID로 계약 조회 오류: " + e.getMessage());
             e.printStackTrace();
-            throw new RuntimeException("세션 ID로 계약 조회에 실패했습니다: " + e.getMessage(), e);
+            return null;
         }
     }
 }

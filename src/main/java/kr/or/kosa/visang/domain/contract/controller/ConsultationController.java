@@ -309,6 +309,44 @@ public class ConsultationController {
     }
     
     /**
+     * 세션 ID로 계약 ID 조회
+     */
+    /* 
+    @GetMapping("/session/{sessionId}")
+    public ResponseEntity<Map<String, Object>> getContractBySessionId(@PathVariable String sessionId) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            log.info("세션 ID로 계약 ID 조회 요청: {}", sessionId);
+            
+            // 세션 ID로 계약 조회
+            Contract contract = contractService.getContractBySessionId(sessionId);
+            
+            if (contract != null) {
+                response.put("success", true);
+                response.put("contractId", contract.getContractId());
+                response.put("status", contract.getStatus());
+                response.put("message", "계약 정보 조회 성공");
+                
+                log.info("세션 ID {}로 계약 ID {} 조회 성공", sessionId, contract.getContractId());
+            } else {
+                response.put("success", false);
+                response.put("message", "해당 세션의 계약 정보를 찾을 수 없습니다.");
+                
+                log.warn("세션 ID {}에 해당하는 계약을 찾을 수 없습니다", sessionId);
+            }
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("세션 ID로 계약 ID 조회 실패: sessionId={}", sessionId, e);
+            response.put("success", false);
+            response.put("message", "계약 정보 조회에 실패했습니다: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+    */
+    /**
      * 테스트용 API - 간단한 응답 확인
      */
     @GetMapping("/test")

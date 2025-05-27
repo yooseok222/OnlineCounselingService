@@ -514,6 +514,14 @@
 		WHERE contract_id = #{contractId}
 	</update>
 
+	<!-- 상담 종료 (상태 변경 및 메모 업데이트) -->
+	<update id="endConsultation">
+		UPDATE contract
+		SET status = '완료',
+			memo = #{param2, jdbcType=CLOB}
+		WHERE contract_id = #{param1}
+	</update>
+
 	<!-- 세션 ID로 계약 조회 - Oracle 문법 사용 -->
 	<select id="selectContractBySessionId" resultMap="ContractResultMap">
 		SELECT * FROM (

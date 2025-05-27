@@ -131,51 +131,20 @@ public class ContractController {
         try {
             log.info("sessionId로 contractId 조회 시도: {}", sessionId);
             
-            // 방법 1: 상담 참여 시 생성된 contractId를 Redis나 메모리에서 조회
-            // 현재는 간단한 방법으로 구현
+            // ContractService를 통해 실제 계약 조회
+            Contract contract = contractService.getContractBySessionId(sessionId);
             
-            // 방법 2: sessionId 패턴에서 contractId 추출
-            // sessionId 형태: "session_타임스탬프_랜덤문자열"
-            if (sessionId.startsWith("session_")) {
-                String[] parts = sessionId.split("_");
-                if (parts.length >= 2) {
-                    try {
-                        // 타임스탬프를 기반으로 contractId 생성
-                        Long timestamp = Long.parseLong(parts[1]);
-                        
-                        // 타임스탬프를 contractId로 변환 (더 안전한 방법)
-                        // 예: 1748282475667 -> 475667 (뒤 6자리)
-                        Long contractId = timestamp % 1000000;
-                        
-                        // contractId가 0이면 1로 설정 (최소값 보장)
-                        if (contractId == 0) {
-                            contractId = 1L;
-                        }
-                        
-                        log.info("sessionId {}에서 contractId {} 추출 성공", sessionId, contractId);
-                        return contractId;
-                        
-                    } catch (NumberFormatException e) {
-                        log.error("sessionId에서 타임스탬프 추출 실패: {}", sessionId, e);
-                    }
-                }
+            if (contract != null) {
+                log.info("sessionId {}로 contractId {} 조회 성공", sessionId, contract.getContractId());
+                return contract.getContractId();
+            } else {
+                log.warn("sessionId {}에 해당하는 계약을 찾을 수 없습니다", sessionId);
+                return null;
             }
-            
-            // 방법 3: 기본값 사용 (개발/테스트용)
-            log.warn("sessionId에서 contractId 추출 실패, 기본값 사용: sessionId={}", sessionId);
-            
-            // sessionId의 해시코드를 사용하여 양수 contractId 생성
-            int hashCode = Math.abs(sessionId.hashCode());
-            Long contractId = (long) (hashCode % 1000000 + 1); // 1~1000000 범위
-            
-            log.info("sessionId {} 해시코드 기반 contractId {} 생성", sessionId, contractId);
-            return contractId;
             
         } catch (Exception e) {
             log.error("sessionId로 contractId 조회 중 예외 발생: sessionId={}", sessionId, e);
-            
-            // 최후의 수단: 고정값 반환
-            return 1L;
+            return null;
         }
     }
     

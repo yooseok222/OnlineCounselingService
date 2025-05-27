@@ -74,6 +74,9 @@ public interface ContractMapper {
     // 계약의 고객 ID 업데이트
     int updateContractClientId(@Param("contractId") Long contractId, @Param("clientId") Long clientId);
 
+    // 상담 종료 (상태 변경 및 메모 업데이트)
+    int endConsultation(@Param("param1") Long contractId, @Param("param2") String memo);
+
     // 세션 ID로 계약 조회
     Contract selectContractBySessionId(@Param("sessionId") String sessionId);
 
