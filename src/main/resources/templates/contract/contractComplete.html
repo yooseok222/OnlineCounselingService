@@ -92,8 +92,8 @@
                                 <td th:text="${contract.contractId}">계약 ID</td>
                                 <td>
                                     <span th:if="${contract.status == '1' || contract.status == 1}">대기중</span>
-                                    <span th:if="${contract.status == '4' || contract.status == 4}">진행중</span>
-                                    <span th:if="${contract.status == '5' || contract.status == 5}">완료</span>
+                                                    <span th:if="${contract.status == '4' || contract.status == 4 || contract.status == 'IN_PROGRESS'}">진행중</span>
+                <span th:if="${contract.status == '5' || contract.status == 5 || contract.status == 'COMPLETED'}">완료</span>
                                     <span th:if="${contract.status != '1' && contract.status != 1 && contract.status != '4' && contract.status != 4 && contract.status != '5' && contract.status != 5}" th:text="${contract.status}">기타</span>
                                 </td>
                                 <td th:text="${contract.createdAt}">생성일</td>

@@ -43,7 +43,7 @@ public class ContractController {
         
         // 상태가 비어있거나 null인 경우 기본값 설정
         if (contract.getStatus() == null || contract.getStatus().trim().isEmpty()) {
-            contract.setStatus("완료");
+            contract.setStatus("COMPLETED");
         }
         
         // 실제 저장 시도

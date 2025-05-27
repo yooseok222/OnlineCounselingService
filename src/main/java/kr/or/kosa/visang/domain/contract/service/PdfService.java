@@ -64,7 +64,7 @@ public class PdfService {
             System.out.println("프리픽스 제거 후 파일명: " + fileName);
         }
         
-        // 메모리 캐시에서 확인
+        // 1. 메모리 캐시에서 확인 (원본 PDF 및 최종 PDF)
         if (pdfMemoryCache.containsKey(fileName)) {
             System.out.println("메모리 캐시에서 PDF 파일 찾음: " + fileName);
             byte[] pdfData = pdfMemoryCache.get(fileName);
@@ -84,7 +84,31 @@ public class PdfService {
                     .body(resource);
         }
         
-        System.out.println("메모리 캐시에서 PDF 파일을 찾을 수 없음: " + fileName);
+        // 2. 파일 시스템에서 확인 (최종 PDF용 - 메모리에서 찾지 못한 경우)
+        try {
+            Path filePath = Paths.get(uploadDirPdf, fileName);
+            if (Files.exists(filePath)) {
+                System.out.println("파일 시스템에서 PDF 파일 찾음: " + filePath);
+                FileSystemResource resource = new FileSystemResource(filePath);
+                
+                // 캐시 방지를 위한 랜덤 값
+                String etag = "\"" + UUID.randomUUID().toString() + "\"";
+                
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "inline;filename=" + fileName)
+                        .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate, max-age=0")
+                        .header(HttpHeaders.PRAGMA, "no-cache")
+                        .header(HttpHeaders.EXPIRES, "0")
+                        .header(HttpHeaders.ETAG, etag)
+                        .contentType(MediaType.APPLICATION_PDF)
+                        .contentLength(Files.size(filePath))
+                        .body(resource);
+            }
+        } catch (Exception e) {
+            System.err.println("파일 시스템에서 PDF 파일 읽기 오류: " + e.getMessage());
+        }
+        
+        System.out.println("메모리 캐시와 파일 시스템에서 PDF 파일을 찾을 수 없음: " + fileName);
         return ResponseEntity.notFound().build();
     }
     
@@ -128,11 +152,31 @@ public class PdfService {
         // 파일 내용 읽기
         byte[] fileBytes = file.getBytes();
         
-        // 파일을 메모리에만 저장
+                // 파일명으로 원본 PDF와 최종 PDF 구분
+        boolean isFinalPdf = originalFilename.contains("상담문서_");
+        
+        // 모든 PDF는 메모리에 저장
         System.out.println("PDF 메모리 캐시에 저장: " + uniqueFilename + " (" + fileBytes.length + " bytes)");
         pdfMemoryCache.put(uniqueFilename, fileBytes);
         
-        // 파일 해시값 계산
+        if (isFinalPdf) {
+            // 최종 PDF만 파일 시스템에 저장
+            try {
+                Path uploadPath = Paths.get(uploadDirPdf);
+                Files.createDirectories(uploadPath); // 디렉토리가 없으면 생성
+                Path filePath = uploadPath.resolve(uniqueFilename);
+                Files.write(filePath, fileBytes);
+                System.out.println("최종 PDF 파일 시스템에 저장: " + filePath.toString());
+            } catch (Exception e) {
+                System.err.println("최종 PDF 파일 시스템 저장 오류: " + e.getMessage());
+                // 파일 시스템 저장 실패해도 메모리 캐시는 유지
+            }
+        } else {
+            // 원본 PDF는 메모리에만 저장
+            System.out.println("원본 PDF는 메모리에만 저장 (서버 저장 안함): " + uniqueFilename);
+        }
+         
+         // 파일 해시값 계산
         String fileHash = generateFileHash(fileBytes);
         
         // PDF 정보 객체 생성

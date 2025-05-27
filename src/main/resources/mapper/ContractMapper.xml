@@ -530,7 +530,7 @@
 	<!-- 상담 종료 (상태 변경 및 메모 업데이트) -->
 	<update id="endConsultation">
 		UPDATE contract
-		SET status = '완료',
+		SET status = 'COMPLETED',
 			memo = #{param2, jdbcType=CLOB}
 		WHERE contract_id = #{param1}
 	</update>
@@ -545,7 +545,7 @@
 			OR contract_id = (
 				SELECT MAX(contract_id)
 				FROM contract
-				WHERE status = '진행중'
+				WHERE status = 'IN_PROGRESS'
 			)
 			ORDER BY contract_id DESC
 		) WHERE ROWNUM &lt;= 1
