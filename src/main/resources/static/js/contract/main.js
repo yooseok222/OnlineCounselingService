@@ -813,7 +813,20 @@ async function endConsultation() {
             }
         }
         
-        // 1. PDF 생성 및 이메일 전송 (실패해도 상담 종료는 진행)
+        // 1. 녹음 중인 경우 자동 저장 (실패해도 상담 종료는 진행)
+        try {
+            if (typeof saveRecordingOnConsultationEnd === 'function') {
+                await saveRecordingOnConsultationEnd();
+                console.log('상담 종료 시 녹음 저장 완료');
+            }
+        } catch (recordingError) {
+            console.error('상담 종료 시 녹음 저장 실패 (상담 종료는 계속 진행):', recordingError);
+            if (typeof showToast === 'function') {
+                showToast("녹음 저장 실패", "녹음 저장에 실패했지만 상담은 정상적으로 종료됩니다.", "warning");
+            }
+        }
+
+        // 2. PDF 생성 및 이메일 전송 (실패해도 상담 종료는 진행)
         try {
             await generateAndSendPdf();
             console.log('PDF 생성 및 메일 발송 완료');
@@ -843,7 +856,7 @@ async function endConsultation() {
             }
         }
         
-        // 2. 상담 종료 처리
+        // 3. 상담 종료 처리
         // Contract ID 최종 확인
         if (!currentContractId) {
             console.error('Contract ID가 여전히 없습니다. 상담 종료를 진행할 수 없습니다.');

@@ -110,6 +110,16 @@ EXCEPTION
 END;
 /
 
+BEGIN
+  EXECUTE IMMEDIATE 'DROP SEQUENCE voice_record_seq';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2289 THEN
+      RAISE;
+    END IF;
+END;
+/
+
 -- 시퀀스 생성
 CREATE SEQUENCE company_seq START WITH 2 INCREMENT BY 1
 /
@@ -122,6 +132,14 @@ CREATE SEQUENCE agent_seq START WITH 2 INCREMENT BY 1
 
 -- Contract 시퀀스 생성 (이미 있다면 건너뛰기)
 CREATE SEQUENCE contract_seq
+START WITH 1
+INCREMENT BY 1
+NOCACHE
+NOCYCLE
+/
+
+-- Voice Record 시퀀스 생성
+CREATE SEQUENCE voice_record_seq
 START WITH 1
 INCREMENT BY 1
 NOCACHE
@@ -314,6 +332,45 @@ END;
 
 BEGIN
   EXECUTE IMMEDIATE 'CREATE INDEX idx_agent_company_id ON agent(company_id)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- Voice Record 테이블 생성
+BEGIN
+  EXECUTE IMMEDIATE '
+  CREATE TABLE voice_record (
+      voice_id NUMBER(19) PRIMARY KEY,
+      file_path VARCHAR2(255) NOT NULL,
+      created_at DATE NOT NULL,
+      contract_id NUMBER(19) NOT NULL,
+      CONSTRAINT voice_record_contract_fk FOREIGN KEY (contract_id) REFERENCES contract(contract_id)
+  )';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- Voice Record 테이블 인덱스 생성
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE INDEX idx_voice_record_contract_id ON voice_record(contract_id)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE INDEX idx_voice_record_created_at ON voice_record(created_at)';
 EXCEPTION
   WHEN OTHERS THEN
     IF SQLCODE != -955 THEN

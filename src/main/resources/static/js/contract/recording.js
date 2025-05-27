@@ -160,6 +160,120 @@ function updateRecordingButtons() {
   }
 }
 
+// 상담 종료 시 자동 녹음 저장 함수
+function saveRecordingOnConsultationEnd() {
+  return new Promise((resolve, reject) => {
+    if (!mediaRecorder || !isRecording) {
+      console.log("녹음 중이 아니므로 저장할 녹음이 없습니다.");
+      resolve();
+      return;
+    }
+    
+    console.log("상담 종료로 인한 자동 녹음 저장 시작...");
+    
+    // 녹음 완료 이벤트 핸들러를 일시적으로 변경
+    const originalOnStop = mediaRecorder.onstop;
+    
+    mediaRecorder.onstop = function() {
+      console.log("상담 종료 시 녹음 완료, 데이터 처리 중...");
+      
+      // 녹음 데이터를 Blob으로 변환
+      const blob = new Blob(recordedChunks, {
+        type: 'audio/webm;codecs=opus'
+      });
+      
+      // 녹음 데이터 업로드 (Promise 기반)
+      uploadRecordingWithPromise(blob)
+        .then(() => {
+          console.log("상담 종료 시 녹음 파일 업로드 완료");
+          
+          // 녹음 버퍼 초기화
+          recordedChunks = [];
+          
+          // 녹음 상태 업데이트
+          isRecording = false;
+          
+          // 버튼 상태 업데이트
+          updateRecordingButtons();
+          
+          // 원래 핸들러 복원
+          mediaRecorder.onstop = originalOnStop;
+          
+          resolve();
+        })
+        .catch((error) => {
+          console.error("상담 종료 시 녹음 파일 업로드 실패:", error);
+          
+          // 녹음 버퍼 초기화
+          recordedChunks = [];
+          
+          // 녹음 상태 업데이트
+          isRecording = false;
+          
+          // 버튼 상태 업데이트
+          updateRecordingButtons();
+          
+          // 원래 핸들러 복원
+          mediaRecorder.onstop = originalOnStop;
+          
+          reject(error);
+        });
+    };
+    
+    // MediaRecorder 중지
+    mediaRecorder.stop();
+    
+    // 트랙 중지
+    if (mediaRecorder.stream) {
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    }
+    
+    // 토스트 메시지 표시
+    if (typeof showToast === 'function') {
+      showToast("녹음 저장", "상담 종료로 인해 녹음을 저장하고 있습니다.", "info");
+    }
+  });
+}
+
+// Promise 기반 녹음 파일 업로드 함수
+function uploadRecordingWithPromise(blob) {
+  return new Promise((resolve, reject) => {
+    // FormData 생성
+    const formData = new FormData();
+    formData.append('file', blob, `recording_${sessionId}_${Date.now()}.webm`);
+    formData.append('sessionId', sessionId);
+    
+    // CSRF 토큰 가져오기
+    const token = document.querySelector("meta[name='_csrf']").getAttribute("content");
+    const header = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
+    
+    console.log("상담 종료 시 녹음 파일 업로드 중...");
+    
+    // 서버로 파일 업로드
+    fetch('/api/contract/upload-recording', {
+      method: 'POST',
+      headers: {
+        [header]: token
+      },
+      body: formData
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('녹음 파일 업로드 실패');
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log("상담 종료 시 녹음 파일 업로드 성공:", data);
+      resolve(data);
+    })
+    .catch(error => {
+      console.error("상담 종료 시 녹음 파일 업로드 오류:", error);
+      reject(error);
+    });
+  });
+}
+
 // 페이지 로드 시 녹음 초기화
 document.addEventListener('DOMContentLoaded', function() {
   initializeRecording();
