@@ -1353,7 +1353,7 @@ async function uploadFinalPdfToServer(blob, fileName) {
     const header = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
     
     // 서버로 업로드
-    const response = await fetch('/upload', {
+    const response = await fetch('/upload/final', {
       method: 'POST',
       headers: {
         [header]: token,
