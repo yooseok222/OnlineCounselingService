@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class Contract {
     private Long contractId; // 계약 ID
-    private String status; // 계약 상태 (예: 진행 중, 완료, 취소 등)
+    private String status; // 계약 상태 (예: IN_PROGRESS, COMPLETED, CANCELED 등)
     private String createdAt; // 계약 생성일
     private String contractTime; // 계약 시간
     private String companyId; // 회사 ID

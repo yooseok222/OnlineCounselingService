@@ -179,6 +179,12 @@ function createStompConnection() {
 
 // 메시지 수신을 위한 토픽 구독
 function subscribeToTopics() {
+  console.log("=== 웹소켓 구독 시작 ===");
+  console.log("stompClient 연결 상태:", stompClient ? stompClient.connected : "null");
+  console.log("세션 ID:", sessionId);
+  console.log("사용자 역할:", userRole);
+  console.log("========================");
+  
   if (!stompClient || !stompClient.connected || !sessionId) {
     console.error("구독할 WebSocket 연결이 없습니다.");
     return;
@@ -377,6 +383,25 @@ function subscribeToTopics() {
       console.error("RTC 신호 처리 오류:", e);
     }
   });
+
+  // 스크롤 동기화 이벤트 구독
+  stompClient.subscribe(`/topic/room/${sessionId}/scroll`, function(message) {
+    try {
+      const scrollData = JSON.parse(message.body);
+      console.log("스크롤 동기화 데이터 수신:", scrollData);
+      
+      // 본인이 보낸 메시지가 아닌 경우에만 처리
+      if (scrollData.sender !== userRole) {
+        if (typeof handleRemoteScrollSync === 'function') {
+          handleRemoteScrollSync(scrollData.scrollData);
+        } else {
+          console.error("스크롤 동기화 핸들러가 정의되지 않았습니다.");
+        }
+      }
+    } catch (e) {
+      console.error("스크롤 동기화 데이터 처리 오류:", e);
+    }
+  });
   
   // 방 입장 이벤트 구독
   stompClient.subscribe(`/topic/room/${sessionId}/join`, function(message) {
@@ -440,6 +465,34 @@ function subscribeToTopics() {
       }
     } catch (e) {
       console.error("동기화 응답 처리 오류:", e);
+      console.error("원본 메시지:", message.body);
+    }
+  });
+  
+  // 전역 상담 종료 메시지 구독
+  stompClient.subscribe('/topic/endConsult', function(message) {
+    try {
+      const endData = JSON.parse(message.body);
+      console.log("상담 종료 메시지 수신:", endData);
+      
+      // 상담 종료 처리
+      handleConsultationEnd(endData);
+    } catch (e) {
+      console.error("상담 종료 메시지 처리 오류:", e);
+      console.error("원본 메시지:", message.body);
+    }
+  });
+  
+  // 세션별 상담 종료 메시지 구독
+  stompClient.subscribe(`/topic/room/${sessionId}/endConsult`, function(message) {
+    try {
+      const endData = JSON.parse(message.body);
+      console.log("세션별 상담 종료 메시지 수신:", endData);
+      
+      // 상담 종료 처리
+      handleConsultationEnd(endData);
+    } catch (e) {
+      console.error("세션별 상담 종료 메시지 처리 오류:", e);
       console.error("원본 메시지:", message.body);
     }
   });
@@ -529,6 +582,353 @@ function handleChatMessage(chatData) {
   
   // 토스트 메시지로 채팅 표시
   showToast("메시지 수신", chatData.message, "info");
+}
+
+// 상담 종료 메시지 처리 함수
+function handleConsultationEnd(endData) {
+  console.log("=== 상담 종료 처리 시작 ===");
+  console.log("종료 데이터:", endData);
+  
+  // 고객인 경우 상담원과 동일한 스타일의 모달 표시
+  if (userRole === 'client') {
+    showClientConsultationEndModal();
+  } else {
+    // 상담원인 경우 기존 모달 표시
+    showConsultationEndModal(endData.message || "상담이 종료되었습니다.", endData.redirectUrl || "/");
+  }
+}
+
+// 상담 종료 모달 표시 함수
+function showConsultationEndModal(message, redirectUrl) {
+  // 기존 모달이 있으면 제거
+  const existingModal = document.getElementById('consultationEndModal');
+  if (existingModal) {
+    existingModal.remove();
+  }
+  
+  // 모달 HTML 생성
+  const modalHTML = `
+    <div id="consultationEndModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <i class="fas fa-check-circle modal-icon"></i>
+          <h3 class="modal-title">상담 종료</h3>
+        </div>
+        <p class="modal-message">${message}</p>
+        <div class="modal-buttons">
+          <button onclick="confirmConsultationEnd('${redirectUrl}')" class="btn-confirm">
+            <i class="fas fa-home"></i> 메인 페이지로 이동
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // 모달을 body에 추가
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  
+  // 모달 스타일 추가 (기존 스타일이 없는 경우)
+  if (!document.getElementById('consultationEndModalStyles')) {
+    const styles = `
+      <style id="consultationEndModalStyles">
+        #consultationEndModal .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          background-color: rgba(0, 0, 0, 0.7);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 99999;
+        }
+        
+        #consultationEndModal .modal-content {
+          background: white;
+          padding: 30px;
+          border-radius: 12px;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+          animation: modalFadeIn 0.3s ease-out;
+          position: relative;
+          margin: auto;
+          max-width: 400px;
+          width: 90%;
+        }
+        
+        @keyframes modalFadeIn {
+          from {
+            opacity: 0;
+            transform: scale(0.9) translateY(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        
+        #consultationEndModal .btn-confirm {
+          background-color: #0057d7;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: background-color 0.2s;
+        }
+        
+        #consultationEndModal .btn-confirm:hover {
+          background-color: #004bb5;
+        }
+        
+        #consultationEndModal .modal-header {
+          text-align: center;
+          margin-bottom: 20px;
+        }
+        
+        #consultationEndModal .modal-icon {
+          font-size: 48px;
+          color: #0057d7;
+          margin-bottom: 15px;
+          display: block;
+        }
+        
+        #consultationEndModal .modal-title {
+          margin: 0;
+          color: #333;
+          font-size: 20px;
+          font-weight: bold;
+        }
+        
+        #consultationEndModal .modal-message {
+          margin: 20px 0;
+          font-size: 16px;
+          line-height: 1.5;
+          text-align: center;
+          color: #555;
+        }
+        
+        #consultationEndModal .btn-confirm {
+          width: 100%;
+          padding: 12px;
+          font-size: 16px;
+          font-weight: bold;
+        }
+      </style>
+    `;
+    document.head.insertAdjacentHTML('beforeend', styles);
+  }
+  
+  console.log("상담 종료 모달 표시 완료");
+}
+
+// 고객용 상담 종료 모달 표시 함수 (상담원과 동일한 스타일)
+function showClientConsultationEndModal() {
+  // 기존 모달이 있으면 제거
+  const existingModal = document.getElementById('clientEndConsultationModal');
+  if (existingModal) {
+    existingModal.remove();
+  }
+  
+  // 모달 HTML 생성 (상담원과 동일한 구조) - 인라인 스타일로 강제 적용
+  const modalHTML = `
+    <div id="clientEndConsultationModal" class="modal-overlay" style="position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; background-color: rgba(0, 0, 0, 0.7) !important; display: flex !important; justify-content: center !important; align-items: center !important; z-index: 999999 !important; margin: 0 !important; padding: 0 !important;">
+      <div class="modal-content" style="background: white !important; padding: 30px !important; border-radius: 12px !important; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important; max-width: 500px !important; width: 90% !important; position: relative !important; margin: 0 auto !important; transform: none !important;">
+        <h3 style="margin-top: 0 !important; margin-bottom: 20px !important; color: #333 !important; border-bottom: 2px solid #0057d7 !important; padding-bottom: 10px !important; text-align: center !important; font-size: 20px !important; font-weight: bold !important;"><i class="fas fa-clipboard-check"></i> 상담 종료</h3>
+        <p style="margin: 15px 0 !important; font-size: 16px !important; line-height: 1.5 !important; text-align: center !important; color: #555 !important;">상담이 종료되었습니다.</p>
+        <p style="margin: 15px 0 !important; font-size: 16px !important; line-height: 1.5 !important; text-align: center !important; color: #555 !important;">메인 페이지로 이동합니다.</p>
+        <div class="modal-buttons" style="display: flex !important; gap: 10px !important; justify-content: center !important; margin-top: 25px !important;">
+          <button onclick="confirmClientConsultationEnd()" class="btn-confirm" style="padding: 12px 24px !important; border: none !important; border-radius: 6px !important; cursor: pointer !important; font-size: 16px !important; font-weight: bold !important; background-color: #0057d7 !important; color: white !important; min-width: 200px !important;">
+            <i class="fas fa-home"></i> 메인 페이지로 이동
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // 모달을 body에 추가
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  
+  // 모달 스타일 추가 (main.js의 스타일과 동일)
+  addClientModalStyles();
+  
+  console.log("고객용 상담 종료 모달 표시 완료");
+}
+
+// 고객용 모달 스타일 추가 (main.js와 동일한 스타일)
+function addClientModalStyles() {
+  // 이미 스타일이 추가되어 있는지 확인
+  if (document.getElementById('clientModalStyles')) {
+    return;
+  }
+  
+  const style = document.createElement('style');
+  style.id = 'clientModalStyles';
+  style.textContent = `
+    /* 고객용 상담 종료 모달 - 최고 우선순위 */
+    div#clientEndConsultationModal.modal-overlay {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      background-color: rgba(0, 0, 0, 0.7) !important;
+      display: flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+      z-index: 999999 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    
+    div#clientEndConsultationModal .modal-content {
+      background: white !important;
+      padding: 30px !important;
+      border-radius: 12px !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+      max-width: 500px !important;
+      width: 90% !important;
+      max-height: 80vh !important;
+      overflow-y: auto !important;
+      position: relative !important;
+      margin: 0 auto !important;
+      transform: none !important;
+      animation: clientModalFadeIn 0.3s ease-out !important;
+    }
+    
+    @keyframes clientModalFadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+    
+    div#clientEndConsultationModal .modal-content h3 {
+      margin-top: 0 !important;
+      margin-bottom: 20px !important;
+      color: #333 !important;
+      border-bottom: 2px solid #0057d7 !important;
+      padding-bottom: 10px !important;
+      text-align: center !important;
+      font-size: 20px !important;
+      font-weight: bold !important;
+    }
+    
+    div#clientEndConsultationModal .modal-content p {
+      margin: 15px 0 !important;
+      font-size: 16px !important;
+      line-height: 1.5 !important;
+      text-align: center !important;
+      color: #555 !important;
+    }
+    
+    div#clientEndConsultationModal .modal-buttons {
+      display: flex !important;
+      gap: 10px !important;
+      justify-content: center !important;
+      margin-top: 25px !important;
+    }
+    
+    div#clientEndConsultationModal .btn-confirm {
+      padding: 12px 24px !important;
+      border: none !important;
+      border-radius: 6px !important;
+      cursor: pointer !important;
+      font-size: 16px !important;
+      font-weight: bold !important;
+      transition: background-color 0.2s !important;
+      background-color: #0057d7 !important;
+      color: white !important;
+      min-width: 200px !important;
+    }
+    
+    div#clientEndConsultationModal .btn-confirm:hover {
+      background-color: #004bb5 !important;
+    }
+    
+    div#clientEndConsultationModal .btn-confirm i {
+      margin-right: 8px !important;
+    }
+  `;
+  
+  document.head.appendChild(style);
+}
+
+// 고객용 상담 종료 확인 함수
+function confirmClientConsultationEnd() {
+  console.log("고객 상담 종료 확인");
+  
+  // 모달 제거
+  const modal = document.getElementById('clientEndConsultationModal');
+  if (modal) {
+    modal.remove();
+  }
+  
+  // WebSocket 연결 종료
+  if (stompClient && stompClient.connected) {
+    try {
+      stompClient.disconnect(() => {
+        console.log("WebSocket 연결 종료 완료");
+      });
+    } catch (e) {
+      console.error("WebSocket 연결 종료 오류:", e);
+    }
+  }
+  
+  // WebRTC 연결 종료
+  if (typeof cleanupWebRTC === 'function') {
+    try {
+      cleanupWebRTC();
+      console.log("WebRTC 연결 정리 완료");
+    } catch (e) {
+      console.error("WebRTC 연결 정리 오류:", e);
+    }
+  }
+  
+  // 페이지 이동
+  setTimeout(() => {
+    window.location.href = "/";
+  }, 500);
+}
+
+// 상담 종료 확인 함수
+function confirmConsultationEnd(redirectUrl) {
+  console.log("상담 종료 확인 - 리다이렉트 URL:", redirectUrl);
+  
+  // 모달 제거
+  const modal = document.getElementById('consultationEndModal');
+  if (modal) {
+    modal.remove();
+  }
+  
+  // WebSocket 연결 종료
+  if (stompClient && stompClient.connected) {
+    try {
+      stompClient.disconnect(() => {
+        console.log("WebSocket 연결 종료 완료");
+      });
+    } catch (e) {
+      console.error("WebSocket 연결 종료 오류:", e);
+    }
+  }
+  
+  // WebRTC 연결 종료
+  if (typeof cleanupWebRTC === 'function') {
+    try {
+      cleanupWebRTC();
+      console.log("WebRTC 연결 정리 완료");
+    } catch (e) {
+      console.error("WebRTC 연결 정리 오류:", e);
+    }
+  }
+  
+  // 페이지 이동
+  setTimeout(() => {
+    window.location.href = redirectUrl;
+  }, 500);
 }
 
 // 페이지 접속 시 WebSocket 연결 초기화
@@ -761,11 +1161,20 @@ function handleSyncResponse(syncResponse) {
 // PDF에 도장과 서명 포함해서 저장하는 함수
 async function savePdfWithStampAndSignature(forEmail = false) {
   try {
+    console.log("PDF 라이브러리 확인 중...");
+    
+    // PDF 라이브러리 로드 대기
+    await checkPdfLibraryLoaded();
+    
     const PDFDocument = window.PDFLib.PDFDocument;
+    console.log("PDF 라이브러리 로드 확인됨");
 
     if (!uploadedPdfUrl) {
-      throw new Error("PDF 파일 경로를 찾을 수 없습니다.");
+      console.error("PDF 파일 경로가 없습니다. uploadedPdfUrl:", uploadedPdfUrl);
+      throw new Error("PDF 파일 경로를 찾을 수 없습니다. PDF를 먼저 업로드해주세요.");
     }
+    
+    console.log("PDF 생성 시작 - PDF URL:", uploadedPdfUrl);
 
     // 로딩 메시지 표시
     if (!forEmail) {
@@ -775,8 +1184,20 @@ async function savePdfWithStampAndSignature(forEmail = false) {
     }
 
     // 원본 PDF 가져오기
-    const existingPdfBytes = await fetch(uploadedPdfUrl).then(res => res.arrayBuffer());
+    console.log("PDF 파일 다운로드 시작:", uploadedPdfUrl);
+    const pdfResponse = await fetch(uploadedPdfUrl);
+    
+    if (!pdfResponse.ok) {
+      console.error("PDF 파일 다운로드 실패:", pdfResponse.status, pdfResponse.statusText);
+      throw new Error(`PDF 파일을 가져올 수 없습니다. (${pdfResponse.status})`);
+    }
+    
+    const existingPdfBytes = await pdfResponse.arrayBuffer();
+    console.log("PDF 파일 다운로드 완료, 크기:", existingPdfBytes.byteLength, "bytes");
+    
+    console.log("PDF 문서 로드 시작...");
     const pdfDocLib = await PDFDocument.load(existingPdfBytes);
+    console.log("PDF 문서 로드 완료");
     const pages = pdfDocLib.getPages();
 
     // 페이지별로 도장과 서명 데이터 처리
@@ -886,6 +1307,9 @@ async function savePdfWithStampAndSignature(forEmail = false) {
     const timestamp = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
     const fileName = `상담문서_${timestamp}.pdf`;
     
+    // 최종 PDF를 서버에 저장
+    await uploadFinalPdfToServer(blob, fileName);
+    
     // 로컬 다운로드 (이메일 전송이 아닌 경우)
     if (!forEmail) {
       const link = document.createElement("a");
@@ -910,6 +1334,49 @@ async function savePdfWithStampAndSignature(forEmail = false) {
   }
 }
 
+// 최종 PDF를 서버에 업로드하는 함수
+async function uploadFinalPdfToServer(blob, fileName) {
+  try {
+    console.log("최종 PDF 서버 업로드 시작:", fileName);
+    
+    // FormData 생성
+    const formData = new FormData();
+    formData.append('file', blob, fileName);
+    
+    // 현재 계약 ID가 있으면 추가 (전역 변수에서 가져오기)
+    if (typeof currentContractId !== 'undefined' && currentContractId) {
+      formData.append('contractId', currentContractId);
+    }
+    
+    // CSRF 토큰 가져오기
+    const token = document.querySelector("meta[name='_csrf']").getAttribute("content");
+    const header = document.querySelector("meta[name='_csrf_header']").getAttribute("content");
+    
+    // 서버로 업로드
+    const response = await fetch('/upload', {
+      method: 'POST',
+      headers: {
+        [header]: token,
+      },
+      body: formData
+    });
+    
+    if (!response.ok) {
+      throw new Error(`서버 업로드 실패: ${response.status}`);
+    }
+    
+    const result = await response.text();
+    console.log("최종 PDF 서버 업로드 성공:", result);
+    showToast("PDF 저장", "최종 상담 문서가 서버에 저장되었습니다.", "success");
+    
+    return result;
+  } catch (error) {
+    console.error("최종 PDF 서버 업로드 오류:", error);
+    showToast("PDF 저장 실패", "서버 저장 중 오류가 발생했습니다: " + error.message, "error");
+    throw error;
+  }
+}
+
 // Blob을 Base64로 변환하는 함수
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
@@ -920,29 +1387,37 @@ function blobToBase64(blob) {
   });
 }
 
-// PDF 저장 버튼 추가 (UI 초기화 시 호출)
-function addPdfSaveButton() {
-  // 이미 추가되어 있는지 확인
-  if (document.getElementById('pdfSaveBtn')) return;
-  
-  const toolbarGroup = document.querySelector('.toolbar-group:last-child');
-  if (!toolbarGroup) return;
-  
-  // 저장 버튼 생성
-  const saveBtn = document.createElement('button');
-  saveBtn.id = 'pdfSaveBtn';
-  saveBtn.className = 'tool-btn';
-  saveBtn.innerHTML = '<i class="fas fa-save"></i> PDF 저장';
-  saveBtn.onclick = function() {
-    savePdfWithStampAndSignature();
-  };
-  
-  // 툴바에 버튼 추가
-  toolbarGroup.insertBefore(saveBtn, toolbarGroup.firstChild);
-  console.log("PDF 저장 버튼이 추가되었습니다.");
+// PDF 라이브러리 로드 상태 확인 함수
+function checkPdfLibraryLoaded() {
+  return new Promise((resolve, reject) => {
+    // 이미 로드되어 있으면 바로 resolve
+    if (window.PDFLib && window.PDFLib.PDFDocument) {
+      console.log("PDF 라이브러리가 이미 로드되어 있습니다.");
+      resolve(true);
+      return;
+    }
+    
+    // 최대 10초 동안 대기
+    let attempts = 0;
+    const maxAttempts = 100; // 100ms * 100 = 10초
+    
+    const checkInterval = setInterval(() => {
+      attempts++;
+      
+      if (window.PDFLib && window.PDFLib.PDFDocument) {
+        console.log(`PDF 라이브러리 로드 완료 (${attempts * 100}ms 후)`);
+        clearInterval(checkInterval);
+        resolve(true);
+      } else if (attempts >= maxAttempts) {
+        console.error("PDF 라이브러리 로드 타임아웃");
+        clearInterval(checkInterval);
+        reject(new Error("PDF 라이브러리 로드 타임아웃"));
+      }
+    }, 100);
+  });
 }
 
-// 페이지 로드 시 PDF 저장 버튼 추가
+// PDF 저장 버튼 추가 (UI 초기화 시 호출) - 상담원만
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(addPdfSaveButton, 1000); // 1초 후 버튼 추가 (다른 UI 초기화 이후)
 }); 

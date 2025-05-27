@@ -93,26 +93,22 @@ public class PdfSyncController {
     @MessageMapping("/sync/endConsult")
     @SendTo("/topic/endConsult")
     public EndContractMessage syncEndConsult(EndContractMessage message) {
-        // 계약 상태를 "완료"로 업데이트
-        if (message.getContractId() != null) {
-            contractService.updateContractStatus(message.getContractId(), "5"); // 5는 완료 상태
-        }
+        // 상담 종료는 ConsultationController에서 이미 처리되므로 여기서는 상태 업데이트 하지 않음
+        logger.info("상담 종료 WebSocket 메시지 처리: 계약 ID={}", message.getContractId());
         
         // 클라이언트에게 메인 페이지로 리다이렉션하라는 메시지를 보냄
-        message.setRedirectUrl("/main-page");
+        message.setRedirectUrl("/");
         return message;
     }
 
     @MessageMapping("/sync/consultComplete")
     @SendTo("/topic/consultComplete")
     public EndContractMessage syncConsultComplete(EndContractMessage message) {
-        // 계약 완료 처리
-        if (message.getContractId() != null) {
-            contractService.updateContractStatus(message.getContractId(), "5"); // 5는 완료 상태
-        }
+        // 상담 완료는 ConsultationController에서 이미 처리되므로 여기서는 상태 업데이트 하지 않음
+        logger.info("상담 완료 WebSocket 메시지 처리: 계약 ID={}", message.getContractId());
         
         // 클라이언트에게 메인 페이지로 리다이렉션하라는 메시지를 보냄
-        message.setRedirectUrl("/main-page");
+        message.setRedirectUrl("/");
         return message;
     }
     

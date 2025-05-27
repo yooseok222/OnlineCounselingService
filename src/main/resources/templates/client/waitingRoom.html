@@ -177,9 +177,11 @@
                         // 상담실로 이동 (역할 및 세션 ID 파라미터 추가)
                         let url = "/contract/room?role=" + role;
                         
-                        // 세션 ID가 있으면 URL에 추가
+                        // 세션 ID가 있으면 URL에 추가하고 sessionStorage에 저장
                         if (data.sessionId) {
                             url += "&session=" + data.sessionId;
+                            // 세션 ID를 sessionStorage에 저장 (상담실에서 사용)
+                            sessionStorage.setItem("sessionId", data.sessionId);
                             console.log("세션 ID 확인됨:", data.sessionId);
                         } else {
                             console.warn("상담원은 입장했지만 세션 ID가 없습니다.");

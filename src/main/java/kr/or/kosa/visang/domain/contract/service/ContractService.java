@@ -99,6 +99,28 @@ public class ContractService {
         System.out.println(cont);
         return cont;
     }
+    
+    // 계약 상세 조회 (템플릿 없이)
+    public ContractDetail getContractDetailWithEmail(Long contractId) {
+        try {
+            ContractDetail cont = contractMapper.selectContractDetailWithEmail(contractId);
+            System.out.println("Contract detail with email: " + cont);
+            return cont;
+        } catch (Exception e) {
+            System.err.println("계약 상세 조회 (WithEmail) 오류: " + e.getMessage());
+            return null;
+        }
+    }
+    
+    // 계약 ID로 고객 이메일 조회
+    public String getClientEmailByContractId(Long contractId) {
+        try {
+            return contractMapper.selectClientEmailByContractId(contractId);
+        } catch (Exception e) {
+            System.err.println("고객 이메일 조회 오류: " + e.getMessage());
+            return null;
+        }
+    }
 
     // 고객 ID로 계약 목록 조회
     public List<Contract> getContractsByClientId(Long clientId) {
@@ -148,7 +170,7 @@ public class ContractService {
 
         // 상태 처리
         if (contract.getStatus() == null || contract.getStatus().trim().isEmpty()) {
-            contract.setStatus("완료");
+            contract.setStatus("COMPLETED");
         }
 
         // ID 확인 (null로 설정되어야 자동 생성됨)
@@ -203,8 +225,8 @@ public class ContractService {
         // 현재 시간을 생성일로 설정 - String으로 직접 설정
         contract.setCreatedAt(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()));
 
-        // 상태를 '진행중'으로 설정
-        contract.setStatus("진행중");
+        // 상태를 'IN_PROGRESS'로 설정
+        contract.setStatus("IN_PROGRESS");
 
         // 사용자 역할에 따라 ID 설정 (이메일로 실제 ID 조회)
         if ("AGENT".equals(currentUserRole)) {
@@ -255,12 +277,12 @@ public class ContractService {
     }
 
     /**
-     * 상담방에 사용자 추가 (고객 또는 상담원이 나중에 입장했을 때)
+     * 상담방 참여 - agent_id와 client_id로 기존 계약 조회
      * @param sessionId 세션 ID
-     * @return 업데이트된 Contract 객체
+     * @return 기존 Contract 객체
      */
     @Transactional
-    public Contract joinConsultationRoom(String sessionId) {
+    public synchronized Contract joinConsultationRoom(String sessionId) {
         String currentUserEmail = SecurityUtil.getCurrentUserEmail();
         String currentUserRole = SecurityUtil.getCurrentUserRole();
 
@@ -273,12 +295,116 @@ public class ContractService {
             throw new IllegalStateException("로그인된 사용자 정보를 찾을 수 없습니다.");
         }
 
-        // 세션 ID로 기존 계약 찾기
-        System.out.println("기존 계약 조회 시도...");
+        // 현재 사용자의 ID 조회 - SecurityUtil에서 직접 가져오기
+        Long currentAgentId = null;
+        Long currentClientId = null;
+        
+        // SecurityUtil에서 직접 CustomUserDetails 가져오기
+        kr.or.kosa.visang.common.config.security.CustomUserDetails currentUser = SecurityUtil.getCurrentUser();
+        if (currentUser != null) {
+            System.out.println("현재 사용자 정보:");
+            System.out.println("- User ID: " + currentUser.getUserId());
+            System.out.println("- Client ID: " + currentUser.getClientId());
+            System.out.println("- Agent ID: " + currentUser.getAgentId());
+            System.out.println("- Role: " + currentUser.getRole());
+            System.out.println("- Name: " + currentUser.getName());
+        }
+        
+        if ("AGENT".equals(currentUserRole)) {
+            // SecurityUtil에서 직접 agentId 가져오기
+            if (currentUser != null && currentUser.getAgentId() != null) {
+                currentAgentId = currentUser.getAgentId();
+                System.out.println("상담원 ID (SecurityUtil): " + currentAgentId);
+            } else {
+                // 백업: 이메일로 조회
+                Agent agent = agentMapper.findByEmail(currentUserEmail);
+                if (agent != null) {
+                    currentAgentId = agent.getAgentId();
+                    System.out.println("상담원 ID (DB 조회): " + currentAgentId);
+                } else {
+                    throw new IllegalStateException("상담원 정보를 찾을 수 없습니다: " + currentUserEmail);
+                }
+            }
+        } else if ("USER".equals(currentUserRole)) {
+            // SecurityUtil에서 직접 clientId 가져오기
+            if (currentUser != null && currentUser.getClientId() != null) {
+                currentClientId = currentUser.getClientId();
+                System.out.println("고객 ID (SecurityUtil): " + currentClientId);
+            } else {
+                // 백업: 이메일로 조회
+                Client client = clientMapper.findByEmail(currentUserEmail);
+                if (client != null) {
+                    currentClientId = client.getClientId();
+                    System.out.println("고객 ID (DB 조회): " + currentClientId);
+                } else {
+                    throw new IllegalStateException("고객 정보를 찾을 수 없습니다: " + currentUserEmail);
+                }
+            }
+        }
+
+        // 기존 계약 조회 - 여러 방법으로 시도
         Contract existingContract = null;
+        
         try {
+            System.out.println("기존 계약 조회 중...");
+            System.out.println("Agent ID: " + currentAgentId + ", Client ID: " + currentClientId);
+            
+            // 0. 먼저 세션 ID로 이미 생성된 계약이 있는지 확인
+            System.out.println("세션 ID로 기존 계약 조회: " + sessionId);
             existingContract = contractMapper.selectContractBySessionId(sessionId);
-            System.out.println("기존 계약 조회 결과: " + (existingContract != null ? existingContract.toString() : "null"));
+            if (existingContract != null) {
+                System.out.println("세션 ID로 기존 계약 발견: " + existingContract.toString());
+                // 이미 진행중인 계약이면 그대로 반환
+                if ("IN_PROGRESS".equals(existingContract.getStatus())) {
+                    System.out.println("이미 진행중인 계약입니다.");
+                    return existingContract;
+                }
+                // PENDING 상태면 진행중으로 변경 후 반환
+                if ("PENDING".equals(existingContract.getStatus())) {
+                    contractMapper.updateContractStatus(existingContract.getContractId(), "IN_PROGRESS");
+                    existingContract.setStatus("IN_PROGRESS");
+                    System.out.println("PENDING 계약을 IN_PROGRESS로 변경: " + existingContract.getContractId());
+                    return existingContract;
+                }
+            }
+            
+            // 1. agent_id와 client_id가 모두 있는 경우 - 정확한 매칭
+            if (currentAgentId != null && currentClientId != null) {
+                System.out.println("Agent ID와 Client ID로 기존 PENDING 계약 조회");
+                existingContract = contractMapper.selectContractByAgentAndClient(currentAgentId, currentClientId);
+                System.out.println("Agent+Client 조회 결과: " + (existingContract != null ? existingContract.toString() : "null"));
+            }
+            
+            // 2. 위에서 찾지 못했고 상담원인 경우 - 상담원의 PENDING 계약 조회
+            if (existingContract == null && currentAgentId != null) {
+                System.out.println("상담원의 PENDING 계약 조회");
+                List<Contract> agentContracts = contractMapper.selectContractsByAgentId(currentAgentId);
+                if (agentContracts != null) {
+                    for (Contract contract : agentContracts) {
+                        if ("PENDING".equals(contract.getStatus())) {
+                            existingContract = contract;
+                            System.out.println("상담원 PENDING 계약 발견: " + contract.toString());
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // 3. 위에서 찾지 못했고 고객인 경우 - 고객의 PENDING 계약 조회
+            if (existingContract == null && currentClientId != null) {
+                System.out.println("고객의 PENDING 계약 조회");
+                List<Contract> clientContracts = contractMapper.selectContractsByClientId(currentClientId);
+                if (clientContracts != null) {
+                    for (Contract contract : clientContracts) {
+                        if ("PENDING".equals(contract.getStatus())) {
+                            existingContract = contract;
+                            System.out.println("고객 PENDING 계약 발견: " + contract.toString());
+                            break;
+                        }
+                    }
+                }
+            }
+            
         } catch (Exception e) {
             System.err.println("기존 계약 조회 오류: " + e.getMessage());
             e.printStackTrace();
@@ -286,47 +412,20 @@ public class ContractService {
 
         if (existingContract == null) {
             // 기존 계약이 없으면 새로 생성
-            System.out.println("기존 계약이 없어 새로 생성합니다.");
+            System.out.println("기존 PENDING 계약이 없어 새로 생성합니다.");
             return createConsultationRoom(sessionId);
         }
 
-        // 기존 계약에 사용자 정보 추가
-        boolean needsUpdate = false;
-
-        if ("AGENT".equals(currentUserRole) && existingContract.getAgentId() == null) {
-            System.out.println("기존 계약에 상담원 정보 추가");
-            // 이메일로 실제 agent ID 조회
-            Agent agent = agentMapper.findByEmail(currentUserEmail);
-            if (agent != null) {
-                contractMapper.updateContractAgentId(existingContract.getContractId(), agent.getAgentId());
-                existingContract.setAgentId(agent.getAgentId());
-                System.out.println("상담원 ID 업데이트: " + agent.getAgentId());
-                needsUpdate = true;
-            } else {
-                System.out.println("경고: 상담원 정보를 찾을 수 없습니다: " + currentUserEmail);
-            }
-        } else if ("USER".equals(currentUserRole) && existingContract.getClientId() == null) {
-            System.out.println("기존 계약에 고객 정보 추가");
-            // 이메일로 실제 client ID 조회
-            Client client = clientMapper.findByEmail(currentUserEmail);
-            if (client != null) {
-                contractMapper.updateContractClientId(existingContract.getContractId(), client.getClientId());
-                existingContract.setClientId(client.getClientId());
-                System.out.println("고객 ID 업데이트: " + client.getClientId());
-                needsUpdate = true;
-            } else {
-                System.out.println("경고: 고객 정보를 찾을 수 없습니다: " + currentUserEmail);
-            }
-        }
-
-        // 양쪽 사용자가 모두 입장했으면 메모에서 세션 ID 제거
-        if (existingContract.getAgentId() != null && existingContract.getClientId() != null) {
-            System.out.println("양쪽 사용자가 모두 입장하여 메모를 정리합니다.");
-            contractMapper.updateContractMemo(existingContract.getContractId(), "");
-            existingContract.setMemo("");
-        }
-
+        // 기존 계약의 상태를 'IN_PROGRESS'로 변경
         try {
+            contractMapper.updateContractStatus(existingContract.getContractId(), "IN_PROGRESS");
+            existingContract.setStatus("IN_PROGRESS");
+            
+            // 세션 ID를 메모에 추가 (상담 종료 시 필요)
+            String updatedMemo = existingContract.getMemo() + " [SessionId: " + sessionId + "]";
+            contractMapper.updateContractMemo(existingContract.getContractId(), updatedMemo);
+            existingContract.setMemo(updatedMemo);
+            
             System.out.println("상담방 참여 완료: " + existingContract.toString());
             return existingContract;
         } catch (Exception e) {
@@ -345,18 +444,62 @@ public class ContractService {
     @Transactional
     public int endConsultation(Long contractId, String memo) {
         try {
-            // 상태를 '완료'로 변경
-            int statusResult = contractMapper.updateContractStatus(contractId, "완료");
-
-            // 메모 업데이트
-            int memoResult = contractMapper.updateContractMemo(contractId, memo);
-
-            System.out.println("상담 종료 완료 - 계약 ID: " + contractId + ", 메모: " + memo);
-            return statusResult + memoResult;
+            System.out.println("=== 상담 종료 시작 ===");
+            System.out.println("계약 ID: " + contractId);
+            System.out.println("메모: " + memo);
+            
+            // 계약 상태를 'COMPLETED'로 변경하고 메모 업데이트
+            int result = contractMapper.endConsultation(contractId, memo);
+            
+            if (result > 0) {
+                System.out.println("상담 종료 성공");
+            } else {
+                System.out.println("상담 종료 실패 - 업데이트된 행이 없음");
+            }
+            
+            return result;
         } catch (Exception e) {
             System.err.println("상담 종료 오류: " + e.getMessage());
             e.printStackTrace();
             throw new RuntimeException("상담 종료에 실패했습니다.", e);
+        }
+    }
+
+    /**
+     * 상담 종료 후 자동으로 PDF 메일 발송
+     * @param contractId 계약 ID
+     */
+    private void sendPdfEmailAfterConsultation(Long contractId) {
+        try {
+            System.out.println("=== 상담 종료 후 자동 PDF 메일 발송 시작 ===");
+            System.out.println("계약 ID: " + contractId);
+            
+            // 계약 상세 정보 조회 (고객 이메일 포함)
+            ContractDetail contractDetail = getContractDetail(contractId);
+            
+            if (contractDetail == null) {
+                System.err.println("계약 정보를 찾을 수 없습니다. 계약 ID: " + contractId);
+                return;
+            }
+            
+            String clientEmail = contractDetail.getClientEmail();
+            if (clientEmail == null || clientEmail.trim().isEmpty()) {
+                System.err.println("고객 이메일이 없습니다. 계약 ID: " + contractId);
+                return;
+            }
+            
+            System.out.println("고객 이메일: " + clientEmail);
+            
+            // PDF 데이터 없이 메일 발송 (상담 완료 알림)
+            // 실제 PDF 파일은 프론트엔드에서 생성되므로, 여기서는 상담 완료 알림만 발송
+            sendPdfToClient(contractId, null, clientEmail);
+            
+            System.out.println("상담 종료 후 자동 PDF 메일 발송 완료");
+            
+        } catch (Exception e) {
+            System.err.println("상담 종료 후 자동 PDF 메일 발송 오류: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("상담 종료 후 PDF 메일 발송에 실패했습니다: " + e.getMessage(), e);
         }
     }
 
@@ -454,22 +597,23 @@ public class ContractService {
      */
     public Contract getContractBySessionId(String sessionId) {
         try {
-            System.out.println("세션 ID로 계약 조회 시작: " + sessionId);
-
-            // 세션 ID로 계약 정보 조회
+            System.out.println("=== 세션 ID로 계약 조회 ===");
+            System.out.println("세션 ID: " + sessionId);
+            
+            // 메모에서 세션 ID를 포함하는 계약 조회
             Contract contract = contractMapper.selectContractBySessionId(sessionId);
-
+            
             if (contract != null) {
-                System.out.println("세션 ID로 계약 조회 성공: " + contract);
-                return contract;
+                System.out.println("계약 조회 성공: " + contract.toString());
             } else {
-                System.out.println("세션 ID에 해당하는 계약 정보 없음: " + sessionId);
-                return null;
+                System.out.println("해당 세션 ID의 계약을 찾을 수 없습니다.");
             }
+            
+            return contract;
         } catch (Exception e) {
             System.err.println("세션 ID로 계약 조회 오류: " + e.getMessage());
             e.printStackTrace();
-            throw new RuntimeException("세션 ID로 계약 조회에 실패했습니다: " + e.getMessage(), e);
+            return null;
         }
     }
 }

@@ -4,7 +4,10 @@
     
     <!-- 도장 기본 컬럼 -->
     <sql id="baseColumns">
-        stamp_id, image_path, created_at, client_id
+        stamp_id as stampId, 
+        image_path as imagePath, 
+        created_at as createdAt, 
+        client_id as clientId
     </sql>
     
     <!-- 도장 조회 -->
