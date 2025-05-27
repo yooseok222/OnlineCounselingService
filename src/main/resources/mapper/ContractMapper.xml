@@ -74,7 +74,7 @@
         <result column="contract_time" property="contractTime" jdbcType="VARCHAR"/>
         <result column="agent_id" property="agentId" jdbcType="VARCHAR"/>
         <result column="client_id" property="clientId" jdbcType="VARCHAR"/>
-        <result column="contract_template_id" property="templateId" jdbcType="VARCHAR"/>
+        <result column="contract_template_id" property="contractTemplateId" jdbcType="VARCHAR"/>
         <result column="memo" property="memo" jdbcType="CLOB"/>
         <result column="client_email" property="clientEmail" jdbcType="VARCHAR"/>
     </resultMap>
