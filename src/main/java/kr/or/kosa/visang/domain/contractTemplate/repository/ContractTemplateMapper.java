@@ -16,4 +16,6 @@ public interface ContractTemplateMapper {
     void insertTemplate(ContractTemplate template);
     void updateTemplate(ContractTemplate template);
     void deleteTemplate(Long contractTemplateId);
+
+    List<ContractTemplate> selectByCompanyId(Long companyId);
 }

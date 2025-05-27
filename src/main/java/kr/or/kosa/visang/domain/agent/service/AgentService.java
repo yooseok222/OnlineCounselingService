@@ -1,15 +1,15 @@
 package kr.or.kosa.visang.domain.agent.service;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import kr.or.kosa.visang.domain.contractTemplate.model.ContractTemplate;
+import kr.or.kosa.visang.domain.contractTemplate.repository.ContractTemplateMapper;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -34,23 +34,6 @@ import kr.or.kosa.visang.domain.invitation.repository.InvitationMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.thymeleaf.context.Context;
-import org.thymeleaf.spring6.ISpringTemplateEngine;
-
-import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -66,6 +49,7 @@ public class AgentService {
     private final InvitationMapper invitationMapper;
     private final ClientMapper clientMapper;
     private final JavaMailSender mailSender;
+    private final ContractTemplateMapper contractTemplateMapper;
 
     @Value("${spring.mail.username}")
     private String Email;
@@ -158,13 +142,14 @@ public class AgentService {
                     time.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))));
         }
 
-		// CONTRACT 삽입 - Oracle DB의 NUMBER 타입에 맞게 수정
-		Contract c = new Contract();
-		c.setClientId(dto.getClientId());
-		c.setAgentId(dto.getAgentId());
-		c.setContractTime(dto.getContractTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-		c.setMemo(dto.getMemo());
-		c.setCreatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        Contract c = new Contract();
+        c.setClientId(dto.getClientId());
+        c.setAgentId(dto.getAgentId());
+        c.setContractTime(dto.getContractTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+        c.setCompanyId(dto.getCompanyId());
+        c.setTemplateId(dto.getTemplateId());
+        c.setMemo(dto.getMemo());
+        c.setCreatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         c.setStatus("PENDING");
 
         contractMapper.insertSchedule(c);
@@ -281,15 +266,6 @@ public class AgentService {
         return result;
     }
 
-    @Transactional(readOnly = true)
-    public List<Contract> getContractsByStatus(Long agentId, String status, String sort) {
-        Map<String, Object> param = new HashMap<>();
-        param.put("agentId", agentId);
-        param.put("status", status);
-        param.put("sort", sort);
-        return contractMapper.selectContractsByAgentIdAndStatus(param);
-    }
-
     public Page<Contract> getContractsByStatusPaged(Long agentId, String status, String sort, int page, int pageSize) {
         int offset = (page - 1) * pageSize;
         List<Contract> content = contractMapper.selectContractsByAgentIdAndStatusPaged(agentId, status, sort, offset, pageSize);
@@ -299,4 +275,7 @@ public class AgentService {
     }
 
 
+    public List<ContractTemplate> findByCompanyId(Long companyId) {
+        return contractTemplateMapper.selectByCompanyId(companyId);
+    }
 }

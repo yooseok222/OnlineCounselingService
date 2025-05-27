@@ -1,12 +1,12 @@
 package kr.or.kosa.visang.domain.agent.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
 import kr.or.kosa.visang.common.config.security.CustomUserDetails;
 import kr.or.kosa.visang.domain.agent.service.AgentService;
 import kr.or.kosa.visang.domain.client.model.Client;
 import kr.or.kosa.visang.domain.contract.model.Contract;
 import kr.or.kosa.visang.domain.contract.model.Page;
 import kr.or.kosa.visang.domain.contract.model.Schedule;
+import kr.or.kosa.visang.domain.contractTemplate.model.ContractTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +37,10 @@ public class AgentController {
     @GetMapping("/dashboard")
     public String dashboard(@AuthenticationPrincipal CustomUserDetails user,
                             Model model) {
+
+        Long companyId = user.getCompanyId();
+        model.addAttribute("companyId", companyId);
+        model.addAttribute("templates", agentService.findByCompanyId(companyId));
 
 
         if ("AGENT".equals(user.getRole())) {
@@ -152,5 +156,11 @@ public class AgentController {
         return result;
     }
 
+    // 로그인된 상담사의 companyId로 계약서 템플릿 목록 가져오기
+    @GetMapping("/contract-templates")
+    @ResponseBody
+    public List<ContractTemplate> getContractTemplates(@AuthenticationPrincipal CustomUserDetails user) {
+        return agentService.findByCompanyId(user.getCompanyId());
+    }
 
 }

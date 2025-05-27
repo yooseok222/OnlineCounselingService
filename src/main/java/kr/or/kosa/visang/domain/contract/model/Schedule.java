@@ -15,8 +15,9 @@ public class Schedule {
 	private String clientName;
 	private String phoneNumber;
 
+	private String companyId;
 	private Long agentId;
-	private Long contractTemplateId;
+	private Long templateId;
 	private LocalDateTime contractTime;
 	private String memo;
 	private String status;

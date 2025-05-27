@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import kr.or.kosa.visang.domain.contract.model.*;
+import kr.or.kosa.visang.domain.contractTemplate.model.ContractTemplate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -105,8 +106,6 @@ public interface ContractMapper {
     Contract findById(@Param("contractId") Long contractId);
 
     List<Map<String, Object>> countContractByStatus(Long agentId);
-
-    List<Contract> selectContractsByAgentIdAndStatus(Map<String, Object> param);
 
     List<Contract> selectContractsByAgentIdAndStatusPaged(
             @Param("agentId") Long agentId,

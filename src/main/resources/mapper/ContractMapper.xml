@@ -56,13 +56,14 @@
         <result column="contract_id" property="contractId"/>
         <result column="status" property="status"/>
         <result column="created_at" property="createdAt"/>
+        <result column="company_id" property="companyId"/>
         <result column="contract_time" property="contractTime"/>
         <result column="client_id" property="clientId"/>
         <result column="agent_id" property="agentId"/>
-        <result column="contract_template_id"
-                property="contractTemplateId"/>
+        <result column="contract_template_id" property="templateId"/>
         <result column="memo" property="memo"/>
         <result column="client_name" property="clientName"/>
+        <result column="client_email"       property="clientEmail"/>
     </resultMap>
     <!--<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -205,15 +206,25 @@
             SELECT contract_seq.NEXTVAL FROM DUAL
         </selectKey>
         INSERT INTO contract (
-        contract_id, status, created_at, contract_time, client_id, agent_id, memo
+        contract_id,
+        status,
+        created_at,
+        contract_time,
+        company_id,
+        client_id,
+        agent_id,
+        memo,
+        contract_template_id
         ) VALUES (
-        #{contractId},
-        #{status},
+        #{contractId,      jdbcType=NUMERIC},
+        #{status,          jdbcType=VARCHAR},
         TO_DATE(#{createdAt}, 'YYYY-MM-DD HH24:MI:SS'),
         TO_DATE(#{contractTime}, 'YYYY-MM-DD HH24:MI'),
-        #{clientId},
-        #{agentId},
-        #{memo, jdbcType=CLOB}
+        #{companyId,       jdbcType=NUMERIC},
+        #{clientId,        jdbcType=NUMERIC},
+        #{agentId,         jdbcType=NUMERIC},
+        #{memo,            jdbcType=CLOB},
+        #{templateId,      jdbcType=NUMERIC}
         )
     </insert>
 
@@ -221,6 +232,8 @@
             resultMap="scheduleResultMap">
         SELECT
         c.contract_id,
+        c.company_id,
+        c.contract_template_id,
         c.created_at,
         c.status,
         c.contract_time,
@@ -477,11 +490,11 @@
         ) VALUES (
         <!--#{contractId}, #{status}, TO_DATE(#{createdAt}, 'YYYY-MM-DD HH24:MI:SS'), #{clientId}, #{agentId}, #{memo}
         -->
-        #{contractId, jdbcType=NUMERIC}, 
-        #{status, jdbcType=VARCHAR}, 
-        TO_DATE(#{createdAt}, 'YYYY-MM-DD HH24:MI:SS'), 
-        #{clientId, jdbcType=NUMERIC}, 
-        #{agentId, jdbcType=NUMERIC}, 
+        #{contractId, jdbcType=NUMERIC},
+        #{status, jdbcType=VARCHAR},
+        TO_DATE(#{createdAt}, 'YYYY-MM-DD HH24:MI:SS'),
+        #{clientId, jdbcType=NUMERIC},
+        #{agentId, jdbcType=NUMERIC},
         #{memo, jdbcType=CLOB}
         )
     </insert>
@@ -538,16 +551,22 @@
 		) WHERE ROWNUM &lt;= 1
 	</select>
 
-    <select id="selectContractsByAgentIdAndStatusPaged"
-            resultMap="contractResultMap"
-            parameterType="map">
+    <select id="selectContractsByAgentIdAndStatusPaged" resultMap="contractResultMap" parameterType="map">
         <bind name="endIndex" value="offset + pageSize"/>
         SELECT *
         FROM (
         SELECT
-        c.*,
-        cl.name    AS client_name,
-        cl.email   AS client_email,
+        c.contract_id,
+        TO_CHAR(c.created_at,   'YYYY-MM-DD HH24:MI:SS') AS created_at,
+        c.company_id,
+        c.contract_template_id  AS contract_template_id,
+        c.contract_time,
+        c.agent_id,
+        c.client_id,
+        c.status,
+        cl.email                  AS client_email,
+        cl.name                   AS client_name,
+        c.memo,
         ROW_NUMBER() OVER (
         ORDER BY
         <choose>
@@ -591,12 +610,13 @@
 		WHERE c.contract_id = #{contractId}
 	</select>
 
+
 	<!-- 계약 상세조회 (템플릿 없이) -->
 	<select id="selectContractDetailWithEmail" resultMap="contractDetailResultMap">
 		SELECT
-			c.contract_id, c.status, 
-			TO_CHAR(c.created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at, 
-			TO_CHAR(c.contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time, 
+			c.contract_id, c.status,
+			TO_CHAR(c.created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at,
+			TO_CHAR(c.contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time,
 			c.client_id, c.agent_id, c.memo,
 			cl.name AS client_name, cl.email AS client_email, cl.phone_number AS client_phone_number, cl.address AS client_address,
 			a.name AS agent_name, a.email AS agent_email, a.phone_number AS agent_phone_number, a.address AS agent_address,
@@ -618,7 +638,7 @@
 	<!-- agent_id와 client_id로 기존 계약 조회 (PENDING 상태) -->
 	<select id="selectContractByAgentAndClient" resultMap="ContractResultMap">
 		SELECT * FROM (
-			SELECT <include refid="baseColumns" />, 
+			SELECT <include refid="baseColumns" />,
 				   TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at,
 				   TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
 			FROM contract

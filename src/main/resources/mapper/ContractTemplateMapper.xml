@@ -58,4 +58,11 @@
         DELETE FROM contract_templates
         WHERE contract_template_id = #{contractTemplateId}
     </delete>
+
+    <select id="selectByCompanyId" resultMap="ContractTemplateResultMap" parameterType="long">
+        SELECT contract_template_id, company_id, contract_name, descript, file_path, version, created_at, updated_at
+        FROM contract_templates
+        WHERE company_id = #{companyId}
+        ORDER BY created_at DESC
+    </select>
 </mapper>
