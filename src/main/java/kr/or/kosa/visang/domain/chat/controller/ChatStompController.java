@@ -31,8 +31,9 @@ public class ChatStompController {
         // 로그인한 사용자로 설정
         CustomUserDetails user = (CustomUserDetails) authentication.getPrincipal();
         message.setSender(user.getName());
+        message.setSendTime(LocalDateTime.now());
 
-        // DB 저장
+        // Redis에 저장
         chatService.saveMessageToRedis(message);
 
         // 브로드 캐스트
@@ -48,6 +49,7 @@ public class ChatStompController {
         // 로그인된  사용자 이름으로 덮어쓰기
         message.setSender(user.getName());
         message.setType("JOIN");
+        message.setSendTime(LocalDateTime.now());
 
         // 입장 알림 저장(optional)
         chatService.saveMessageToRedis(message);
@@ -76,11 +78,13 @@ public class ChatStompController {
         chatService.endAndExport(roomId, name);
 
         ChatMessage endMsg = new ChatMessage();
+
         endMsg.setRoomId(roomId);
         endMsg.setSender(name);
-        endMsg.setContent("통화를 종료하고 이력을 파일로 저장했습니다.");
+        endMsg.setContent("채팅방 #" + roomId + "이력을 파일로 저장했습니다.");
         endMsg.setType("END");
         endMsg.setSendTime(LocalDateTime.now());
+
         template.convertAndSend("/topic/chat/" + roomId, endMsg);
     }
 }

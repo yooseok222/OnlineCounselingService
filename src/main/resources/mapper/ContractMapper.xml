@@ -648,4 +648,12 @@
 			ORDER BY contract_id DESC
 		) WHERE ROWNUM &lt;= 1
 	</select>
+
+    <!-- 통화시작 계약상태 업데이트-->
+    <update id="updateStatus" parameterType="map">
+        UPDATE contract
+        SET status = #{status}
+        WHERE contract_id = #{contractId}
+    </update>
+
 </mapper>

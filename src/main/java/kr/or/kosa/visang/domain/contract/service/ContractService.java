@@ -616,4 +616,18 @@ public class ContractService {
             return null;
         }
     }
+
+    @Transactional
+    public void updateCallContractStatus(Long contractId, String status) {
+        int updated = contractMapper.updateStatus(contractId, status);
+    }
+
+    public boolean isParticipant(Long roomId, Long userId) {
+        Contract contract = contractMapper.selectContractById(roomId);
+        if (contract == null) {
+            return false;
+        }
+        return (contract.getAgentId() != null && contract.getAgentId().equals(userId))
+                || (contract.getClientId() != null && contract.getClientId().equals(userId));
+    }
 }

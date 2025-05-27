@@ -126,4 +126,7 @@ public interface ContractMapper {
             @Param("clientId") Long clientId
     );
 
+    int updateStatus(@Param("contractId") Long contractId,
+                     @Param("status")     String status);
+
 }

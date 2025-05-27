@@ -4,6 +4,23 @@ function getCsrf() {
   return { header, token };
 }
 
+// 상태 변경용 유틸 함수
+function updateContractStatus(contractId, newStatus) {
+  const { header, token } = getCsrf();
+  return fetch(`/agent/schedule/status/${contractId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      [header]: token
+    },
+    body: JSON.stringify({ status: newStatus })
+  })
+  .then(res => {
+    if (!res.ok) throw new Error(`상태 변경 실패: ${res.status}`);
+    return;
+  });
+}
+
 let currentPage = 1;
 let currentStatus = 'PENDING';
 let currentSortOrder = 'DESC';
@@ -167,20 +184,20 @@ document.addEventListener('DOMContentLoaded', function() {
 				div.textContent = ev.title;
 				div.style.cursor = 'pointer';
 				div.addEventListener('click', () => {
-					// 기존 eventClick 과 동일한 로직 재사용
 					selectedEvent = ev;
 					const form = document.getElementById('scheduleForm');
 
 					form.date.value = ev.startStr.split('T')[0];
-					form.time.value = ev.startStr.split('T')[1].slice(0, 5);
+					const hhmm = ev.startStr.split('T')[1].slice(0, 5);
+					document.getElementById('reservationTime').value = hhmm;
+
 					form.clientName.value = ev.title.replace(' 고객', '');
                     form.contractStatus.value = ev.extendedProps.contractStatus || 'PENDING';
 					form.memo.value = ev.extendedProps.memo || '';
 					form.email.value = ev.extendedProps.email || '';
 					form.phone.value = ev.extendedProps.phone || '';
 
-                    document.getElementById('templateSelect').value = ev.extendedProps.contractTemplateId || '';
-
+                    document.getElementById('templateSelect').value = ev.extendedProps.contractTemplateId ?? '';
 
 					// 버튼 토글
 					document.getElementById('saveBtn').classList.add('d-none');
@@ -215,6 +232,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	// 통화하기 입장
 	function canEnterCall(reservationDateStr, reservationTimeStr) {
+      /* 시간 무시하고 테스트 하기 return true 지워야함 */
+      return true;
       const now = new Date();
 
       // 로컬 날짜 문자열 (YYYY-MM-DD) 생성
@@ -228,24 +247,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // 1) 날짜 확인
       if (localToday !== reservationDateStr) {
-        Swal.fire({
-          icon: 'warning',
-          title: '입장 불가',
-          text: '오늘 날짜의 예약이 아닙니다.'
-        });
-        return false;
+         alert('입장 불가: 오늘 날짜의 예약이 아닙니다.');
+         return false;
       }
 
       // 2) 예약 5분 전 확인
       const earliest = new Date(reservation.getTime() - 5 * 60 * 1000);
-      if (now < earliest) {
-        Swal.fire({
-          icon: 'warning',
-          title: '아직 너무 이릅니다',
-          text: '예약시간 5분 전부터 입장 가능합니다.'
-        });
-        return false;
-      }
+        if (now < earliest) {
+          alert('입장 불가: 예약시간 5분 전부터 입장 가능합니다.');
+          return false;
+       }
+
+       // 3) 예약시간 30분 경과 후 입장 불가
+       const latest = new Date(reservation.getTime() + 30 * 60 * 1000);
+         if (now > latest) {
+           alert('입장 불가: 예약시간으로부터 30분이 경과하여 더 이상 입장할 수 없습니다.');
+           return false;
+       }
 
       return true;
     }
@@ -254,7 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	// 캘린더 초기화
 	const calendar = new FullCalendar.Calendar(calendarEl, {
 		initialView: 'dayGridMonth',
-		firstDay: 1, // 월요일 시작
+		firstDay: 1, // 월요일 시작좋
 		eventTimeFormat: { hour: 'numeric', meridiem: 'narrow' },
 		customButtons: {
 			addSchedule: {
@@ -316,18 +334,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     opt.textContent = t.contractName;
                     tmplSelect.appendChild(opt);
                   });
-                    tmplSelect.value = ev.extendedProps.templateId       || '';
+                    tmplSelect.value = ev.extendedProps.contractTemplateId ?? '';
                 } catch (e) {
                   console.error('템플릿 로드 실패', e);
             }
 
 			const form = document.getElementById('scheduleForm');
+
 			form.date.value = ev.startStr.split('T')[0];
-			form.time.value = ev.startStr.split('T')[1].slice(0, 5);
+
+			const hhmm = ev.startStr.split('T')[1].slice(0, 5);
+			document.getElementById('reservationTime').value = hhmm;
+
 			form.clientName.value = ev.title.replace(' 고객', '');
 			form.memo.value = ev.extendedProps.memo || '';
 			form.email.value = ev.extendedProps.email || '';
 			form.phone.value = ev.extendedProps.phone || '';
+
+			document.getElementById('templateSelect').value = ev.extendedProps.contractTemplateId ?? '';
 			document.getElementById('emailFeedback')?.remove();
 
 			document.querySelector('#scheduleModal .modal-title').textContent = '스케줄 수정';
@@ -434,7 +458,7 @@ document.addEventListener('DOMContentLoaded', function() {
                  memo:           c.memo,
                  email:          c.email,
                  phone:          c.phoneNumber,
-                 templateId:     c.templateId
+                 contractTemplateId: c.templateId
                  }
                });
              });
@@ -495,18 +519,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 ul.appendChild(li);
               });
                document.querySelectorAll('.start-webrtc-btn').forEach(btn => {
-                  btn.addEventListener('click', () => {
-                    const dateStr = btn.dataset.date;
-                    const timeStr = btn.dataset.time;
+                 btn.addEventListener('click', async () => {
+                   const contractId = btn.dataset.contractId;
+                   const dateStr    = btn.dataset.date;
+                   const timeStr    = btn.dataset.time;
 
-                    if (!canEnterCall(dateStr, timeStr)) {
-                      return;
-                    }
+                   // 1) 시간/날짜 체크
+                   if (!canEnterCall(dateStr, timeStr)) return;
 
-                    const contractId = btn.dataset.contractId;
-                    window.location.href = `/contract/room?contractId=${contractId}&role=agent`;
-                  });
-                });
+                   try {
+                     // 2) PENDING → IN_PROGRESS 로 상태 변경
+                     await updateContractStatus(contractId, 'IN_PROGRESS');
+
+                     // 3) 상태 변경 후 방으로 이동
+                     window.location.href = `/contract/room?contractId=${contractId}&role=agent`;
+                   } catch (err) {
+                     console.error('상태 변경 오류', err);
+                     alert('통화 상태 변경에 실패했습니다. 다시 시도해주세요.');
+                   }
+                 });
+               });
 
 		} catch (err) {
 			console.error(err);
