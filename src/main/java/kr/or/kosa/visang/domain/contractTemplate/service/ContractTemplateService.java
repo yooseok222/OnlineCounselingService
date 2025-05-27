@@ -4,6 +4,7 @@ import kr.or.kosa.visang.common.config.hash.HashUtil;
 import kr.or.kosa.visang.common.file.FileStorageService;
 import kr.or.kosa.visang.domain.contractTemplate.model.ContractTemplate;
 import kr.or.kosa.visang.domain.contractTemplate.repository.ContractTemplateMapper;
+import kr.or.kosa.visang.domain.pdf.enums.PDFTYPE;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -138,7 +139,7 @@ public class ContractTemplateService {
     private String savePDF(ContractTemplate contractTemplate) {
         MultipartFile pdfFile = contractTemplate.getPdf();
         try {
-            return fileStorageService.savePDF(pdfFile, contractTemplate.getContractTemplateId());
+            return fileStorageService.savePDF(pdfFile, contractTemplate.getContractTemplateId(), PDFTYPE.TEMPLATE_PDF);
         } catch (IOException e) {
             throw new RuntimeException("PDF 파일 저장 중 오류가 발생했습니다.", e);
         }
