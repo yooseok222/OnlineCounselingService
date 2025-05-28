@@ -6,17 +6,17 @@
 
     <resultMap id="chatResultMap"
                type="kr.or.kosa.visang.domain.chat.model.ChatMessage">
-        <id column="chat_id" property="chatId"/>
-        <result column="contract_id" property="roomId"/>
+        <id column="chat_id" property="messageId"/>
+        <result column="contract_id" property="contractId"/>
         <result column="chat_content" property="content"/>
         <result column="chat_type" property="type"/>
-        <result column="send_time" property="sendTime"/>
+        <result column="send_time" property="timestamp"/>
         <result column="export_filepath" property="exportFilePath"/>
     </resultMap>
 
     <insert id="insertMessage"
             parameterType="kr.or.kosa.visang.domain.chat.model.ChatMessage"
-            useGeneratedKeys="true" keyProperty="chatId"
+            useGeneratedKeys="true" keyProperty="messageId"
             keyColumn="chat_id">
         INSERT INTO chat (
         chat_id,
@@ -27,7 +27,7 @@
         )
         VALUES (
         chat_seq.NEXTVAL,
-        #{roomId}, <!-- contractId -->
+        #{contractId},
         #{content},
         #{type},
         SYSDATE
@@ -40,15 +40,24 @@
         WHERE chat_id = #{chatId}
     </update>
 
+    <!-- 계약 ID로 채팅 기록 조회 -->
+    <select id="findByContractId" parameterType="long" resultMap="chatResultMap">
+        SELECT chat_id, contract_id, chat_content, chat_type, send_time, export_filepath
+        FROM chat
+        WHERE contract_id = #{contractId}
+        ORDER BY send_time ASC
+    </select>
+
     <!-- 다운로드 링크를 위해 파일 경로만 조회 -->
     <select id="getExportPath" parameterType="long" resultType="string">
         SELECT export_filepath
         FROM (
-        SELECT export_filepath
-        FROM chat
-        WHERE contract_id = #{roomId}
-        AND chat_type   = 'END'
-        ORDER BY send_time DESC
+            SELECT export_filepath
+            FROM chat
+            WHERE contract_id = #{roomId}
+            AND chat_type = 'SYSTEM'
+            AND export_filepath IS NOT NULL
+            ORDER BY send_time DESC
         )
         WHERE ROWNUM = 1
     </select>

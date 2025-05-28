@@ -140,13 +140,20 @@ function createStompConnection() {
       // 연결 성공 토스트 메시지
       showToast("연결 성공", "실시간 통신이 연결되었습니다.", "success");
       
-      // 방 입장 메시지 전송 (상담원, 고객 모두 입장 메시지 전송)
-      stompClient.send(`/app/room/${sessionId}/join`, {}, JSON.stringify({
+      // 채팅방 입장 메시지 전송 (상담원, 고객 모두 입장 메시지 전송)
+      stompClient.send(`/app/room/${sessionId}/chat/join`, {}, JSON.stringify({
         type: "JOIN",
         sender: userRole,
         senderName: userRole === 'agent' ? '상담원' : '고객',
         sessionId: sessionId
         // timestamp는 서버에서 설정
+      }));
+      
+      // PDF 동기화를 위한 방 입장 메시지도 별도로 전송
+      stompClient.send(`/app/room/${sessionId}/pdf/join`, {}, JSON.stringify({
+        role: userRole,
+        sessionId: sessionId,
+        timestamp: Date.now()
       }));
       
       // 페이지가 준비되었음을 알리는 사용자 정의 이벤트 발생
@@ -422,11 +429,11 @@ function subscribeToTopics() {
     }
   });
   
-  // 방 입장 이벤트 구독
-  stompClient.subscribe(`/topic/room/${sessionId}/join`, function(message) {
+  // PDF 동기화 방 입장 이벤트 구독
+  stompClient.subscribe(`/topic/room/${sessionId}/pdf/join`, function(message) {
     try {
       const joinData = JSON.parse(message.body);
-      console.log("방 입장 데이터 수신:", joinData);
+      console.log("PDF 동기화 방 입장 데이터 수신:", joinData);
       
       // 상대방이 입장한 경우
       if (joinData.role !== userRole) {
@@ -450,7 +457,7 @@ function subscribeToTopics() {
         }
       }
     } catch (e) {
-      console.error("방 입장 데이터 처리 오류:", e);
+      console.error("PDF 동기화 방 입장 데이터 처리 오류:", e);
     }
   });
   

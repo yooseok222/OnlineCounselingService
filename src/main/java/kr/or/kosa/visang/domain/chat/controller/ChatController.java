@@ -23,6 +23,7 @@ public class ChatController {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final SessionContractMappingService mappingService;
+    private final kr.or.kosa.visang.domain.chat.service.ChatService chatService;
 
     /**
      * 채팅 메시지 전송 처리
@@ -98,10 +99,16 @@ public class ChatController {
         log.info("채팅 메시지 전송: sessionId={}, sender={}, content={}", 
                 sessionId, message.getSender(), message.getContent().substring(0, Math.min(message.getContent().length(), 50)));
         
+        // Redis에 채팅 메시지 저장
+        try {
+            chatService.saveMessageToRedis(message);
+            log.debug("채팅 메시지 Redis 저장 완료: sessionId={}, contractId={}", sessionId, message.getContractId());
+        } catch (Exception e) {
+            log.error("채팅 메시지 Redis 저장 실패: sessionId={}, contractId={}", sessionId, message.getContractId(), e);
+        }
+        
         // 세션의 모든 참여자에게 메시지 전송
         messagingTemplate.convertAndSend("/topic/room/" + sessionId + "/chat", message);
-        
-        // TODO: 메시지 DB 저장 로직 추가 (필요시)
     }
 
     /**
@@ -109,6 +116,14 @@ public class ChatController {
      */
     private void handleJoinMessage(String sessionId, ChatMessage message) {
         log.info("방 입장 메시지: sessionId={}, sender={}", sessionId, message.getSender());
+        
+        // Redis에 입장 메시지 저장
+        try {
+            chatService.saveMessageToRedis(message);
+            log.debug("입장 메시지 Redis 저장 완료: sessionId={}, contractId={}", sessionId, message.getContractId());
+        } catch (Exception e) {
+            log.error("입장 메시지 Redis 저장 실패: sessionId={}, contractId={}", sessionId, message.getContractId(), e);
+        }
         
         // 입장 메시지를 다른 참여자들에게 전송
         messagingTemplate.convertAndSend("/topic/room/" + sessionId + "/chat", message);
@@ -139,7 +154,7 @@ public class ChatController {
      * @param sessionId WebSocket 세션 ID
      * @param joinInfo 입장 정보
      */
-    @MessageMapping("/room/{sessionId}/join")
+    @MessageMapping("/room/{sessionId}/chat/join")
     public void joinRoom(@DestinationVariable String sessionId, @Payload ChatMessage joinInfo) {
         try {
             log.info("채팅방 입장: sessionId={}, sender={}", sessionId, joinInfo.getSender());
