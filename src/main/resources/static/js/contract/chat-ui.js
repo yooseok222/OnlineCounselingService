@@ -27,9 +27,6 @@ function initializeChatUI() {
           <button id="chatMinimizeBtn" class="chat-btn" onclick="toggleChatMinimize()">
             <i class="fas fa-minus"></i>
           </button>
-          <button id="chatCloseBtn" class="chat-btn" onclick="closeChatUI()">
-            <i class="fas fa-times"></i>
-          </button>
         </div>
       </div>
       <div id="chatBody" class="chat-body">
