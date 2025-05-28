@@ -22,6 +22,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(consultRoomInterceptor)
-                .addPathPatterns("/consult/room");
+                .addPathPatterns("/contract/room");
     }
 } 

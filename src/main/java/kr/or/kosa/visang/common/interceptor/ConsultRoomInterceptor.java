@@ -17,6 +17,7 @@ public class ConsultRoomInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         // URL 파라미터에서 역할 확인
         String role = request.getParameter("role");
+        String contractId = request.getParameter("contractId");
         
         // 상담원인 경우 무조건 입장 허용
         if ("agent".equals(role)) {
@@ -29,8 +30,12 @@ public class ConsultRoomInterceptor implements HandlerInterceptor {
         boolean isAgentPresent = agentStatusService.isAgentPresent();
         
         if (!isAgentPresent) {
-            // 상담원이 입장하지 않았으면 대기실로 리다이렉트
-            response.sendRedirect("/waiting-room");
+            // 상담원이 입장하지 않았으면 대기실로 리다이렉트 (contractId 포함)
+            String redirectUrl = "/waiting-room";
+            if (contractId != null && !contractId.isEmpty()) {
+                redirectUrl += "?contractId=" + contractId;
+            }
+            response.sendRedirect(redirectUrl);
             return false;
         }
         
