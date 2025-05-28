@@ -5,7 +5,7 @@
     <!-- 도장 기본 컬럼 -->
     <sql id="baseColumns">
         stamp_id as stampId, 
-        image_path as imagePath, 
+        stamp_image_url as stampImageUrl, 
         created_at as createdAt, 
         client_id as clientId
     </sql>
@@ -30,9 +30,9 @@
             SELECT NVL(MAX(stamp_id), 0) + 1 FROM stamp
         </selectKey>
         INSERT INTO stamp (
-            stamp_id, image_path, created_at, client_id
+            stamp_id, stamp_image_url, created_at, client_id
         ) VALUES (
-            #{stampId}, #{imagePath}, #{createdAt}, #{clientId}
+            #{stampId}, #{stampImageUrl}, #{createdAt}, #{clientId}
         )
     </insert>
     
@@ -40,7 +40,7 @@
     <update id="updateStamp" parameterType="StampDTO">
         UPDATE stamp
         SET 
-            image_path = #{imagePath}
+            stamp_image_url = #{stampImageUrl}
         WHERE stamp_id = #{stampId}
     </update>
     

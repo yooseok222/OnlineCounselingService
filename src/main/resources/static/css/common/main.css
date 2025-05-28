@@ -38,6 +38,7 @@ header {
     transition: all 0.3s;
     width: 100%;
     max-width: 100%;
+    overflow-x: hidden; /* 가로 스크롤 완전 차단 */
 }
 
 @media (min-width: 768px) {
@@ -55,8 +56,13 @@ header {
 .sidebar .position-sticky {
     height: 100vh;
     overflow-y: auto;
+    overflow-x: hidden; /* 가로 스크롤 차단 */
     display: flex;
     flex-direction: column;
+}
+
+.sidebar .nav {
+    flex: 1;
 }
 
 .sidebar .nav-link {
@@ -82,19 +88,55 @@ header {
     font-size: 0.85rem;
     color: #6c757d;
     border-top: 1px solid var(--border-color);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    overflow: hidden; /* 오버플로우 숨김 */
+    max-width: 100%; /* 최대 너비 제한 */
+    box-sizing: border-box; /* 패딩 포함하여 너비 계산 */
 }
 
 .company-info {
     margin-bottom: 1rem;
+    width: 100%; /* 전체 너비 사용 */
+    box-sizing: border-box;
 }
 
 .company-info li {
     margin-bottom: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden; /* 오버플로우 숨김 */
+}
+
+.company-info li.d-flex {
+    display: flex;
+    align-items: flex-start; /* 상단 정렬로 변경 */
+    width: 100%;
+}
+
+.company-info li.d-flex.flex-column {
+    flex-direction: column;
+    align-items: stretch;
 }
 
 .info-label {
     font-weight: 500;
-    min-width: 80px;
+    min-width: 60px; /* 최소 너비 줄임 */
+    max-width: 60px; /* 최대 너비도 제한 */
+    flex-shrink: 0; /* 축소 방지 */
+    margin-right: 0.5rem;
+    font-size: 0.8rem; /* 폰트 크기 줄임 */
+}
+
+.info-value {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-all; /* 강제 줄바꿈 */
+    line-height: 1.4;
+    flex: 1;
+    max-width: calc(100% - 70px); /* 라벨 너비 제외한 최대 너비 */
+    font-size: 0.8rem; /* 폰트 크기 줄임 */
+    overflow: hidden; /* 오버플로우 숨김 */
 }
 
 .business-info {
@@ -188,6 +230,7 @@ header {
         border-right: none;
         margin-bottom: 1rem;
         z-index: 1050;
+        overflow-y: auto;
     }
     
     .sidebar.show {
@@ -197,10 +240,16 @@ header {
     .sidebar .position-sticky {
         height: auto;
         padding-bottom: 1rem;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
     }
     
     .sidebar-footer {
-        display: none;
+        margin-top: auto;
+        padding: 1rem;
+        font-size: 0.75rem;
+        border-top: 1px solid var(--border-color);
     }
     
     body.sidebar-open::after {
