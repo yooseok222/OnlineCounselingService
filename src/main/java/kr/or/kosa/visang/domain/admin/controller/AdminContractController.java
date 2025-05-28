@@ -100,10 +100,10 @@ public class AdminContractController {
         }
     }
 
-    @GetMapping("/files/{templateId}/download")
-    public ResponseEntity<Resource> downloadPdf(@PathVariable Long templateId) {
+    @GetMapping("/files/{contractId}/download")
+    public ResponseEntity<Resource> downloadPdf(@PathVariable Long contractId) {
         try {
-            Resource pdf = contractTemplateService.getTemplateResource(templateId);
+            Resource pdf = contractTemplateService.getTemplateResource(contractId);
 
             if (pdf == null || !pdf.exists()) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다.");
@@ -112,6 +112,65 @@ public class AdminContractController {
                     .contentType(MediaType.APPLICATION_OCTET_STREAM)
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"contract_template.pdf\"")
                     .body(pdf);
+        } catch (SecurityException e) {
+            // 파일 변조 등 보안 이슈
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
+        } catch (RuntimeException e) {
+            // 일반적인 예외(존재하지 않음, 해시 오류 등)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (Exception e) {
+            // 기타 예외
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "PDF 파일을 미리보기할 수 없습니다.");
+        }
+    }
+
+    @GetMapping("/files/signed/{contractId}/preview")
+    public ResponseEntity<Resource> previewSignedPdf(@PathVariable Long contractId) {
+        System.out.println("contractId ID: " + contractId + "signed pdf preview");
+
+
+        try {
+            // 계약 ID로 PDF ID 조회
+            Long pdfId = contractService.getPdfIdByContractId(contractId);
+
+            System.out.println("PDF ID: " + pdfId + "signed pdf preview");
+
+            Resource SignedPdf = contractTemplateService.getSignedPdfResource(pdfId);
+            System.out.println("SignedPdf: " + SignedPdf + "signed pdf preview");
+
+            if( SignedPdf == null || !SignedPdf.exists() ) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "PDF 파일을 찾을 수 없습니다.");
+            }
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(SignedPdf);
+        } catch (SecurityException e) {
+            // 파일 변조 등 보안 이슈
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
+        } catch (RuntimeException e) {
+            // 일반적인 예외(존재하지 않음, 해시 오류 등)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (Exception e) {
+            // 기타 예외
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "PDF 파일을 미리보기할 수 없습니다.");
+        }
+    }
+
+    @GetMapping("/files/signed/{contractId}/download")
+    public ResponseEntity<Resource> downloadSignedPdf(@PathVariable Long contractId) {
+        try {
+            // 계약 ID로 PDF ID 조회
+            Long pdfId = contractService.getPdfIdByContractId(contractId);
+
+            Resource SignedPdf = contractTemplateService.getSignedPdfResource(pdfId);
+
+            if (SignedPdf == null || !SignedPdf.exists()) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다.");
+            }
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"contract_template.pdf\"")
+                    .body(SignedPdf);
         } catch (SecurityException e) {
             // 파일 변조 등 보안 이슈
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());

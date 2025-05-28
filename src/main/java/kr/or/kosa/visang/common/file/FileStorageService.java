@@ -50,12 +50,18 @@ public class FileStorageService {
         return "/images/profile/" + newFileName;
     }
 
-    public Resource loadTemplateAsResource(String dbPath) {
-            //1 . DB에서 가져온 상대 경로 예:  "/files/pdf/template_5.pdf" 에서 파일명만 추출    
-            String fileName = Paths.get(dbPath).getFileName().toString();
+    public Resource loadResource(String dbPath, PDFTYPE pdftype) {
+        // PDFTYPE에 따라 저장 디렉토리 선택
+        String targetDir = switch (pdftype) {
+            case TEMPLATE_PDF -> uploadDirPdf; // 서명되지 않은 계약서 디렉토리
+            case SIGNED_PDF -> uploadDirSignedPdf; // 서명된 계약서 디렉토리
+        };
+
+        //1 . DB에서 가져온 상대 경로 예:  "/files/pdf/template_5.pdf" 에서 파일명만 추출
+        String fileName = Paths.get(dbPath).getFileName().toString();
             
-            //2. 실제 저장소 경로에 결합
-            Path filePath = Paths.get(uploadDirPdf,fileName); // dbPath 예: "C:/upload/pdf/template_5.pdf"
+        //2. 실제 저장소 경로에 결합
+        Path filePath = Paths.get(targetDir,fileName); // dbPath 예: "C:/upload/pdf/template_5.pdf"
         try {
             Resource resource = new UrlResource(filePath.toUri());
             if (resource.exists() && resource.isReadable()) {

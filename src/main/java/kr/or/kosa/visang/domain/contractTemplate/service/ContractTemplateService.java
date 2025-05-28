@@ -1,10 +1,16 @@
 package kr.or.kosa.visang.domain.contractTemplate.service;
 
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfReader;
+import com.itextpdf.signatures.PdfPKCS7;
+import com.itextpdf.signatures.SignatureUtil;
 import kr.or.kosa.visang.common.config.hash.HashUtil;
 import kr.or.kosa.visang.common.file.FileStorageService;
+import kr.or.kosa.visang.domain.contract.repository.PdfMapper;
 import kr.or.kosa.visang.domain.contractTemplate.model.ContractTemplate;
 import kr.or.kosa.visang.domain.contractTemplate.repository.ContractTemplateMapper;
 import kr.or.kosa.visang.domain.pdf.enums.PDFTYPE;
+import kr.or.kosa.visang.domain.pdf.model.PDF;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -23,8 +29,13 @@ import java.util.Optional;
 public class ContractTemplateService {
     private final ContractTemplateMapper contractTemplateMapper;
     private final FileStorageService fileStorageService;
+    private final PdfMapper pdfMapper;
+
     @Value("${file.upload-dir.pdf}")
     private String uploadDirPdf;
+
+    @Value("${file.upload-dir.signed-pdf}")
+    private String uploadDirSignedPdf;
 
     // 계약서 템플릿 목록 조회
     public List<ContractTemplate> getAllTemplates(Long companyId) {
@@ -67,7 +78,54 @@ public class ContractTemplateService {
         }
 
 
-        return fileStorageService.loadTemplateAsResource(path);
+        return fileStorageService.loadResource(path, PDFTYPE.TEMPLATE_PDF);
+    }
+
+    public Resource getSignedPdfResource(Long pdfId){
+        //1. DB에서 파일 경로 + 해시값 조회
+        //ContractTemplate template = contractTemplateMapper.getPathAndHash(contractTemplateId);
+        PDF pdf = pdfMapper.getPathAndHash(pdfId);
+        System.out.println("pdfId: " + pdfId + ", pdf: " + pdf);
+        if (pdf == null) throw new RuntimeException("해당 계약서가 존재하지 않습니다.");
+
+        String path = pdf.getFilePath();
+        if (path == null || path.isEmpty()) {
+            throw new RuntimeException("계약서 파일 경로가 비어있습니다.");
+        }
+        String fileHash = pdf.getFileHash();
+        if (fileHash == null || fileHash.isEmpty()) {
+            throw new RuntimeException("계약서 파일 해시값이 비어있습니다.");
+        }
+
+        //2. 파일 경로를 실제 경로로 변환
+        Path filePath = Paths.get(uploadDirSignedPdf, Paths.get(path).getFileName().toString());
+        System.out.println("filePath: " + filePath);
+
+        //3. 해시값 검증
+        try {
+            String calculatedHash = HashUtil.sha256(filePath.toString());
+            System.out.println("calculatedHash: " + calculatedHash);
+            System.out.println("fileHash: " + fileHash);
+
+            if (!calculatedHash.equals(fileHash)) {
+                throw new SecurityException("❌ 템플릿 파일이 위변조되었습니다. 해시 불일치");
+            }
+
+            // 전자서명 검증
+            if (!isPdfSignatureValid(filePath.toString())) {
+                throw new SecurityException("❌ PDF 서명이 유효하지 않습니다.");
+            }
+
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("해시값 계산 중 오류가 발생했습니다.", e);
+        } catch (IOException e) {
+            throw new RuntimeException("계약서 템플릿 파일을 읽는 중 오류가 발생했습니다.", e);
+        } catch (Exception e) {
+            System.out.println("PDF 서명 검증 중 오류 발생: " + e.getMessage());
+            throw new RuntimeException("PDF 서명 검증 중 오류가 발생했습니다.", e);
+        }
+
+        return fileStorageService.loadResource(path, PDFTYPE.SIGNED_PDF);
     }
 
     public boolean verifyTemplateHash(Long contractTemplateId){
@@ -166,6 +224,41 @@ public class ContractTemplateService {
             return fileStorageService.savePDF(pdfFile, contractTemplate.getContractTemplateId(), PDFTYPE.TEMPLATE_PDF);
         } catch (IOException e) {
             throw new RuntimeException("PDF 파일 저장 중 오류가 발생했습니다.", e);
+        }
+    }
+
+    public boolean isPdfSignatureValid(String signedPdfPath) throws Exception {
+        try {
+            System.out.println("PDF 서명 검증 시작: " + signedPdfPath);
+            PdfDocument pdfDoc = new PdfDocument(new PdfReader(signedPdfPath));
+            SignatureUtil signUtil = new SignatureUtil(pdfDoc);
+
+            List<String> signatureNames = signUtil.getSignatureNames();
+            if (signatureNames.isEmpty()) {
+                throw new IllegalStateException("PDF에 전자서명 필드가 없습니다.");
+            }
+            for (String name : signatureNames) {
+                try {
+                    PdfPKCS7 pkcs7 = signUtil.readSignatureData(name);
+                    boolean verified = pkcs7.verifySignatureIntegrityAndAuthenticity();
+
+                    System.out.println("서명 필드: " + name);
+                    System.out.println("유효한 서명인가? " + verified);
+                    System.out.println("서명자 DN: " + pkcs7.getSigningCertificate().getSubjectDN());
+                    System.out.println("서명일: " + pkcs7.getSignDate().getTime());
+
+                    if (!verified) return false;
+                } catch (Exception e) {
+                    System.out.println("서명 필드 [" + name + "] 오류: " + e.getMessage());
+                    // 실제 유저에게 보여줄 안내:
+                    throw new IllegalStateException("PDF 서명 정보가 비정상적입니다. (서명 필드: " + name + ")");
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            System.out.println("PDF 서명 검증 중 내부 오류: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
     }
 }

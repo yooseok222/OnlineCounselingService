@@ -576,6 +576,13 @@
         AND status = #{status}
     </select>
 
+    <!--contractID로 PDFID 조회-->
+    <select id="selectPdfIdByContractId" resultType="long">
+        SELECT pdf_id
+        FROM pdf
+        WHERE contract_id = #{contractId}
+    </select>
+
 	<!-- 계약 상세조회 -->
 	<select id="selectContractDetail" resultMap="contractDetailResultMap">
 		SELECT

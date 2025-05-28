@@ -13,6 +13,8 @@ public interface ContractMapper {
     // 모든 계약 조회
     List<Contract> selectAllContracts();
 
+    Long selectPdfIdByContractId(Long contractId);
+
     List<Contract> selectContractByStatus(
             @Param("companyId") Long companyId,
             @Param("status") String status

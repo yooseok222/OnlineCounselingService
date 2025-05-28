@@ -1,6 +1,7 @@
 package kr.or.kosa.visang.domain.contract.repository;
 
 import kr.or.kosa.visang.domain.contract.model.PdfDTO;
+import kr.or.kosa.visang.domain.pdf.model.PDF;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
@@ -15,6 +16,8 @@ public interface PdfMapper {
     
     // PDF 추가
     int insertPdf(PdfDTO pdf);
+
+    PDF getPathAndHash(Long pdfId);
     
     // PDF 정보 업데이트
     int updatePdf(PdfDTO pdf);
