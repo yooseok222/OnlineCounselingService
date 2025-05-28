@@ -88,8 +88,8 @@ public class AuthController {
             // 회원가입 처리
             UserResponse userResponse = userService.register(request);
             
-            // 이메일 인증 요청
-            userService.requestEmailVerification(request.getEmail());
+            // 이메일 인증 요청은 userService.register 내부에서 이미 처리됨
+            // userService.requestEmailVerification(request.getEmail()); // 중복 호출 제거
             
             // 성공 메시지 설정
             redirectAttributes.addFlashAttribute("email", request.getEmail());

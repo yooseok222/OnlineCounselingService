@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="content">
+	<main class="dashboard-content">
+		<!-- 페이지 헤더 -->
+		<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+			<h1 class="h2">개인정보 수정</h1>
+		</div>
+		
+		<!-- 알림 메시지 -->
+		<div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+			<i class="bi bi-check-circle me-2"></i>
+			<span th:text="${success}">성공 메시지</span>
+			<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+		</div>
+		
+		<div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+			<i class="bi bi-exclamation-triangle me-2"></i>
+			<span th:text="${error}">오류 메시지</span>
+			<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+		</div>
+		
+		<div class="row">
+			<!-- 프로필 이미지 섹션 -->
+			<div class="col-md-4 mb-4">
+				<div class="card">
+					<div class="card-header">
+						<h5 class="card-title mb-0">프로필 이미지</h5>
+					</div>
+					<div class="card-body text-center">
+						<div class="profile-image-container mb-3">
+							<img th:src="@{${client.profileImageUrl != null ? client.profileImageUrl : '/images/profile/default_profile.png'}}" 
+								 alt="프로필 이미지" 
+								 class="rounded-circle"
+								 style="width: 200px; height: 200px; object-fit: cover; border: 3px solid #e9ecef;">
+						</div>
+						
+						<div class="d-grid gap-2">
+							<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#imageUploadModal">
+								<i class="bi bi-camera"></i> 이미지 변경
+							</button>
+							<button type="button" class="btn btn-outline-danger" id="deleteImageBtn"
+									th:if="${client.profileImageUrl != null and !client.profileImageUrl.contains('default_profile')}">
+								<i class="bi bi-trash"></i> 이미지 삭제
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+			
+			<!-- 기본 정보 수정 섹션 -->
+			<div class="col-md-8 mb-4">
+				<div class="card">
+					<div class="card-header">
+						<h5 class="card-title mb-0">기본 정보</h5>
+					</div>
+					<div class="card-body">
+						<form th:action="@{/client/profile/update}" method="post" id="profileForm">
+							<div class="row">
+								<div class="col-md-6 mb-3">
+									<label for="email" class="form-label">이메일</label>
+									<input type="email" class="form-control" id="email" 
+										   th:value="${client.email}" disabled>
+								</div>
+								
+								<div class="col-md-6 mb-3">
+									<label for="name" class="form-label">이름 <span class="text-danger">*</span></label>
+									<input type="text" class="form-control" id="name" name="name" 
+										   th:value="${client.name}" required>
+								</div>
+								
+								<div class="col-md-6 mb-3">
+									<label for="phoneNumber" class="form-label">휴대폰 번호 <span class="text-danger">*</span></label>
+									<input type="tel" class="form-control" id="phoneNumber" name="phoneNumber" 
+										   th:value="${client.phoneNumber}" required
+										   pattern="[0-9]{3}-[0-9]{4}-[0-9]{4}"
+										   placeholder="010-1234-5678">
+								</div>
+								
+								<div class="col-md-6 mb-3">
+									<label for="ssn" class="form-label">주민등록번호</label>
+									<input type="text" class="form-control" id="ssn" 
+										   th:value="${client.ssn}" disabled>
+								</div>
+								
+								<div class="col-12 mb-3">
+									<label for="address" class="form-label">주소</label>
+									<input type="text" class="form-control" id="address" name="address" 
+										   th:value="${client.address}">
+								</div>
+								
+								<div class="col-12 mb-3">
+									<label class="form-label">가입일</label>
+									<input type="text" class="form-control" 
+										   th:value="${#temporals.format(client.createdAt, 'yyyy년 MM월 dd일')}" disabled>
+								</div>
+							</div>
+							
+							<div class="text-end">
+								<button type="submit" class="btn btn-primary">
+									<i class="bi bi-check-lg"></i> 정보 수정
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<!-- 비밀번호 변경 섹션 -->
+		<div class="row">
+			<div class="col-12">
+				<div class="card">
+					<div class="card-header">
+						<h5 class="card-title mb-0">비밀번호 변경</h5>
+					</div>
+					<div class="card-body">
+						<form id="passwordForm">
+							<div class="row">
+								<div class="col-md-4 mb-3">
+									<label for="currentPassword" class="form-label">현재 비밀번호 <span class="text-danger">*</span></label>
+									<input type="password" class="form-control" id="currentPassword" required>
+								</div>
+								
+								<div class="col-md-4 mb-3">
+									<label for="newPassword" class="form-label">새 비밀번호 <span class="text-danger">*</span></label>
+									<input type="password" class="form-control" id="newPassword" required
+										   pattern="^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$"
+										   title="최소 8자, 영문, 숫자, 특수문자를 포함해야 합니다.">
+									<div class="form-text">최소 8자, 영문, 숫자, 특수문자를 포함해야 합니다.</div>
+								</div>
+								
+								<div class="col-md-4 mb-3">
+									<label for="confirmPassword" class="form-label">새 비밀번호 확인 <span class="text-danger">*</span></label>
+									<input type="password" class="form-control" id="confirmPassword" required>
+								</div>
+							</div>
+							
+							<div class="text-end">
+								<button type="submit" class="btn btn-warning">
+									<i class="bi bi-key"></i> 비밀번호 변경
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<!-- 프로필 이미지 업로드 모달 -->
+		<div class="modal fade" id="imageUploadModal" tabindex="-1" aria-labelledby="imageUploadModalLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="imageUploadModalLabel">프로필 이미지 업로드</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body">
+						<form id="imageUploadForm">
+							<div class="mb-3">
+								<label for="imageFile" class="form-label">이미지 파일 선택</label>
+								<input type="file" class="form-control" id="imageFile" accept="image/*" required>
+								<div class="form-text">JPG, PNG, GIF 형식의 이미지만 업로드 가능합니다. (최대 5MB)</div>
+							</div>
+							<div id="imagePreview" class="text-center" style="display: none;">
+								<img src="" alt="미리보기" class="img-fluid rounded" style="max-height: 300px;">
+							</div>
+						</form>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+						<button type="button" class="btn btn-primary" id="uploadImageBtn">업로드</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+</div>
+
+<div th:fragment="script">
+<script th:inline="javascript">
+$(document).ready(function() {
+	// CSRF 토큰을 쿠키에서 가져오는 함수
+	function getCsrfToken() {
+		const name = 'XSRF-TOKEN=';
+		const decodedCookie = decodeURIComponent(document.cookie);
+		const ca = decodedCookie.split(';');
+		for(let i = 0; i < ca.length; i++) {
+			let c = ca[i];
+			while (c.charAt(0) == ' ') {
+				c = c.substring(1);
+			}
+			if (c.indexOf(name) == 0) {
+				return c.substring(name.length, c.length);
+			}
+		}
+		return "";
+	}
+	
+	// 프로필 이미지 미리보기
+	$('#imageFile').on('change', function(e) {
+		const file = e.target.files[0];
+		if (file) {
+			const reader = new FileReader();
+			reader.onload = function(e) {
+				$('#imagePreview img').attr('src', e.target.result);
+				$('#imagePreview').show();
+			};
+			reader.readAsDataURL(file);
+		}
+	});
+	
+	// 프로필 이미지 업로드
+	$('#uploadImageBtn').on('click', function() {
+		const fileInput = $('#imageFile')[0];
+		const file = fileInput.files[0];
+		
+		if (!file) {
+			alert('파일을 선택해주세요.');
+			return;
+		}
+		
+		// 파일 크기 검사
+		if (file.size > 5 * 1024 * 1024) {
+			alert('파일 크기는 5MB를 초과할 수 없습니다.');
+			return;
+		}
+		
+		// 이미지 파일 검사
+		if (!file.type.startsWith('image/')) {
+			alert('이미지 파일만 업로드 가능합니다.');
+			return;
+		}
+		
+		const formData = new FormData();
+		formData.append('file', file);
+		
+		// 업로드 버튼 비활성화
+		$('#uploadImageBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>업로드 중...');
+		
+		$.ajax({
+			url: '/client/api/profile/image',
+			type: 'POST',
+			data: formData,
+			processData: false,
+			contentType: false,
+			headers: {
+				'X-XSRF-TOKEN': getCsrfToken()
+			},
+			success: function(response) {
+				if (response.success) {
+					// 모달 닫기
+					$('#imageUploadModal').modal('hide');
+					
+					// 성공 메시지 표시
+					alert(response.message);
+					
+					// 페이지 새로고침하여 새 이미지 표시
+					location.reload();
+				} else {
+					alert(response.message || '업로드에 실패했습니다.');
+				}
+			},
+			error: function(xhr) {
+				console.error('Upload error:', xhr);
+				
+				let errorMessage = '이미지 업로드 중 오류가 발생했습니다.';
+				
+				if (xhr.responseJSON && xhr.responseJSON.message) {
+					errorMessage = xhr.responseJSON.message;
+				} else if (xhr.status === 413) {
+					errorMessage = '파일 크기가 너무 큽니다.';
+				} else if (xhr.status === 415) {
+					errorMessage = '지원하지 않는 파일 형식입니다.';
+				}
+				
+				alert(errorMessage);
+			},
+			complete: function() {
+				// 업로드 버튼 활성화
+				$('#uploadImageBtn').prop('disabled', false).html('업로드');
+			}
+		});
+	});
+	
+	// 모달이 닫힐 때 초기화
+	$('#imageUploadModal').on('hidden.bs.modal', function () {
+		$('#imageFile').val('');
+		$('#imagePreview').hide();
+		$('#uploadImageBtn').prop('disabled', false).html('업로드');
+	});
+	
+	// 프로필 이미지 삭제
+	$('#deleteImageBtn').on('click', function() {
+		if (confirm('프로필 이미지를 삭제하시겠습니까?')) {
+			$.ajax({
+				url: '/client/api/profile/image',
+				type: 'DELETE',
+				headers: {
+					'X-XSRF-TOKEN': getCsrfToken()
+				},
+				success: function(response) {
+					if (response.success) {
+						alert(response.message);
+						location.reload();
+					} else {
+						alert(response.message);
+					}
+				},
+				error: function(xhr, status, error) {
+					console.error('Delete error:', xhr);
+					console.error('Status:', status);
+					console.error('Error:', error);
+					
+					let errorMessage = '이미지 삭제 중 오류가 발생했습니다.';
+					
+					if (xhr.responseJSON && xhr.responseJSON.message) {
+						errorMessage = xhr.responseJSON.message;
+					}
+					
+					alert(errorMessage);
+				}
+			});
+		}
+	});
+	
+	// 비밀번호 변경
+	$('#passwordForm').on('submit', function(e) {
+		e.preventDefault();
+		
+		const currentPassword = $('#currentPassword').val();
+		const newPassword = $('#newPassword').val();
+		const confirmPassword = $('#confirmPassword').val();
+		
+		// 비밀번호 확인
+		if (newPassword !== confirmPassword) {
+			alert('새 비밀번호가 일치하지 않습니다.');
+			return;
+		}
+		
+		$.ajax({
+			url: '/client/api/profile/password',
+			type: 'POST',
+			data: {
+				currentPassword: currentPassword,
+				newPassword: newPassword
+			},
+			headers: {
+				'X-XSRF-TOKEN': getCsrfToken()
+			},
+			success: function(response) {
+				if (response.success) {
+					alert(response.message);
+					$('#passwordForm')[0].reset();
+				} else {
+					alert(response.message);
+				}
+			},
+			error: function() {
+				alert('비밀번호 변경 중 오류가 발생했습니다.');
+			}
+		});
+	});
+	
+	// 전화번호 포맷팅
+	$('#phoneNumber').on('input', function() {
+		let value = $(this).val().replace(/[^0-9]/g, '');
+		if (value.length >= 4 && value.length <= 7) {
+			value = value.slice(0, 3) + '-' + value.slice(3);
+		} else if (value.length >= 8) {
+			value = value.slice(0, 3) + '-' + value.slice(3, 7) + '-' + value.slice(7, 11);
+		}
+		$(this).val(value);
+	});
+});
+</script>
+</div>
+</html> 
