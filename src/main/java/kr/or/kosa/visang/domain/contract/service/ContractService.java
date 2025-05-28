@@ -40,7 +40,13 @@ public class ContractService {
         return contractMapper.selectAllContracts();
     }
     // 계약관련 비즈니스 로직 구현
-
+    public Long getPdfIdByContractId(Long contractId) {
+        // 계약 ID를 사용하여 PDF ID를 조회하는 로직을 구현합니다.
+        Long pdfId = contractMapper.selectPdfIdByContractId(contractId);
+        if (pdfId == null)
+            throw new RuntimeException("해당 계약 ID에 대한 PDF ID를 찾을 수 없습니다.");
+        return pdfId;
+    }
 
     //searchContracts
     public PageResult<Contract> searchContracts(ContractSearchRequest request, PageRequest pageRequest) {

@@ -24,6 +24,15 @@ repositories {
 }
 
 dependencies {
+	// iText 7 핵심 PDF 기능
+	implementation 'com.itextpdf:itext7-core:7.2.4'
+	// PDF 전자서명을 위한 iText 모듈
+	implementation 'com.itextpdf:itext7-sign:7.2.4'
+	// BouncyCastle: 암호화 및 전자서명 알고리즘 제공 (PKCS#7 등)
+	implementation 'org.bouncycastle:bcprov-jdk15on:1.70'
+	implementation 'org.bouncycastle:bcpkix-jdk15on:1.70'
+
+
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 	implementation 'org.springframework.boot:spring-boot-starter-security'

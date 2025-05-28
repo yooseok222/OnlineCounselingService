@@ -135,8 +135,8 @@
 		cl.name   AS client_name,
 		a.name    AS agent_name
 		FROM contract c
-		JOIN client cl ON c.client_id = cl.client_id
-		JOIN agent  a  ON c.agent_id  = a.agent_id
+		LEFT JOIN client cl ON c.client_id = cl.client_id
+		LEFT JOIN agent  a  ON c.agent_id  = a.agent_id
 		WHERE c.company_id = #{companyId}
 		AND c.status     = 'COMPLETED'
 		ORDER BY c.contract_time DESC
@@ -152,8 +152,8 @@
 					 cl.name   AS client_name,
 					 a.name    AS agent_name
 				 FROM contract c
-						  JOIN client cl ON c.client_id = cl.client_id
-						  JOIN agent  a  ON c.agent_id  = a.agent_id
+						  LEFT JOIN client cl ON c.client_id = cl.client_id
+						  LEFT JOIN agent  a  ON c.agent_id  = a.agent_id
 				 WHERE c.company_id = #{companyId}
 				   AND c.status     = 'IN_PROGRESS'
 				 ORDER BY c.contract_time DESC
@@ -234,7 +234,7 @@
         cl.phone_number
         FROM
         contract c
-        JOIN client cl ON c.client_id = cl.client_id
+        LEFT JOIN client cl ON c.client_id = cl.client_id
         WHERE c.agent_id
         = #{agentId}
         ORDER BY c.contract_time
@@ -300,7 +300,7 @@
         cl.email,
         cl.phone_number
         FROM contract c
-        JOIN
+        LEFT JOIN
         client cl ON c.client_id = cl.client_id
         LEFT JOIN invitation i ON
         i.contract_id = c.contract_id
@@ -562,7 +562,7 @@
         </choose>
         ) AS rn
         FROM contract c
-        JOIN client cl
+        LEFT JOIN client cl
         ON c.client_id = cl.client_id
         WHERE c.agent_id = #{agentId}
         AND c.status   = #{status}
@@ -578,6 +578,13 @@
         AND status = #{status}
     </select>
 
+    <!--contractID로 PDFID 조회-->
+    <select id="selectPdfIdByContractId" resultType="long">
+        SELECT pdf_id
+        FROM pdf
+        WHERE contract_id = #{contractId}
+    </select>
+
 	<!-- 계약 상세조회 -->
 	<select id="selectContractDetail" resultMap="contractDetailResultMap">
 		SELECT
@@ -587,9 +594,9 @@
 			, cl.profile_image_url AS client_profile_image_url, a.profile_image_url AS agent_profile_image_url
 			, ct.contract_name AS contract_name, ct.contract_template_id AS contract_template_id
 		FROM contract c
-				 JOIN client cl ON c.client_id = cl.client_id
-				 JOIN agent a ON c.agent_id = a.agent_id
-				 JOIN contract_templates ct ON c.contract_template_id = ct.contract_template_id
+				 LEFT JOIN client cl ON c.client_id = cl.client_id
+				 LEFT JOIN agent a ON c.agent_id = a.agent_id
+				 LEFT JOIN contract_templates ct ON c.contract_template_id = ct.contract_template_id
 		WHERE c.contract_id = #{contractId}
 	</select>
 
