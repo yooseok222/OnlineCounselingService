@@ -109,8 +109,7 @@ public class InvitationController {
      * 초대링크 에러 페이지 (새 경로)
      */
     @GetMapping("/error")
-    @RequestMapping("/invitation/error")
-    public String showInvitationError(Model model) {
+    public String showClientInvitationError(Model model) {
         return "invitation/error";
     }
     
