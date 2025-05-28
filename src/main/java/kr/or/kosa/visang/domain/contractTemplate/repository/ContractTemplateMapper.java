@@ -18,4 +18,6 @@ public interface ContractTemplateMapper {
     void updateTemplate(ContractTemplate template);
     void deleteTemplate(Long contractTemplateId);
     Optional<ContractTemplate> findByFileHash(String fileHash);
+
+    List<ContractTemplate> selectByCompanyId(Long companyId);
 }

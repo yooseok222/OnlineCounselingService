@@ -4,6 +4,23 @@ function getCsrf() {
   return { header, token };
 }
 
+// 상태 변경용 유틸 함수
+function updateContractStatus(contractId, newStatus) {
+  const { header, token } = getCsrf();
+  return fetch(`/agent/schedule/status/${contractId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      [header]: token
+    },
+    body: JSON.stringify({ status: newStatus })
+  })
+  .then(res => {
+    if (!res.ok) throw new Error(`상태 변경 실패: ${res.status}`);
+    return;
+  });
+}
+
 let currentPage = 1;
 let currentStatus = 'PENDING';
 let currentSortOrder = 'DESC';
@@ -16,8 +33,32 @@ document.addEventListener('DOMContentLoaded', function() {
 	const scheduleForm = document.getElementById('scheduleForm');
 	const saveBtn = document.getElementById('saveBtn');
 	const contractStatusSelect = scheduleForm.querySelector('[name="contractStatus"]');
+    const dateInput = scheduleForm.querySelector('input[name="date"]');
 
 	let selectedEvent = null;
+
+	 // 오늘 날짜 기준으로 min 설정 (YYYY-MM-DD)
+     const todayStr = new Date().toISOString().slice(0,10);
+     dateInput.setAttribute('min', todayStr);
+
+     //  주말 선택 방지
+     dateInput.addEventListener('change', function() {
+        const d = new Date(this.value);
+        const day = d.getDay(); // 0=일, 6=토
+        if (day === 0 || day === 6) {
+          alert('주말에는 상담을 할 수 없습니다.');
+          this.value = ''; // 선택 초기화
+        }
+      });
+
+     const scheduleModalEl = document.getElementById('scheduleModal');
+     const scheduleModalInstance = new bootstrap.Modal(scheduleModalEl);
+
+     scheduleModalEl.addEventListener('hidden.bs.modal', () => {
+        document.body.classList.remove('modal-open');
+        document.body.style.paddingRight = '';
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+     });
 
 	loadStatusCounts();
     showFilteredContracts(currentStatus);
@@ -60,6 +101,52 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	initTimeOptions();
 
+	  async function handleEventClick(ev) {
+        selectedEvent = ev;
+        const companyId = document.querySelector('input[name="companyId"]').value;
+        const tmplSelect = document.getElementById('templateSelect');
+        tmplSelect.innerHTML = '<option value="">-- 템플릿을 선택하세요 --</option>';
+        try {
+          const res = await fetch(`/agent/contract-templates?companyId=${companyId}`);
+          const templates = await res.json();
+          templates.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.contractTemplateId;
+            opt.textContent = t.contractName;
+            tmplSelect.appendChild(opt);
+          });
+          tmplSelect.value = ev.extendedProps.contractTemplateId ?? '';
+        } catch (e) {
+          console.error('템플릿 로드 실패', e);
+        }
+
+        const form = document.getElementById('scheduleForm');
+        form.date.value = ev.startStr.split('T')[0];
+        initTimeOptions();
+        const hhmm = ev.startStr.split('T')[1].slice(0, 5);
+        document.getElementById('reservationTime').value = hhmm;
+        form.clientName.value = ev.title.replace(' 고객', '');
+        document.getElementById('emailFeedback')?.remove();
+        form.memo.value  = ev.extendedProps.memo  || '';
+        form.email.value = ev.extendedProps.email || '';
+        form.phone.value = ev.extendedProps.phone || '';
+        document.getElementById('templateSelect').value = ev.extendedProps.contractTemplateId ?? '';
+
+        // 제목, 버튼 보이기/숨기기, 상태 셀렉트 처리
+        document.querySelector('#scheduleModal .modal-title').textContent = '스케줄 수정';
+        contractStatusSelect.closest('.mb-3').style.display = 'block';
+        const statusValue = ev.extendedProps.contractStatus;
+        contractStatusSelect.value =
+          (statusValue === 'PENDING' || statusValue === 'CANCELLED')
+          ? statusValue
+          : 'PENDING';
+
+        document.getElementById('saveBtn').classList.add('d-none');
+        document.getElementById('updateBtn').classList.remove('d-none');
+
+        new bootstrap.Modal(document.getElementById('scheduleModal')).show();
+      }
+
 	// 주간 시간표 렌더러
 	function renderWeeklyTimetable(baseDate) {
 		const slots = [
@@ -74,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			{ label: '17:00 - 18:00', time: '17:00' },
 		];
 
-		// 월요일 기준 계산 
+		// 월요일 기준 계산
 		const td = new Date(baseDate);
 		const offset = td.getDay() === 0 ? -6 : 1 - td.getDay();
 		const monday = new Date(td);
@@ -121,6 +208,30 @@ document.addEventListener('DOMContentLoaded', function() {
 			reservationTimeSelect.appendChild(option);
 		});
 
+		let isSubmitting = false;
+
+        saveBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+
+          if (isSubmitting) return;   // 이미 전송 중이면 아무 동작도 안 함
+          isSubmitting = true;
+          saveBtn.disabled = true;
+
+          // 여러분의 저장 로직(AJAX, fetch, form.submit() 등)
+          fetch('/api/schedule', {
+            method: 'POST',
+            body: new FormData(scheduleForm),
+            headers: { 'X-CSRF-TOKEN': getCsrf().token }
+          })
+          .then(res => {
+            // 성공/실패 처리…
+          })
+          .finally(() => {
+            isSubmitting = false;
+            saveBtn.disabled = false;
+          });
+        });
+
 		// 이번 주 범위 스케줄만 삽입
 		calendar.getEvents().forEach(ev => {
 			const dt = new Date(ev.start);
@@ -143,16 +254,20 @@ document.addEventListener('DOMContentLoaded', function() {
 				div.textContent = ev.title;
 				div.style.cursor = 'pointer';
 				div.addEventListener('click', () => {
-					// 기존 eventClick 과 동일한 로직 재사용
 					selectedEvent = ev;
 					const form = document.getElementById('scheduleForm');
+
 					form.date.value = ev.startStr.split('T')[0];
-					form.time.value = ev.startStr.split('T')[1].slice(0, 5);
+					const hhmm = ev.startStr.split('T')[1].slice(0, 5);
+					document.getElementById('reservationTime').value = hhmm;
+
 					form.clientName.value = ev.title.replace(' 고객', '');
                     form.contractStatus.value = ev.extendedProps.contractStatus || 'PENDING';
 					form.memo.value = ev.extendedProps.memo || '';
 					form.email.value = ev.extendedProps.email || '';
 					form.phone.value = ev.extendedProps.phone || '';
+
+                    document.getElementById('templateSelect').value = ev.extendedProps.contractTemplateId ?? '';
 
 					// 버튼 토글
 					document.getElementById('saveBtn').classList.add('d-none');
@@ -185,8 +300,11 @@ document.addEventListener('DOMContentLoaded', function() {
 		});
 	}
 
+
 	// 통화하기 입장
 	function canEnterCall(reservationDateStr, reservationTimeStr) {
+      /* 시간 무시하고 테스트 하기 return true 지워야함 */
+      return true;
       const now = new Date();
 
       // 로컬 날짜 문자열 (YYYY-MM-DD) 생성
@@ -200,24 +318,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // 1) 날짜 확인
       if (localToday !== reservationDateStr) {
-        Swal.fire({
-          icon: 'warning',
-          title: '입장 불가',
-          text: '오늘 날짜의 예약이 아닙니다.'
-        });
-        return false;
+         alert('입장 불가: 오늘 날짜의 예약이 아닙니다.');
+         return false;
       }
 
       // 2) 예약 5분 전 확인
       const earliest = new Date(reservation.getTime() - 5 * 60 * 1000);
-      if (now < earliest) {
-        Swal.fire({
-          icon: 'warning',
-          title: '아직 너무 이릅니다',
-          text: '예약시간 5분 전부터 입장 가능합니다.'
-        });
-        return false;
-      }
+        if (now < earliest) {
+          alert('입장 불가: 예약시간 5분 전부터 입장 가능합니다.');
+          return false;
+       }
+
+       // 3) 예약시간 30분 경과 후 입장 불가
+       const latest = new Date(reservation.getTime() + 30 * 60 * 1000);
+         if (now > latest) {
+           alert('입장 불가: 예약시간으로부터 30분이 경과하여 더 이상 입장할 수 없습니다.');
+           return false;
+       }
 
       return true;
     }
@@ -227,14 +344,40 @@ document.addEventListener('DOMContentLoaded', function() {
 	const calendar = new FullCalendar.Calendar(calendarEl, {
 		initialView: 'dayGridMonth',
 		firstDay: 1, // 월요일 시작
+
 		eventTimeFormat: { hour: 'numeric', meridiem: 'narrow' },
 		customButtons: {
 			addSchedule: {
 				text: '스케줄 추가',
-				click: () => {
-					selectedEvent = null;
-					scheduleForm.reset();
+				click: async () => {
+                    const form = document.getElementById('scheduleForm');
+                    form.reset();
 
+                    const dateInput = form.querySelector('input[name="date"]');
+                    dateInput.value = '';
+
+                    calendar.unselect();
+
+                    selectedEvent = null;
+
+                    const tmplSelect = document.getElementById('templateSelect');
+                    tmplSelect.innerHTML = '<option value="">-- 템플릿을 선택하세요 --</option>';
+                    tmplSelect.value = '';
+
+                    const companyId = document.getElementById('companyIdInput').value;
+
+                    try {
+                             const res = await fetch(`/agent/contract-templates?companyId=${companyId}`);
+                             const templates = await res.json();
+                             templates.forEach(t => {
+                             const opt = document.createElement('option');
+                             opt.value = t.contractTemplateId;
+                             opt.textContent = t.contractName;
+                             tmplSelect.appendChild(opt);
+                             });
+                           } catch (e) {
+                             console.error('템플릿 로드 실패', e);
+                           }
 					document.getElementById('emailFeedback')?.remove();
 
 					document.querySelector('#scheduleModal .modal-title').textContent = '스케줄 추가';
@@ -251,16 +394,44 @@ document.addEventListener('DOMContentLoaded', function() {
 		headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth listWeek addSchedule' },
 		views: { listWeek: { type: 'list', duration: { days: 7 }, buttonText: 'List' } },
 		events: [],
-		eventClick(info) {
+		eventClick: async function(info) {
+		    await handleEventClick(info.event);
 			const ev = info.event;
 			selectedEvent = ev;
+
+			const companyId = document.querySelector('input[name="companyId"]').value;
+            const tmplSelect = document.getElementById('templateSelect');
+            tmplSelect.innerHTML = '<option value="">-- 템플릿을 선택하세요 --</option>';
+
+
+            try {
+                  const res = await fetch(`/agent/contract-templates?companyId=${companyId}`);
+                  const templates = await res.json();
+                  templates.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.contractTemplateId;
+                    opt.textContent = t.contractName;
+                    tmplSelect.appendChild(opt);
+                  });
+                    tmplSelect.value = ev.extendedProps.contractTemplateId ?? '';
+                } catch (e) {
+                  console.error('템플릿 로드 실패', e);
+            }
+
 			const form = document.getElementById('scheduleForm');
+
 			form.date.value = ev.startStr.split('T')[0];
-			form.time.value = ev.startStr.split('T')[1].slice(0, 5);
+			initTimeOptions();
+
+			const hhmm = ev.startStr.split('T')[1].slice(0, 5);
+			document.getElementById('reservationTime').value = hhmm;
+
 			form.clientName.value = ev.title.replace(' 고객', '');
 			form.memo.value = ev.extendedProps.memo || '';
 			form.email.value = ev.extendedProps.email || '';
 			form.phone.value = ev.extendedProps.phone || '';
+
+			document.getElementById('templateSelect').value = ev.extendedProps.contractTemplateId ?? '';
 			document.getElementById('emailFeedback')?.remove();
 
 			document.querySelector('#scheduleModal .modal-title').textContent = '스케줄 수정';
@@ -274,8 +445,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
             document.querySelector('#scheduleModal .modal-title').textContent = '스케줄 수정';
+			contractStatusSelect.closest('.mb-3').style.display = 'block';
 			document.getElementById('saveBtn').classList.add('d-none');
 			document.getElementById('updateBtn').classList.remove('d-none');
+
 			new bootstrap.Modal(document.getElementById('scheduleModal')).show();
 		},
 
@@ -336,39 +509,39 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	// 전체 스케줄 로드
 	async function loadSchedules() {
-		try {
-            const agentInput = document.querySelector('input[name="agentId"]');
-            const agentId = agentInput ? Number(agentInput.value) : null;
+		 try {
+            const agentId = Number(document.querySelector('input[name="agentId"]').value);
 
 			if (!agentId || isNaN(agentId)) {
             		throw new Error('agentId가 유효하지 않습니다: ' + agentId);
                 }
 
-            	const res = await fetch(`/agent/schedule/list?agentId=${agentId}`);
-            	if (!res.ok) {
-            		const errText = await res.text();
-            		throw new Error(`스케줄 로드 실패: ${res.status} ${errText}`);
-            	}
+            const res = await fetch(`/agent/schedule/list?agentId=${agentId}`);
+                if (!res.ok) {
+                  const errText = await res.text();
+                  throw new Error(`스케줄 로드 실패: ${res.status} ${errText}`);
+                }
+            const schedules = await res.json();
 
-			const schedules = await res.json();
 			calendar.getEvents().forEach(ev => ev.remove());
 
-			schedules.forEach(c => {
-			    if (c.status !== 'PENDING') return;
-				calendar.addEvent({
-					id: String(c.contractId),
-					title: `${c.memo ? '' : ''}${c.clientName || ''} 고객`,
-					start: c.contractTime,
-					backgroundColor: getRandomColor(),
-					borderColor: getRandomColor(),
-					extendedProps: {
-						contractStatus: c.status,
-						memo: c.memo,
-						email: c.email,
-						phone: c.phoneNumber
-					}
-				});
-			});
+			 schedules.forEach(c => {
+               if (c.status !== 'PENDING') return;
+               calendar.addEvent({
+                 id:      String(c.contractId),
+                 title:   `${c.clientName} 고객`,
+                 start:   c.contractTime,
+                 backgroundColor: getRandomColor(),
+                 borderColor:     getRandomColor(),
+                 extendedProps: {
+                 contractStatus: c.status,
+                 memo:           c.memo,
+                 email:          c.email,
+                 phone:          c.phoneNumber,
+                 contractTemplateId: c.contractTemplateId
+                 }
+               });
+             });
 
 			updateEventCountBadges();
 		} catch (err) {
@@ -379,8 +552,64 @@ document.addEventListener('DOMContentLoaded', function() {
 	loadSchedules();
 	loadTodayContracts();
 
+    // 계약 상세보기
+	function showContractDetailsFromDataset(ds) {
+      let detailsDiv = document.getElementById('todayContractDetails');
+
+      if (!detailsDiv) {
+          const listWrapper = document.getElementById('todayContractsList');
+          detailsDiv = document.createElement('div');
+          detailsDiv.id = 'todayContractDetails';
+          listWrapper.parentNode.insertBefore(detailsDiv, listWrapper.nextSibling);
+      }
+
+       detailsDiv.innerHTML = `
+          <div class="card mt-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="mb-0">계약 상세 정보</h5>
+              <button type="button" class="btn-close" aria-label="Close" id="detailCloseBtn"></button>
+            </div>
+            <div class="card-body">
+              <ul class="list-group list-group-flush">
+                <li class="list-group-item">계약 날짜: ${new Date(ds.contractTime).toLocaleDateString('ko-KR', {
+                  year:'numeric', month:'long', day:'numeric'
+                })}</li>
+                <li class="list-group-item">예약 시간: ${ds.time}</li>
+                <li class="list-group-item">고객 이메일: ${ds.email}</li>
+                <li class="list-group-item">계약서 템플릿: ${ds.templateName || '-'}</li>
+                <li class="list-group-item">계약 상태: ${(() => {
+                    const M = {
+                      PENDING: '예약',
+                      IN_PROGRESS: '진행중',
+                      COMPLETED: '완료',
+                      COMPLETE: '완료',
+                      CANCELLED: '취소',
+                      CANCELED: '취소'
+                    };
+                    return M[ds.status] || ds.status;
+                  })()}</li>
+                <li class="list-group-item">초대 코드: ${ds.invitationCode || '-'}</li>
+                <li class="list-group-item">메모: ${ds.memo || '-'}</li>
+              </ul>
+            </div>
+          </div>
+        `;
+
+        // 3) 닫기 버튼에 리스너 달기
+        document
+          .getElementById('detailCloseBtn')
+          .addEventListener('click', () => {
+            detailsDiv.innerHTML = '';
+          });
+    }
+
 	// 오늘의 계약 불러오기
 	async function loadTodayContracts() {
+
+	    const detailsDiv = document.getElementById('todayContractDetails');
+	    if(detailsDiv) {
+	        detailsDiv.innerHTML = '';
+	    }
 
 		try {
 			const agentId = Number(document.querySelector('input[name="agentId"]').value);
@@ -421,21 +650,48 @@ document.addEventListener('DOMContentLoaded', function() {
                     통화 시작
                   </button>
                 `;
+
+                // 파일 경로 추가
+                li.dataset.filePath = c.filePath;
+
+                li.dataset.contractTime      = c.contractTime;
+                li.dataset.invitationCode    = c.invitationCode;
+                li.dataset.status            = c.status;
+                li.dataset.time              = c.time;
+                li.dataset.memo              = c.memo || '';
+                li.dataset.clientId          = c.clientId;
+                li.dataset.email              = c.email;
+                li.dataset.contractTemplate  = c.contractTemplateId;
+                li.dataset.templateName       = c.contractTemplateName;
+
+                li.addEventListener('click', function(e) {
+                    if (e.target.closest('.start-webrtc-btn')) return;  // 버튼 클릭 무시
+                    showContractDetailsFromDataset(this.dataset);
+                });
+
                 ul.appendChild(li);
               });
                document.querySelectorAll('.start-webrtc-btn').forEach(btn => {
-                  btn.addEventListener('click', () => {
-                    const dateStr = btn.dataset.date;
-                    const timeStr = btn.dataset.time;
+                 btn.addEventListener('click', async () => {
+                   const contractId = btn.dataset.contractId;
+                   const dateStr    = btn.dataset.date;
+                   const timeStr    = btn.dataset.time;
 
-                    if (!canEnterCall(dateStr, timeStr)) {
-                      return;
-                    }
+                   // 1) 시간/날짜 체크
+                   if (!canEnterCall(dateStr, timeStr)) return;
 
-                    const contractId = btn.dataset.contractId;
-                    window.location.href = `/contract/room?contractId=${contractId}&role=agent`;
-                  });
-                });
+                   try {
+                     // 2) PENDING → IN_PROGRESS 로 상태 변경
+                     await updateContractStatus(contractId, 'IN_PROGRESS');
+
+                     // 3) 상태 변경 후 방으로 이동
+                     window.location.href = `/contract/room?contractId=${contractId}&role=agent`;
+                   } catch (err) {
+                     console.error('상태 변경 오류', err);
+                     alert('통화 상태 변경에 실패했습니다. 다시 시도해주세요.');
+                   }
+                 });
+               });
 
 		} catch (err) {
 			console.error(err);
@@ -573,13 +829,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
 		const payload = {
-			email: fd.get('email'),
-			contractTime: `${fd.get('date')}T${fd.get('time')}`,
-			clientId: Number(fd.get('clientId')),
-			agentId: Number(fd.get('agentId')),
-			clientName: fd.get('clientName'),
-			memo: fd.get('memo'),
-			status: 'PENDING'
+			  email:       fd.get('email'),
+              contractTime:`${fd.get('date')}T${fd.get('time')}`,
+              clientId:    Number(fd.get('clientId')),
+              agentId:     Number(fd.get('agentId')),
+              companyId:   Number(fd.get('companyId')),
+              contractTemplateId: Number(fd.get('contractTemplateId')),
+              memo:        fd.get('memo'),
+              status:      'PENDING'
 		};
 
 		try {
@@ -639,7 +896,8 @@ document.addEventListener('DOMContentLoaded', function() {
 					contractStatus: payload.status,
 					memo: payload.memo,
 					email: payload.email,
-					phone: fd.get('phone')
+					phone: fd.get('phone'),
+					contractTemplateId: payload.contractTemplateId
 				}
 			});
 			calendar.addEvent({ /* … */ });
@@ -672,12 +930,14 @@ document.addEventListener('DOMContentLoaded', function() {
 		const newClient = fd.get('clientName');
 
 		const payload = {
-			contractId: Number(selectedEvent.id),
-			clientId: Number(fd.get('clientId')),
-			agentId: Number(fd.get('agentId')),
-			contractTime: newStart,
-			memo: newMemo,
-			status: fd.get('contractStatus')
+		     contractId:           Number(selectedEvent.id),
+             clientId:             Number(fd.get('clientId')),
+             agentId:              Number(fd.get('agentId')),
+             companyId:            Number(fd.get('companyId')),
+             contractTemplateId:   Number(fd.get('contractTemplateId')),
+             contractTime:         `${fd.get('date')}T${fd.get('time')}`,
+             memo:                 fd.get('memo'),
+             status:               fd.get('contractStatus')
 		};
 
 		try {

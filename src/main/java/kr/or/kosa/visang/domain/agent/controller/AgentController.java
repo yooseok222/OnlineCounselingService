@@ -1,12 +1,13 @@
 package kr.or.kosa.visang.domain.agent.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
 import kr.or.kosa.visang.common.config.security.CustomUserDetails;
 import kr.or.kosa.visang.domain.agent.service.AgentService;
 import kr.or.kosa.visang.domain.client.model.Client;
 import kr.or.kosa.visang.domain.contract.model.Contract;
 import kr.or.kosa.visang.domain.contract.model.Page;
 import kr.or.kosa.visang.domain.contract.model.Schedule;
+import kr.or.kosa.visang.domain.contract.service.ContractService;
+import kr.or.kosa.visang.domain.contractTemplate.model.ContractTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,17 +27,23 @@ import java.util.Map;
 public class AgentController {
 
     private final AgentService agentService;
+    private final ContractService contractService;
     private static final Logger log = LoggerFactory.getLogger(AgentController.class);
 
     @Autowired
-    public AgentController(AgentService agentService) {
+    public AgentController(AgentService agentService, ContractService contractService) {
         this.agentService = agentService;
+        this.contractService = contractService;
     }
 
 
     @GetMapping("/dashboard")
     public String dashboard(@AuthenticationPrincipal CustomUserDetails user,
                             Model model) {
+
+        Long companyId = user.getCompanyId();
+        model.addAttribute("companyId", companyId);
+        model.addAttribute("templates", agentService.findByCompanyId(companyId));
 
 
         if ("AGENT".equals(user.getRole())) {
@@ -150,6 +157,27 @@ public class AgentController {
         result.put("currentPage", contractPage.getCurrentPage());
         result.put("totalPages", contractPage.getTotalPages());
         return result;
+    }
+
+    // 로그인된 상담사의 companyId로 계약서 템플릿 목록 가져오기
+    @GetMapping("/contract-templates")
+    @ResponseBody
+    public List<ContractTemplate> getContractTemplates(@AuthenticationPrincipal CustomUserDetails user) {
+        return agentService.findByCompanyId(user.getCompanyId());
+    }
+
+    //통화시작 '진행중' 업데이트
+    @PutMapping("/schedule/status/{contractId}")
+    public ResponseEntity<Map<String, Boolean>> updateStatus(
+            @PathVariable Long contractId,
+            @RequestBody Map<String, String> payload) {
+        String newStatus = payload.get("status");
+        if (newStatus == null) {
+            return ResponseEntity.badRequest().body(Map.of("updated", false));
+        }
+
+        contractService.updateCallContractStatus(contractId, newStatus);
+        return ResponseEntity.ok(Map.of("updated", true));
     }
 
 

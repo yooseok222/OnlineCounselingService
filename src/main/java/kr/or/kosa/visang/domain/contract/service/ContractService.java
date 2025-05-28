@@ -623,6 +623,20 @@ public class ContractService {
         }
     }
 
+    @Transactional
+    public void updateCallContractStatus(Long contractId, String status) {
+        int updated = contractMapper.updateStatus(contractId, status);
+    }
+
+    public boolean isParticipant(Long roomId, Long userId) {
+        Contract contract = contractMapper.selectContractById(roomId);
+        if (contract == null) {
+            return false;
+        }
+        return (contract.getAgentId() != null && contract.getAgentId().equals(userId))
+                || (contract.getClientId() != null && contract.getClientId().equals(userId));
+    }
+
     /**
      * 고객의 오늘 계약 조회
      * @param clientId 고객 ID
@@ -632,15 +646,15 @@ public class ContractService {
         // 오늘 날짜의 계약만 조회
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         String today = sdf.format(new Date());
-        
+
         Map<String, Object> params = new HashMap<>();
         params.put("clientId", clientId);
         params.put("contractDate", today);
         params.put("status", "PENDING"); // 예약된 상태만
-        
+
         return contractMapper.selectTodayContractsByClientId(params);
     }
-    
+
     /**
      * 고객별 계약 상태 카운트 조회
      * @param clientId 고객 ID
@@ -648,7 +662,7 @@ public class ContractService {
      */
     public Map<String, Integer> getContractCountsByClientId(Long clientId) {
         Map<String, Integer> rawCounts = contractMapper.selectContractCountsByClientId(clientId);
-        
+
         // 대소문자 문제를 해결하기 위해 명시적으로 키를 매핑
         Map<String, Integer> counts = new HashMap<>();
         counts.put("pending", getIntValueFromMap(rawCounts, "pending", "PENDING"));
@@ -656,10 +670,10 @@ public class ContractService {
         counts.put("completed", getIntValueFromMap(rawCounts, "completed", "COMPLETED"));
         counts.put("canceled", getIntValueFromMap(rawCounts, "canceled", "CANCELED"));
         counts.put("total", getIntValueFromMap(rawCounts, "total", "TOTAL"));
-        
+
         return counts;
     }
-    
+
     private Integer getIntValueFromMap(Map<String, Integer> map, String... keys) {
         for (String key : keys) {
             if (map.containsKey(key)) {
@@ -675,7 +689,7 @@ public class ContractService {
         }
         return 0;
     }
-    
+
     /**
      * 고객별 계약 목록 페이징 조회
      * @param clientId 고객 ID
@@ -690,18 +704,18 @@ public class ContractService {
         params.put("status", status);
         params.put("offset", (page - 1) * size);
         params.put("pageSize", size);
-        
+
         List<Contract> contracts = contractMapper.selectContractsByClientIdPaged(params);
         int totalCount = contractMapper.countContractsByClientId(params);
-        
+
         Map<String, Object> result = new HashMap<>();
         result.put("contracts", contracts);
         result.put("totalCount", totalCount);
         result.put("totalPages", (int) Math.ceil((double) totalCount / size));
-        
+
         return result;
     }
-    
+
     /**
      * 계약 취소
      * @param contractId 계약 ID

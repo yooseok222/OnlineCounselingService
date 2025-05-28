@@ -102,10 +102,29 @@ public class RedisConfig {
 //    }
     @Bean("chatRedisTemplate")
     public RedisTemplate<String, ChatMessage> ChatredisTemplate(RedisConnectionFactory rc) {
+
+        // 1) ChatMessage 전용 Jackfon2JsonRedisSerializer 생성
+        Jackson2JsonRedisSerializer<ChatMessage> serializer =
+                new Jackson2JsonRedisSerializer<>(ChatMessage.class);
+
+        // 2) LocalDateTime 처리를 위해 ObjectMapper 설정
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        // 타입 정보 포함이 필요하면 아래도 활성화
+        mapper.activateDefaultTyping(
+                LaissezFaireSubTypeValidator.instance,
+                ObjectMapper.DefaultTyping.NON_FINAL
+        );
+        serializer.setObjectMapper(mapper);
+
+        // 3) RedisTemplate 설정
         RedisTemplate<String, ChatMessage> temp = new RedisTemplate<>();
         temp.setConnectionFactory(rc);
         temp.setKeySerializer(new StringRedisSerializer());
-        temp.setValueSerializer(new Jackson2JsonRedisSerializer<>(ChatMessage.class));
+        temp.setValueSerializer(serializer);
+        temp.setHashKeySerializer(new StringRedisSerializer());
+        temp.setHashValueSerializer(serializer);
         temp.afterPropertiesSet();
         return temp;
     }
