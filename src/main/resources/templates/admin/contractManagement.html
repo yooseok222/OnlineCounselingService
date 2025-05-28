@@ -71,6 +71,7 @@
                 </div>
             </div>
         </div>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     </div>
 </div>
 <script th:fragment="script">
@@ -142,6 +143,67 @@
         }
 
         tableBody.addEventListener("click", async (e) => {
+            // 위변조 검증 버튼 클릭
+            if (e.target.closest(".template-verify")) {
+                const btn = e.target.closest(".template-verify");
+                const templateId = btn.getAttribute("data-id");
+
+                try {
+                    const res = await fetch(`/admin/template/${templateId}/verify`);
+                    const result = await res.json();
+
+                    const downloadBtn = document.getElementById(`downloadBtn-${templateId}`);
+                    const previewBtn = document.querySelector(`.template-preview[data-id="${templateId}"]`);
+
+                    if (result.valid) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '검증 성공',
+                            text: '계약서 템플릿이 위변조되지 않았습니다.',
+                            confirmButtonText: '확인'
+                        });
+
+                        // 다운로드 버튼 활성화
+
+                        if (downloadBtn) {
+                            downloadBtn.style.pointerEvents = "auto";
+                            downloadBtn.style.opacity = "1";
+                            downloadBtn.removeAttribute('aria-disabled');
+                            downloadBtn.tabIndex = 0;
+                        }
+                        // 미리보기 버튼도 활성화 가능
+
+                        if (previewBtn) previewBtn.disabled = false;
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: '검증 실패',
+                            text: '계약서가 위변조되었을 가능성이 있습니다.',
+                            confirmButtonText: '확인'
+                        });
+
+                        if (downloadBtn) {
+                            downloadBtn.style.pointerEvents = "none";
+                            downloadBtn.style.opacity = "0.5";
+                            downloadBtn.setAttribute('aria-disabled', 'true');
+                            downloadBtn.tabIndex = -1;
+                        }
+
+                        if (previewBtn)previewBtn.disabled = true;
+                    }
+                } catch (err) {
+                    console.error(err);
+                    Swal.fire({
+                        icon: 'error',
+                        title: '오류 발생',
+                        text: '서버와의 통신 중 문제가 발생했습니다.',
+                        confirmButtonText: '확인'
+                    });
+                }
+                // 버튼 클릭 시 상세보기 row 확장/축소는 무시해야 하므로 return
+                e.stopPropagation();
+                return;
+            }
 
             // [1] 버튼이나 링크 클릭은 무시
             if (e.target.closest("a") || e.target.closest("button")) return;
@@ -183,16 +245,26 @@
                                     <p><strong>계약 시간 :</strong> ${data.contractTime}</p>
                                     <p><strong>메모 :</strong> ${data.memo}</p>
 
-                                    <div class="mb-3">
-                                        <p class="mb-1"><strong>계약서 템플릿</strong>: ${data.contractName}</p>
-                                        <div class="d-flex gap-2" style="margin-top: 10px;">
-                                            <a href="/admin/files/${data.contractTemplateId}/download" class="btn btn-sm btn-outline-primary">
-                                                <i class="bi bi-download"></i> 다운로드
-                                            </a>
-                                            <button type="button" class="btn btn-sm btn-outline-secondary template-link" data-id="${data.contractTemplateId}">
-                                                <i class="bi bi-eye"></i> 미리보기
-                                            </button>
-                                        </div>
+                                    <div class="d-flex gap-2" style="margin-top: 10px;">
+                                        <a href="/admin/files/${data.contractTemplateId}/download"
+                                            class="btn btn-sm btn-outline-primary"
+                                            id="downloadBtn-${data.contractTemplateId}"
+                                            style="pointer-events:none; opacity:0.5;"
+                                            tabindex="-1"
+                                            aria-disabled="true">
+                                            <i class="bi bi-download"></i> 다운로드
+                                        </a>
+                                        <button type="button"
+                                            class="btn btn-sm btn-outline-secondary template-link template-preview"
+                                            data-id="${data.contractTemplateId}"
+                                            disabled>
+                                            <i class="bi bi-eye"></i> 미리보기
+                                        </button>
+                                        <button type="button"
+                                            class="btn btn-sm btn-outline-secondary template-verify"
+                                            data-id="${data.contractTemplateId}">
+                                            <i class="bi bi-shield-check"></i> 위변조 검증
+                                        </button>
                                     </div>
                                 </div>
 
@@ -239,7 +311,7 @@
                     e.stopPropagation(); // ✅ 여기 추가
                     const templateId = e.target.dataset.id;
                     previewIframe.src = `/admin/files/${templateId}/preview`;
-                    const modalInstance =  new bootstrap.Modal(previewModal).show();
+                    const modalInstance =  new bootstrap.Modal(previewModal);
                     modalInstance.show();
 
                 });

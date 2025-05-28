@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/admin")
@@ -71,6 +73,14 @@ public class AdminContractTemplateController {
     public ResponseEntity<String> deleteTemplate(@PathVariable Long id) {
         contractTemplateService.deleteTemplate(id);
         return new ResponseEntity<String>("success", HttpStatus.OK);
+    }
+
+    @GetMapping("/template/{id}/verify")
+    public ResponseEntity<Map<String, Object>> verifyTemplate(@PathVariable Long id) {
+        boolean isValid = contractTemplateService.verifyTemplateHash(id);
+        Map<String, Object> result = new HashMap<>();
+        result.put("valid", isValid);
+        return ResponseEntity.ok(result);
     }
 
 }

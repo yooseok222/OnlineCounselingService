@@ -70,6 +70,30 @@ public class ContractTemplateService {
         return fileStorageService.loadTemplateAsResource(path);
     }
 
+    public boolean verifyTemplateHash(Long contractTemplateId){
+        //1. DB에서 파일 경로 + 해시값 조회
+        ContractTemplate template = contractTemplateMapper.getPathAndHash(contractTemplateId);
+        if (template == null) return false;
+
+        String path = template.getFilePath();
+        if (path == null || path.isEmpty()) return false;
+        String fileHash = template.getFileHash();
+        if (fileHash == null || fileHash.isEmpty()) return false;
+
+        //2. 파일 경로를 실제 경로로 변환
+        Path filePath = Paths.get(uploadDirPdf, Paths.get(path).getFileName().toString());
+
+        //3. 해시값 검증
+        try {
+            String calculatedHash = HashUtil.sha256(filePath.toString());
+            return calculatedHash.equals(fileHash);
+        } catch (NoSuchAlgorithmException e1){
+            throw new RuntimeException("해시값 계산 중 오류가 발생했습니다.", e1);
+        } catch(IOException e2) {
+            throw new RuntimeException("파일을 읽던 도중 오류가 발생했습니다.", e2);
+        }
+    }
+
     // 계약서 템플릿 생성
     public void createTemplate(ContractTemplate contractTemplate) throws IOException, NoSuchAlgorithmException {
         // 1. 먼저 ID 확보
