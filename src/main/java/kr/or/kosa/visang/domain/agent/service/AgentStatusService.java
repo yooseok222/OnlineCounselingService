@@ -67,4 +67,22 @@ public class AgentStatusService implements InitializingBean {
     public int getActiveAgentCount() {
         return activeAgentCount.get();
     }
+    
+    /**
+     * 상담원 상태 강제 리셋 (디버깅용)
+     */
+    public void resetAgentStatus() {
+        agentPresent.set(false);
+        activeAgentCount.set(0);
+        System.out.println("상담원 상태 강제 리셋: 모든 상담원 상태 초기화");
+    }
+    
+    /**
+     * 상태 정보 조회 (디버깅용)
+     */
+    public String getStatusInfo() {
+        return String.format("상담원 입장상태: %s, 활성 상담원 수: %d", 
+                agentPresent.get() ? "입장" : "미입장", 
+                activeAgentCount.get());
+    }
 } 

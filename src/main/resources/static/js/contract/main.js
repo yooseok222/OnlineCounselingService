@@ -158,7 +158,14 @@ window.onload = function() {
   // 상담원이 상담실에 입장하면 입장 상태를 자동으로 설정
   if (userRole === "agent") {
     // 상담원 입장 상태 변경 (세션 ID 포함)
+    console.log('상담원 입장 - 상태를 true로 설정');
     updateAgentStatusWithSession(true, sessionId);
+    
+    // 추가 보장: 일정 시간 후 다시 한 번 설정
+    setTimeout(() => {
+      console.log('상담원 입장 상태 재확인 및 설정');
+      updateAgentStatusWithSession(true, sessionId);
+    }, 2000);
   }
 
   // 고객인 경우에는 상담원 상태 확인 후 활성화되어 있지 않으면 대기실로 이동
@@ -723,7 +730,14 @@ async function joinConsultationRoom(sessionId) {
             
             // 상담원인 경우 상담원 상태 업데이트 (세션 ID 포함)
             if (userRole === "agent") {
+                console.log('상담원 입장 - 상태를 true로 설정');
                 updateAgentStatusWithSession(true, sessionId);
+                
+                // 추가 보장: 일정 시간 후 다시 한 번 설정
+                setTimeout(() => {
+                  console.log('상담원 입장 상태 재확인 및 설정');
+                  updateAgentStatusWithSession(true, sessionId);
+                }, 2000);
             }
         } else {
             console.error('상담방 참여 실패:', result.message);
@@ -1018,6 +1032,42 @@ async function endConsultation() {
             // 모달 닫기
             closeEndConsultationModal();
             
+            // 상담원 상태 리셋을 가장 먼저 실행 (매우 중요!)
+            if (userRole === 'agent') {
+                console.log('상담원 상태를 false로 리셋합니다.');
+                try {
+                    // 동기식으로 상담원 상태 리셋
+                    await fetch('/api/contract/status', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            [csrfHeader.getAttribute('content')]: csrfToken.getAttribute('content')
+                        },
+                        body: JSON.stringify({ 
+                            present: false,
+                            sessionId: sessionId 
+                        })
+                    });
+                    console.log('상담원 상태 리셋 완료');
+                } catch (resetError) {
+                    console.error('상담원 상태 리셋 실패:', resetError);
+                }
+                
+                // 추가 보장: AgentStatusService도 직접 리셋
+                try {
+                    await fetch('/api/agent/reset', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            [csrfHeader.getAttribute('content')]: csrfToken.getAttribute('content')
+                        }
+                    });
+                    console.log('AgentStatusService 강제 리셋 완료');
+                } catch (serviceResetError) {
+                    console.error('AgentStatusService 리셋 실패:', serviceResetError);
+                }
+            }
+            
             // WebSocket을 통해 상대방에게 상담 종료 알림 전송 (추가 보장)
             if (typeof stompClient !== 'undefined' && stompClient && stompClient.connected) {
                 try {
@@ -1041,7 +1091,11 @@ async function endConsultation() {
             console.log('상담 종료 완료');
             
             // 상담종료 성공 메시지 표시 후 페이지 이동
-            showSuccess('상담이 종료되었습니다. 메인 페이지로 이동합니다.').then(() => {
+            const successMessage = userRole === 'agent' ? 
+                '상담이 종료되었습니다. 대시보드로 이동합니다.' : 
+                '상담이 종료되었습니다. 메인 페이지로 이동합니다.';
+            
+            showSuccess(successMessage).then(() => {
                 const redirectUrl = userRole === 'agent' ? '/agent/dashboard' : '/';
                 console.log(`상담 종료 후 페이지 이동: ${redirectUrl}`);
                 window.location.href = redirectUrl;
@@ -1434,4 +1488,57 @@ function addModalStyles() {
     `;
     
     document.head.appendChild(style);
-} 
+}
+
+// 페이지 이탈 시 상담원 상태 리셋 (매우 중요!)
+window.addEventListener('beforeunload', function(e) {
+    // 상담 종료 진행 중이면 경고 메시지 비활성화
+    if (isConsultationEnding) {
+        return;
+    }
+    
+    // 상담원이 페이지를 떠날 때 상태 리셋
+    if (userRole === 'agent') {
+        console.log('상담원이 페이지를 떠남 - 상태 리셋');
+        
+        // 방법 1: sendBeacon으로 상태 리셋
+        try {
+            const resetData = JSON.stringify({ 
+                present: false,
+                sessionId: sessionId 
+            });
+            
+            const blob = new Blob([resetData], { type: 'application/json' });
+            
+            // sendBeacon은 페이지 언로드 시에도 요청을 완료할 수 있음
+            const success1 = navigator.sendBeacon('/api/contract/status', blob);
+            console.log('상담원 상태 리셋 sendBeacon 결과:', success1);
+            
+            // 방법 2: AgentStatusService 직접 리셋
+            const success2 = navigator.sendBeacon('/api/agent/reset', new Blob(['{}'], { type: 'application/json' }));
+            console.log('AgentStatusService 리셋 sendBeacon 결과:', success2);
+            
+        } catch (error) {
+            console.error('상담원 상태 리셋 중 오류:', error);
+        }
+        
+        // 방법 3: 동기식 XMLHttpRequest (최후 수단)
+        try {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/agent/reset', false); // 동기식
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            
+            // CSRF 토큰 추가
+            const csrfToken = document.querySelector("meta[name='_csrf']");
+            const csrfHeader = document.querySelector("meta[name='_csrf_header']");
+            if (csrfToken && csrfHeader) {
+                xhr.setRequestHeader(csrfHeader.getAttribute('content'), csrfToken.getAttribute('content'));
+            }
+            
+            xhr.send('{}');
+            console.log('동기식 상담원 상태 리셋 완료');
+        } catch (xhrError) {
+            console.error('동기식 상담원 상태 리셋 실패:', xhrError);
+        }
+    }
+}); 
