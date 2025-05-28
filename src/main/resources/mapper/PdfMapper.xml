@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="kr.or.kosa.visang.domain.contract.repository.PdfMapper">
-    
+
+    <resultMap id="PDFResultMap" type="kr.or.kosa.visang.domain.pdf.model.PDF">
+        <id property="pdfId" column="pdf_id" />
+        <result property="filePath" column="file_path" />
+        <result property="fileHash" column="file_hash" />
+        <result property="createdAt" column="created_at" />
+        <result property="contractId" column="contract_id" />
+    </resultMap>
     <!-- PDF 기본 컬럼 -->
     <sql id="baseColumns">
         pdf_id, file_path, file_hash, created_at, contract_id
@@ -47,5 +54,12 @@
         DELETE FROM pdf
         WHERE pdf_id = #{pdfId}
     </delete>
+
+    <!-- PDF 해시 조회 -->
+    <select id="getPathAndHash" resultMap="PDFResultMap">
+        SELECT file_path, file_hash, created_at, contract_id, pdf_id
+        FROM pdf
+        WHERE pdf_id = #{pdfId}
+    </select>
     
 </mapper> 

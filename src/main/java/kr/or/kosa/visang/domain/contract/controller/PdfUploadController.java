@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,33 +29,33 @@ public class PdfUploadController {
     @Autowired
     private PdfService pdfService;
 
-    @PostMapping("/upload")
+    @PostMapping("/upload/temp")
     @ResponseBody
-    public ResponseEntity<?> handleFileUpload(@RequestParam("file") MultipartFile file, 
-                                             @RequestParam(value = "contractId", required = false) Long contractId) {
+    public ResponseEntity<?> handleFileUpload(@RequestParam("file") MultipartFile file,
+                                              @RequestParam(value = "contractId", required = false) Long contractId) {
         String fileName = StringUtils.cleanPath(file.getOriginalFilename());
         System.out.println("PDF 업로드 요청: 파일명=" + fileName + ", 크기=" + file.getSize() + " bytes");
 
         try {
             // PDF DTO 생성
             PdfDTO pdfDTO;
-            
+
             // 계약 ID가 있으면 DB에 저장, 없으면 임시 ID 생성
             if (contractId == null) {
                 // 임시 계약 ID 사용 (테스트용)
                 contractId = -1L;
                 System.out.println("임시 계약 ID 사용: " + contractId);
             }
-            
+
             // 항상 동일한 서비스 메서드 사용
             pdfDTO = pdfService.uploadPdf(file, contractId);
-            
+
             // 응답 URL에 타임스탬프 추가
             String timestamp = String.valueOf(System.currentTimeMillis());
             String fileUrl = "/files/pdf/" + pdfDTO.getFilePath() + "?t=" + timestamp + "&nocache=" + Math.random();
-            
+
             System.out.println("PDF 업로드 성공: URL=" + fileUrl);
-            
+
             return ResponseEntity.ok()
                     // 캐시 방지 헤더 추가 (더 엄격한 설정)
                     .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate, max-age=0")
@@ -66,11 +67,37 @@ public class PdfUploadController {
                     .header("ETag", "\"" + System.nanoTime() + "\"")  // 고유한 ETag 생성
                     .contentType(MediaType.TEXT_PLAIN)
                     .body(fileUrl);
+
+        } catch (IOException  e) {
+            System.err.println("PDF 업로드 실패: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("업로드 실패: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/upload/final")
+    @ResponseBody
+    public ResponseEntity<?> finalFileUpload(@RequestParam("file") MultipartFile file,
+                                             @RequestParam(value = "contractId", required = false) Long contractId) {
+        String fileName = StringUtils.cleanPath(file.getOriginalFilename());
+        System.out.println("PDF 업로드 요청: 파일명=" + fileName + ", 크기=" + file.getSize() + " bytes");
+
+        try {
+            // PDF DTO 생성
+            PdfDTO pdfDTO;
+            
+            // 항상 동일한 서비스 메서드 사용
+            pdfDTO = pdfService.uploadFinalPdf(file, contractId);
+            
+            return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN)
+                    .body("업로드 성공: " + pdfDTO.getFilePath() + "?fileId=" + pdfDTO.getPdfId() + "&timestamp=" + System.currentTimeMillis());
             
         } catch (IOException e) {
             System.err.println("PDF 업로드 실패: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.badRequest().body("업로드 실패: " + e.getMessage());
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -104,21 +131,6 @@ public class PdfUploadController {
             return ResponseEntity.ok(pdfService.getPdfsByContractId(contractId));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("PDF 조회 실패: " + e.getMessage());
-        }
-    }
-    
-    @DeleteMapping("/api/pdfs/{pdfId}")
-    @ResponseBody
-    public ResponseEntity<?> deletePdf(@PathVariable Long pdfId) {
-        try {
-            int result = pdfService.deletePdf(pdfId);
-            if (result > 0) {
-                return ResponseEntity.ok("PDF가 성공적으로 삭제되었습니다.");
-            } else {
-                return ResponseEntity.badRequest().body("PDF 삭제 실패: 해당 ID의 PDF를 찾을 수 없습니다.");
-            }
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("PDF 삭제 실패: " + e.getMessage());
         }
     }
 

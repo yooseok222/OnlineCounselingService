@@ -64,6 +64,8 @@
         <result column="memo" property="memo"/>
         <result column="client_name" property="clientName"/>
         <result column="client_email"       property="clientEmail"/>
+        <result column="agent_name" property="agentName"/>
+        <result column="invitation_code" property="invitationCode"/>
     </resultMap>
     <!--<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -75,7 +77,7 @@
         <result column="contract_time" property="contractTime" jdbcType="VARCHAR"/>
         <result column="agent_id" property="agentId" jdbcType="VARCHAR"/>
         <result column="client_id" property="clientId" jdbcType="VARCHAR"/>
-        <result column="contract_template_id" property="templateId" jdbcType="VARCHAR"/>
+        <result column="contract_template_id" property="contractTemplateId" jdbcType="VARCHAR"/>
         <result column="memo" property="memo" jdbcType="CLOB"/>
         <result column="client_email" property="clientEmail" jdbcType="VARCHAR"/>
     </resultMap>
@@ -135,8 +137,8 @@
 		cl.name   AS client_name,
 		a.name    AS agent_name
 		FROM contract c
-		JOIN client cl ON c.client_id = cl.client_id
-		JOIN agent  a  ON c.agent_id  = a.agent_id
+		LEFT JOIN client cl ON c.client_id = cl.client_id
+		LEFT JOIN agent  a  ON c.agent_id  = a.agent_id
 		WHERE c.company_id = #{companyId}
 		AND c.status     = 'COMPLETED'
 		ORDER BY c.contract_time DESC
@@ -152,8 +154,8 @@
 					 cl.name   AS client_name,
 					 a.name    AS agent_name
 				 FROM contract c
-						  JOIN client cl ON c.client_id = cl.client_id
-						  JOIN agent  a  ON c.agent_id  = a.agent_id
+						  LEFT JOIN client cl ON c.client_id = cl.client_id
+						  LEFT JOIN agent  a  ON c.agent_id  = a.agent_id
 				 WHERE c.company_id = #{companyId}
 				   AND c.status     = 'IN_PROGRESS'
 				 ORDER BY c.contract_time DESC
@@ -246,7 +248,7 @@
         cl.phone_number
         FROM
         contract c
-        JOIN client cl ON c.client_id = cl.client_id
+        LEFT JOIN client cl ON c.client_id = cl.client_id
         WHERE c.agent_id
         = #{agentId}
         ORDER BY c.contract_time
@@ -313,7 +315,7 @@
             cl.phone_number,
             tmpl.contract_name AS contractTemplateName
         FROM contract c
-        JOIN client cl
+        LEFT JOIN client cl
         ON c.client_id = cl.client_id
         LEFT JOIN invitation i
         ON i.contract_id = c.contract_id
@@ -581,7 +583,7 @@
         </choose>
         ) AS rn
         FROM contract c
-        JOIN client cl
+        LEFT JOIN client cl
         ON c.client_id = cl.client_id
         WHERE c.agent_id = #{agentId}
         AND c.status   = #{status}
@@ -597,6 +599,13 @@
         AND status = #{status}
     </select>
 
+    <!--contractID로 PDFID 조회-->
+    <select id="selectPdfIdByContractId" resultType="long">
+        SELECT pdf_id
+        FROM pdf
+        WHERE contract_id = #{contractId}
+    </select>
+
 	<!-- 계약 상세조회 -->
 	<select id="selectContractDetail" resultMap="contractDetailResultMap">
 		SELECT
@@ -606,12 +615,11 @@
 			, cl.profile_image_url AS client_profile_image_url, a.profile_image_url AS agent_profile_image_url
 			, ct.contract_name AS contract_name, ct.contract_template_id AS contract_template_id
 		FROM contract c
-				 JOIN client cl ON c.client_id = cl.client_id
-				 JOIN agent a ON c.agent_id = a.agent_id
-				 JOIN contract_templates ct ON c.contract_template_id = ct.contract_template_id
+				 LEFT JOIN client cl ON c.client_id = cl.client_id
+				 LEFT JOIN agent a ON c.agent_id = a.agent_id
+				 LEFT JOIN contract_templates ct ON c.contract_template_id = ct.contract_template_id
 		WHERE c.contract_id = #{contractId}
 	</select>
-
 
 	<!-- 계약 상세조회 (템플릿 없이) -->
 	<select id="selectContractDetailWithEmail" resultMap="contractDetailResultMap">
@@ -658,4 +666,75 @@
         WHERE contract_id = #{contractId}
     </update>
 
+
+	<!-- 고객의 오늘 계약 조회 -->
+	<select id="selectTodayContractsByClientId" parameterType="map" resultMap="contractResultMap">
+		SELECT
+			c.contract_id,
+			c.status,
+			TO_CHAR(c.created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at,
+			TO_CHAR(c.contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time,
+			c.client_id,
+			c.agent_id,
+			c.memo,
+			a.name AS agent_name,
+			i.invitation_code
+		FROM contract c
+		LEFT JOIN agent a ON c.agent_id = a.agent_id
+		LEFT JOIN invitation i ON c.contract_id = i.contract_id
+		WHERE c.client_id = #{clientId}
+		AND TRUNC(c.contract_time) = TO_DATE(#{contractDate}, 'YYYY-MM-DD')
+		AND c.status = #{status}
+		ORDER BY c.contract_time ASC
+	</select>
+
+	<!-- 고객별 계약 상태 카운트 -->
+	<select id="selectContractCountsByClientId" parameterType="long" resultType="java.util.HashMap">
+		SELECT
+			COUNT(*) AS "total",
+			SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END) AS "pending",
+			SUM(CASE WHEN status = 'IN_PROGRESS' THEN 1 ELSE 0 END) AS "inProgress",
+			SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) AS "completed",
+			SUM(CASE WHEN status = 'CANCELED' THEN 1 ELSE 0 END) AS "canceled"
+		FROM contract
+		WHERE client_id = #{clientId}
+	</select>
+
+	<!-- 고객별 계약 목록 페이징 조회 -->
+	<select id="selectContractsByClientIdPaged" parameterType="map" resultMap="contractResultMap">
+		SELECT *
+		FROM (
+			SELECT a.*, ROWNUM rn
+			FROM (
+				SELECT
+					c.contract_id,
+					c.status,
+					TO_CHAR(c.created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at,
+					TO_CHAR(c.contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time,
+					c.client_id,
+					c.agent_id,
+					c.memo,
+					a.name AS agent_name
+				FROM contract c
+				LEFT JOIN agent a ON c.agent_id = a.agent_id
+				WHERE c.client_id = #{clientId}
+				<if test="status != null and status != ''">
+					AND c.status = #{status}
+				</if>
+				ORDER BY c.contract_time DESC
+			) a
+			WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+		)
+		WHERE rn > #{offset}
+	</select>
+
+	<!-- 고객별 계약 총 개수 (페이징용) -->
+	<select id="countContractsByClientId" parameterType="map" resultType="int">
+		SELECT COUNT(*)
+		FROM contract
+		WHERE client_id = #{clientId}
+		<if test="status != null and status != ''">
+			AND status = #{status}
+		</if>
+	</select>
 </mapper>

@@ -11,6 +11,11 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
+
 @Controller
 @RequestMapping("/admin")
 @RequiredArgsConstructor
@@ -40,7 +45,7 @@ public class AdminContractTemplateController {
 
     @PostMapping("/template")
     public ResponseEntity<String> createTemplate(@AuthenticationPrincipal CustomUserDetails admin,
-                                                 ContractTemplate contractTemplate) {
+                                                 ContractTemplate contractTemplate) throws IOException, NoSuchAlgorithmException {
         Long companyId = admin.getCompanyId(); // 로그인한 사용자의 회사 ID
         contractTemplate.setCompanyId(companyId);
 
@@ -55,8 +60,11 @@ public class AdminContractTemplateController {
                                                  ContractTemplate contractTemplate
     ) {
         Long companyId = admin.getCompanyId(); // 로그인한 사용자의 회사 ID
-
-        contractTemplateService.updateTemplate(templateId, companyId, contractTemplate);
+        try{
+            contractTemplateService.updateTemplate(templateId, companyId, contractTemplate);
+        }catch (Exception e){
+            return new ResponseEntity<String>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
         return new ResponseEntity<String>("success", HttpStatus.OK);
     }
 
@@ -65,6 +73,14 @@ public class AdminContractTemplateController {
     public ResponseEntity<String> deleteTemplate(@PathVariable Long id) {
         contractTemplateService.deleteTemplate(id);
         return new ResponseEntity<String>("success", HttpStatus.OK);
+    }
+
+    @GetMapping("/template/{id}/verify")
+    public ResponseEntity<Map<String, Object>> verifyTemplate(@PathVariable Long id) {
+        boolean isValid = contractTemplateService.verifyTemplateHash(id);
+        Map<String, Object> result = new HashMap<>();
+        result.put("valid", isValid);
+        return ResponseEntity.ok(result);
     }
 
 }

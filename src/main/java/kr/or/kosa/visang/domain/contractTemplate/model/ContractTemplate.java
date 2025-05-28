@@ -11,6 +11,7 @@ public class ContractTemplate {
     private String filePath; // 파일 경로
     private Long companyId; // 회사 ID
     private String version; // 버전
+    private String fileHash; // 파일 해시값
 
     private String createdAt; // 생성일
     private String updatedAt; // 수정일

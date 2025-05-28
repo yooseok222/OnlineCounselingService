@@ -98,7 +98,7 @@ public class StampController {
             
             redirectAttributes.addFlashAttribute("success", "도장이 성공적으로 업로드되었습니다.");
             log.info("도장 업로드 완료 - 클라이언트 ID: {}, 도장 ID: {}, 파일: {}", 
-                    clientId, stampDTO.getStampId(), stampDTO.getImagePath());
+                    clientId, stampDTO.getStampId(), stampDTO.getStampImageUrl());
 
         } catch (IllegalStateException e) {
             log.warn("도장 업로드 거부 - 클라이언트 ID: {}, 사유: {}", 
@@ -110,6 +110,69 @@ public class StampController {
         }
 
         return "redirect:/stamp/upload";
+    }
+
+    /**
+     * 도장 파일 업로드 처리 (AJAX용)
+     */
+    @PostMapping("/api/upload")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> uploadStampAjax(@RequestParam("file") MultipartFile file) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            // 파일 유효성 검사
+            if (file.isEmpty()) {
+                response.put("success", false);
+                response.put("message", "파일을 선택해주세요.");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // 이미지 파일인지 확인
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                response.put("success", false);
+                response.put("message", "이미지 파일만 업로드 가능합니다.");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // 현재 로그인한 사용자 정보 가져오기
+            CustomUserDetails currentUser = SecurityUtil.getCurrentUser();
+            if (currentUser == null || currentUser.getClientId() == null) {
+                log.error("로그인하지 않았거나 고객 정보가 없습니다.");
+                response.put("success", false);
+                response.put("message", "로그인이 필요합니다.");
+                return ResponseEntity.status(401).body(response);
+            }
+
+            Long clientId = currentUser.getClientId();
+            log.info("도장 업로드 시작 (AJAX) - 클라이언트 ID: {}, 사용자명: {}, 파일명: {}", 
+                    clientId, currentUser.getName(), file.getOriginalFilename());
+
+            // 도장 업로드 및 저장
+            StampDTO stampDTO = stampService.uploadStamp(file, clientId);
+            
+            response.put("success", true);
+            response.put("message", "도장이 성공적으로 등록되었습니다.");
+            response.put("stamp", stampDTO);
+            
+            log.info("도장 업로드 완료 (AJAX) - 클라이언트 ID: {}, 도장 ID: {}, 파일: {}", 
+                    clientId, stampDTO.getStampId(), stampDTO.getStampImageUrl());
+            
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalStateException e) {
+            log.warn("도장 업로드 거부 - 클라이언트 ID: {}, 사유: {}", 
+                    SecurityUtil.getCurrentUser().getClientId(), e.getMessage());
+            response.put("success", false);
+            response.put("message", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        } catch (IOException e) {
+            log.error("도장 업로드 실패", e);
+            response.put("success", false);
+            response.put("message", "도장 업로드 중 오류가 발생했습니다.");
+            return ResponseEntity.internalServerError().body(response);
+        }
     }
 
     /**

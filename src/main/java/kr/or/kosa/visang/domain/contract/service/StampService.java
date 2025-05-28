@@ -65,11 +65,14 @@ public class StampService {
 
         // 도장 정보 DB에 저장
         StampDTO stampDTO = new StampDTO();
-        stampDTO.setImagePath(uniqueFilename);
+        stampDTO.setStampImageUrl("/stamp/image/" + uniqueFilename);
         stampDTO.setCreatedAt(new Date());
         stampDTO.setClientId(clientId);
 
         stampMapper.insertStamp(stampDTO);
+        
+        // 반환할 때 전체 경로 설정
+        stampDTO.setStampImageUrl("/stamp/image/" + uniqueFilename);
 
         return stampDTO;
     }
@@ -85,7 +88,7 @@ public class StampService {
         if (stamp != null) {
             // 파일 시스템에서 삭제
             Path uploadPath = Paths.get(UPLOAD_DIR).toAbsolutePath().normalize();
-            Path filePath = uploadPath.resolve(stamp.getImagePath());
+            Path filePath = uploadPath.resolve(stamp.getStampImageUrl());
             File file = filePath.toFile();
             if (file.exists()) {
                 file.delete();

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="content">
+	<main class="dashboard-content">
+		<!-- 페이지 헤더 -->
+		<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+			<h1 class="h2">오늘의 계약</h1>
+			<div class="btn-toolbar mb-2 mb-md-0">
+				<span class="text-muted" th:text="${#dates.format(#dates.createNow(), 'yyyy년 MM월 dd일')}"></span>
+			</div>
+		</div>
+		
+		<!-- 계약 목록 -->
+		<div class="row">
+			<div class="col-12">
+				<div class="card">
+					<div class="card-body">
+						<div th:if="${contracts.empty}" class="text-center py-5">
+							<i class="bi bi-calendar-x fs-1 text-muted"></i>
+							<p class="mt-3 text-muted">오늘 예정된 계약이 없습니다.</p>
+						</div>
+						
+						<div th:unless="${contracts.empty}" class="table-responsive">
+							<table class="table table-hover">
+								<thead>
+									<tr>
+										<th>계약 시간</th>
+										<th>상담사</th>
+										<th>상태</th>
+										<th>초대 코드</th>
+										<th>작업</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr th:each="contract : ${contracts}">
+										<td th:text="${#strings.substring(contract.contractTime, 11, 16)}"></td>
+										<td th:text="${contract.agentName}"></td>
+										<td>
+											<span class="badge" 
+												th:classappend="${contract.status == 'PENDING' ? 'bg-warning text-dark' : 
+															   contract.status == 'IN_PROGRESS' ? 'bg-primary' : 
+															   contract.status == 'COMPLETED' ? 'bg-success' : 'bg-danger'}"
+												th:text="${contract.status}"></span>
+										</td>
+										<td>
+											<code th:text="${contract.invitationCode ?: '-'}"></code>
+										</td>
+										<td>
+											<div class="btn-group" role="group">
+												<button th:if="${contract.status == 'PENDING'}" 
+														type="button" 
+														class="btn btn-sm btn-outline-danger cancel-contract-btn"
+														th:data-contract-id="${contract.contractId}"
+														th:data-contract-time="${contract.contractTime}">
+													<i class="bi bi-x-circle"></i> 취소
+												</button>
+												<a th:if="${contract.invitationCode != null}" 
+												   th:href="@{/invitation/enter/{code}(code=${contract.invitationCode})}"
+												   class="btn btn-sm btn-outline-primary">
+													<i class="bi bi-box-arrow-in-right"></i> 입장
+												</a>
+											</div>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<!-- 안내 사항 -->
+		<div class="row mt-4">
+			<div class="col-12">
+				<div class="alert alert-info" role="alert">
+					<h5 class="alert-heading"><i class="bi bi-info-circle"></i> 안내 사항</h5>
+					<ul class="mb-0">
+						<li>계약 취소는 예약 시간 24시간 전까지만 가능합니다.</li>
+						<li>계약 시작 10분 전부터 입장이 가능합니다.</li>
+						<li>초대 코드는 상담사가 발급한 경우에만 표시됩니다.</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</main>
+</div>
+
+<div th:fragment="script">
+<script th:inline="javascript">
+$(document).ready(function() {
+	// 계약 취소 버튼 클릭
+	$('.cancel-contract-btn').on('click', function() {
+		const contractId = $(this).data('contract-id');
+		const contractTime = $(this).data('contract-time');
+		const btn = $(this);
+		
+		// 취소 가능 시간 체크 (24시간 전)
+		const now = new Date();
+		const contractDate = new Date(contractTime);
+		const hoursDiff = (contractDate - now) / (1000 * 60 * 60);
+		
+		if (hoursDiff < 24) {
+			alert('예약 시간 24시간 전까지만 취소가 가능합니다.');
+			return;
+		}
+		
+		if (confirm('정말로 이 계약을 취소하시겠습니까?')) {
+			$.ajax({
+				url: '/client/contracts/' + contractId + '/cancel',
+				type: 'POST',
+				headers: {
+					'X-CSRF-TOKEN': $('meta[name="_csrf"]').attr('content')
+				},
+				success: function(response) {
+					if (response.success) {
+						alert('계약이 취소되었습니다.');
+						location.reload();
+					} else {
+						alert(response.message || '계약 취소에 실패했습니다.');
+					}
+				},
+				error: function() {
+					alert('계약 취소 중 오류가 발생했습니다.');
+				}
+			});
+		}
+	});
+});
+</script>
+</div>
+</html> 

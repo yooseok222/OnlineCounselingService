@@ -428,7 +428,7 @@
                       if (!schedules.length) {
                         scheduleContainer.innerHTML = '<div class="text-muted">계약 일정 없음</div>';
                       } else {
-                        scheduleContainer.innerHTML = `<ul class="list-group">${schedules.map(s => `<li class="list-group-item">${s.agentId} - ${s.clientId} - ${s.contractTime} - ${s.status} - ${s.memo}- ${s.templateId}</li>`).join('')}</ul>`;
+                        scheduleContainer.innerHTML = `<ul class="list-group">${schedules.map(s => `<li class="list-group-item">${s.agentId} - ${s.clientId} - ${s.contractTime} - ${s.status} - ${s.memo}- ${s.contractTemplateId}</li>`).join('')}</ul>`;
                       }
                     })
                     .catch(() => {
