@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import jakarta.servlet.http.HttpSession;
 import java.util.List;
 import java.util.UUID;
 
@@ -32,6 +33,7 @@ public class ContractRoomController {
             @RequestParam Long contractId,
             @RequestParam String role,
             @RequestParam(required = false) String session,
+            HttpSession httpSession,
             Model model) {
         
         // 1. contractId 유효성 검사
@@ -75,7 +77,23 @@ public class ContractRoomController {
             return "error/contract-error";
         }
         
-        // 4. 세션-계약 매핑 생성
+        // 4. 세션에서 entryType 정보 가져오기 (고객인 경우)
+        String entryType = null;
+        String stampImage = null;
+        String signatureImage = null;
+        
+        if ("client".equals(role)) {
+            entryType = (String) httpSession.getAttribute("entryType");
+            stampImage = (String) httpSession.getAttribute("stampImage");
+            signatureImage = (String) httpSession.getAttribute("signatureImage");
+            
+            log.info("세션에서 가져온 데이터:");
+            log.info("- entryType: {}", entryType);
+            log.info("- stampImage: {}", stampImage != null ? "존재(" + stampImage.length() + " chars)" : "null");
+            log.info("- signatureImage: {}", signatureImage != null ? "존재(" + signatureImage.length() + " chars)" : "null");
+        }
+        
+        // 5. 세션-계약 매핑 생성
         try {
             mappingService.createMapping(sessionId, contractId, role);
             log.info("세션-계약 매핑 생성 완료: session={}, contract={}, role={}", sessionId, contractId, role);
@@ -86,17 +104,32 @@ public class ContractRoomController {
             return "error/contract-error";
         }
         
-        // 5. 모델에 필요한 데이터 추가
+        // 6. 모델에 필요한 데이터 추가
         model.addAttribute("contractId", contractId);
         model.addAttribute("sessionId", sessionId);
         model.addAttribute("role", role);
         
-        // 6. 역할에 따라 적절한 페이지로 라우팅
+        // 고객인 경우 entryType 정보도 추가
+        if ("client".equals(role) && entryType != null) {
+            model.addAttribute("entryType", entryType);
+            log.info("모델에 entryType 추가: {}", entryType);
+            
+            // 도장/서명 이미지 데이터도 추가
+            if ("stamp".equals(entryType) && stampImage != null) {
+                model.addAttribute("stampImage", stampImage);
+                log.info("모델에 stampImage 추가 (길이: {} chars)", stampImage.length());
+            } else if ("signature".equals(entryType) && signatureImage != null) {
+                model.addAttribute("signatureImage", signatureImage);
+                log.info("모델에 signatureImage 추가 (길이: {} chars)", signatureImage.length());
+            }
+        }
+        
+        // 7. 역할에 따라 적절한 페이지로 라우팅
         if ("agent".equals(role)) {
             log.info("상담원 방 입장: contractId={}, sessionId={}", contractId, sessionId);
             return "contract/agentRoom";
         } else {
-            log.info("고객 방 입장: contractId={}, sessionId={}", contractId, sessionId);
+            log.info("고객 방 입장: contractId={}, sessionId={}, entryType={}", contractId, sessionId, entryType);
             return "contract/clientRoom";
         }
     }

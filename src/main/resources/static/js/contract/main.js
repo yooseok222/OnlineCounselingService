@@ -65,8 +65,16 @@ window.onload = function() {
   console.log("URL 파라미터 - role:", roleParam, "session:", sessionParam);
   console.log("현재 URL:", window.location.href);
 
-  // 사용자 역할 설정 로직 개선
-  if (roleParam) {
+  // 서버에서 전달받은 role 정보 확인
+  const serverRole = (typeof window.serverRole !== 'undefined') ? window.serverRole : null;
+  console.log("서버에서 전달받은 role:", serverRole);
+
+  // 사용자 역할 설정 로직 개선 - 우선순위: 서버 전달 > URL 파라미터 > sessionStorage
+  if (serverRole) {
+    userRole = serverRole;
+    sessionStorage.setItem("role", serverRole);
+    console.log("서버에서 사용자 역할 설정:", userRole);
+  } else if (roleParam) {
     userRole = roleParam;
     sessionStorage.setItem("role", roleParam);
     console.log("URL에서 사용자 역할 설정:", userRole);
@@ -305,11 +313,70 @@ function initializeUIByRole() {
     document.head.appendChild(styleElement);
   }
 
-  // 상담원이면 도장 버튼 표시
+  // URL에서 entryType 파라미터 확인
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlEntryType = urlParams.get('entryType');
+  
+  // 서버에서 전달받은 entryType 정보 확인 (전역 변수로 설정되어 있음)
+  const serverEntryType = (typeof window.serverEntryType !== 'undefined') ? window.serverEntryType : null;
+  
+  // entryType 우선순위: 서버 전달 > URL 파라미터 > sessionStorage
+  const entryType = serverEntryType || urlEntryType || sessionStorage.getItem('entryType');
+  
+  console.log('entryType 확인:');
+  console.log('- 서버 전달:', serverEntryType);
+  console.log('- URL 파라미터:', urlEntryType);
+  console.log('- sessionStorage:', sessionStorage.getItem('entryType'));
+  console.log('- 최종 선택:', entryType);
+
+  // 역할에 따른 UI 설정
   if (userRole === 'agent') {
+    // 상담원은 도장 버튼만 표시
     const stampBtn = document.getElementById('stampBtn');
     if (stampBtn) {
-      stampBtn.style.display = 'flex';
+      stampBtn.style.display = 'inline-block';
+    }
+    console.log('상담원 UI 설정 완료 - 도장 버튼 표시');
+  } else if (userRole === 'client') {
+    // 고객의 경우 선택한 입장 방식에 따라 버튼 표시
+    console.log('고객 UI 설정 시작 - entryType:', entryType);
+    
+    const stampBtn = document.getElementById('stampBtn');
+    
+    if (entryType === 'stamp') {
+      // 도장으로 입장한 경우 - 도장 버튼만 표시
+      if (stampBtn) {
+        stampBtn.style.display = 'inline-block';
+        stampBtn.innerHTML = '<i class="fas fa-stamp"></i> 내 도장';
+        console.log('고객 도장 모드 - 도장 버튼만 표시');
+      }
+      
+      // sessionStorage에서 고객의 도장 데이터 복원
+      setTimeout(() => {
+        restoreClientStampData();
+      }, 1000);
+      
+    } else if (entryType === 'signature') {
+      // 서명으로 입장한 경우 - 서명 버튼 추가
+      if (stampBtn) {
+        // 기존 도장 버튼을 서명 버튼으로 변경
+        stampBtn.style.display = 'inline-block';
+        stampBtn.innerHTML = '<i class="fas fa-signature"></i> 내 서명';
+        stampBtn.onclick = function() { setSignatureMode(); };
+        console.log('고객 서명 모드 - 서명 버튼으로 변경');
+      }
+      
+      // sessionStorage에서 고객의 서명 데이터 복원
+      setTimeout(() => {
+        restoreClientSignatureData();
+      }, 1000);
+      
+    } else {
+      // entryType이 없는 경우 (기존 사용자) - 도장 버튼 숨김
+      if (stampBtn) {
+        stampBtn.style.display = 'none';
+        console.log('고객 기본 모드 - 도장 버튼 숨김');
+      }
     }
   }
 }
@@ -381,6 +448,35 @@ function updateAgentStatusWithSession(isPresent, sessionId) {
 function endConsult() {
     showEndConsultationModal();
   }
+
+/**
+ * 현재 모드 해제
+ */
+function clearMode() {
+  mode = null;
+  document.getElementById('currentMode').textContent = '커서';
+  
+  // 모든 버튼 비활성화
+  const buttons = ['highlighterBtn', 'penBtn', 'cursorBtn', 'textBtn', 'stampBtn', 'signatureBtn'];
+  buttons.forEach(id => {
+    const button = document.getElementById(id);
+    if (button) {
+      button.classList.remove('active');
+    }
+  });
+  
+  // 커서 버튼 활성화
+  const cursorBtn = document.getElementById('cursorBtn');
+  if (cursorBtn) {
+    cursorBtn.classList.add('active');
+  }
+  
+  // 커서 스타일 초기화
+  const drawingCanvas = document.getElementById('drawingCanvas');
+  if (drawingCanvas) {
+    drawingCanvas.style.cursor = 'default';
+  }
+}
 
 /**
  * 홈페이지로 이동 (기존 함수 유지)
@@ -1095,7 +1191,135 @@ async function generateAndSendPdf() {
     }
 }
 
-// showCompletionModal 함수 제거됨 - 불필요한 팝업 제거
+/**
+ * 고객의 도장 데이터 복원
+ */
+function restoreClientStampData() {
+  try {
+    const savedStampImage = sessionStorage.getItem("stampImage");
+    const savedStampId = sessionStorage.getItem("selectedStampId");
+    
+    if (savedStampImage && savedStampId) {
+      console.log('고객 도장 데이터 복원 시작');
+      
+      // 현재 페이지에 도장 데이터 설정
+      if (!stampDataPerPage[currentPage]) {
+        stampDataPerPage[currentPage] = [];
+      }
+      
+      // 기존에 복원된 도장이 있는지 확인
+      const existingStamp = stampDataPerPage[currentPage].find(stamp => 
+        stamp.type === 'client_stamp' && stamp.stampId === savedStampId
+      );
+      
+      if (!existingStamp) {
+        // 도장 데이터를 페이지 중앙에 미리 배치
+        const canvas = document.getElementById('pdfCanvas');
+        const centerX = canvas ? canvas.width / 2 : 400;
+        const centerY = canvas ? canvas.height / 2 : 300;
+        
+        stampDataPerPage[currentPage].push({
+          type: 'client_stamp',
+          stampId: savedStampId,
+          imageData: savedStampImage,
+          x: centerX - 50, // 중앙에서 약간 왼쪽
+          y: centerY - 25, // 중앙에서 약간 위쪽
+          width: 100,
+          height: 50,
+          timestamp: Date.now()
+        });
+        
+        console.log('고객 도장 데이터 복원 완료');
+        
+        // 화면에 표시
+        if (typeof restoreStampData === 'function') {
+          restoreStampData();
+        }
+      }
+    } else {
+      console.log('복원할 고객 도장 데이터가 없습니다.');
+    }
+  } catch (error) {
+    console.error('고객 도장 데이터 복원 오류:', error);
+  }
+}
+
+/**
+ * 고객의 서명 데이터 복원
+ */
+function restoreClientSignatureData() {
+  try {
+    const savedSignatureImage = sessionStorage.getItem("signatureImage");
+    
+    if (savedSignatureImage) {
+      console.log('고객 서명 데이터 복원 시작');
+      
+      // 현재 페이지에 서명 데이터 설정
+      if (!signatureDataPerPage[currentPage]) {
+        signatureDataPerPage[currentPage] = [];
+      }
+      
+      // 기존에 복원된 서명이 있는지 확인
+      const existingSignature = signatureDataPerPage[currentPage].find(sig => 
+        sig.type === 'client_signature'
+      );
+      
+      if (!existingSignature) {
+        // 서명 데이터를 페이지 하단에 미리 배치
+        const canvas = document.getElementById('pdfCanvas');
+        const bottomX = canvas ? canvas.width - 200 : 600;
+        const bottomY = canvas ? canvas.height - 100 : 500;
+        
+        signatureDataPerPage[currentPage].push({
+          type: 'client_signature',
+          imageData: savedSignatureImage,
+          x: bottomX,
+          y: bottomY,
+          width: 150,
+          height: 75,
+          timestamp: Date.now()
+        });
+        
+        console.log('고객 서명 데이터 복원 완료');
+        
+        // 화면에 표시
+        if (typeof restoreSignatureData === 'function') {
+          restoreSignatureData();
+        }
+      }
+    } else {
+      console.log('복원할 고객 서명 데이터가 없습니다.');
+    }
+  } catch (error) {
+    console.error('고객 서명 데이터 복원 오류:', error);
+  }
+}
+
+/**
+ * 서명 모드 설정 (고객용)
+ */
+function setSignatureMode() {
+  console.log('서명 모드 설정');
+  
+  // 기존 모드 해제
+  clearMode();
+  
+  // 서명 모드 설정
+  mode = 'signature';
+  document.getElementById('currentMode').textContent = '서명';
+  
+  // 서명 버튼 활성화 표시
+  const stampBtn = document.getElementById('stampBtn');
+  if (stampBtn) {
+    stampBtn.classList.add('active');
+  }
+  
+  // 커서 스타일 변경
+  const drawingCanvas = document.getElementById('drawingCanvas');
+  if (drawingCanvas) {
+    drawingCanvas.style.cursor = 'crosshair';
+  }
+}
 
 /**
  * 모달 스타일 추가

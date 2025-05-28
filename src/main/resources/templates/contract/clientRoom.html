@@ -376,7 +376,7 @@
   <div id="toastContainer"></div>
   
   <!-- 전역 변수 선언 -->
-  <script>
+  <script th:inline="javascript">
     let drawingDataPerPage = {};
     let stampDataPerPage = {};
     let textDataPerPage = {};
@@ -395,6 +395,20 @@
     let customStampImage = null; // 사용자 정의 도장 이미지
     let signatureCanvas = null; // 서명 캔버스
     let signatureContext = null; // 서명 캔버스 컨텍스트
+    
+    // 서버에서 전달받은 entryType 정보
+    const serverEntryType = /*[[${entryType}]]*/ null;
+    const serverStampImage = /*[[${stampImage}]]*/ null;
+    const serverSignatureImage = /*[[${signatureImage}]]*/ null;
+    
+    console.log('서버에서 전달받은 entryType:', serverEntryType);
+    console.log('서버에서 전달받은 stampImage:', serverStampImage ? serverStampImage.substring(0, 50) + '...' : 'null');
+    console.log('서버에서 전달받은 signatureImage:', serverSignatureImage ? serverSignatureImage.substring(0, 50) + '...' : 'null');
+    
+    // main.js에서 접근할 수 있도록 전역 변수로 설정
+    window.serverEntryType = serverEntryType;
+    window.serverStampImage = serverStampImage;
+    window.serverSignatureImage = serverSignatureImage;
     
     // 이미지 데이터 크기 최적화 함수
     function optimizeImageData(imageData, maxWidth = 400, maxHeight = 300, quality = 0.7) {
@@ -470,28 +484,88 @@
     
     // 입장 방식에 따른 UI 설정
     function setupUIByEntryType() {
-      const entryType = sessionStorage.getItem('entryType');
+      // 서버에서 전달받은 entryType을 우선 사용, 없으면 sessionStorage에서 가져오기
+      const entryType = serverEntryType || sessionStorage.getItem('entryType');
       const stampBtn = document.getElementById('stampBtn');
       const signatureBtn = document.getElementById('signatureBtn');
       
-      console.log('입장 방식:', entryType);
+      console.log('=== setupUIByEntryType 시작 ===');
+      console.log('입장 방식 확인:', entryType);
+      console.log('서버 entryType:', serverEntryType);
+      console.log('세션 entryType:', sessionStorage.getItem('entryType'));
+      console.log('도장 버튼 요소:', stampBtn);
+      console.log('서명 버튼 요소:', signatureBtn);
       
       if (entryType === 'stamp') {
         // 도장으로 입장한 경우 - 도장 버튼만 표시
-        stampBtn.style.display = 'inline-block';
-        signatureBtn.style.display = 'none';
-        console.log('도장 모드로 설정됨');
+        if (stampBtn) {
+          stampBtn.style.display = 'inline-block';
+          console.log('도장 모드로 설정됨 - 도장 버튼만 표시');
+        }
+        if (signatureBtn) {
+          signatureBtn.style.display = 'none';
+        }
+        
+        // 서버에서 전달받은 도장 이미지를 우선 사용, 없으면 세션에서 가져오기
+        const entryStampImage = serverStampImage || sessionStorage.getItem('stampImage');
+        console.log('사용할 도장 이미지 소스:', serverStampImage ? 'server' : 'sessionStorage');
+        console.log('도장 이미지 데이터:', entryStampImage ? entryStampImage.substring(0, 50) + '...' : 'null');
+        
+        if (entryStampImage) {
+          customStampImage = new Image();
+          customStampImage.onload = function() {
+            console.log('✅ 입장 시 사용한 도장 이미지 로드 완료');
+            console.log('customStampImage 설정됨:', !!customStampImage);
+          };
+          customStampImage.onerror = function() {
+            console.error('❌ 도장 이미지 로드 실패');
+          };
+          customStampImage.src = entryStampImage;
+        } else {
+          console.warn('⚠️  도장 이미지가 없습니다');
+        }
+        
       } else if (entryType === 'signature') {
         // 서명으로 입장한 경우 - 서명 버튼만 표시
-        stampBtn.style.display = 'none';
-        signatureBtn.style.display = 'inline-block';
-        console.log('서명 모드로 설정됨');
+        if (stampBtn) {
+          stampBtn.style.display = 'none';
+        }
+        if (signatureBtn) {
+          signatureBtn.style.display = 'inline-block';
+          console.log('서명 모드로 설정됨 - 서명 버튼만 표시');
+        }
+        
+        // 서버에서 전달받은 서명 이미지를 우선 사용, 없으면 세션에서 가져오기
+        const entrySignatureImage = serverSignatureImage || sessionStorage.getItem('signatureImage');
+        console.log('사용할 서명 이미지 소스:', serverSignatureImage ? 'server' : 'sessionStorage');
+        console.log('서명 이미지 데이터:', entrySignatureImage ? entrySignatureImage.substring(0, 50) + '...' : 'null');
+        
+        if (entrySignatureImage) {
+          customStampImage = new Image();
+          customStampImage.onload = function() {
+            console.log('✅ 입장 시 사용한 서명 이미지 로드 완료');
+            console.log('customStampImage 설정됨:', !!customStampImage);
+          };
+          customStampImage.onerror = function() {
+            console.error('❌ 서명 이미지 로드 실패');
+          };
+          customStampImage.src = entrySignatureImage;
+        } else {
+          console.warn('⚠️  서명 이미지가 없습니다');
+        }
+        
       } else {
-        // 기본값 또는 다른 방식으로 입장한 경우 - 둘 다 표시
-        stampBtn.style.display = 'inline-block';
-        signatureBtn.style.display = 'inline-block';
-        console.log('기본 모드로 설정됨 (둘 다 표시)');
+        // entryType이 없는 경우 - 도장/서명 버튼 모두 숨김 (기존 사용자)
+        if (stampBtn) {
+          stampBtn.style.display = 'none';
+        }
+        if (signatureBtn) {
+          signatureBtn.style.display = 'none';
+        }
+        console.log('기본 모드로 설정됨 - 도장/서명 버튼 모두 숨김');
       }
+      
+      console.log('=== setupUIByEntryType 완료 ===');
     }
     
     // 서명 캔버스 초기화
@@ -629,84 +703,28 @@
       
       // localStorage에서 선택된 도장 확인
       checkSelectedStampFromStorage();
-      
-      // 입장 시 사용한 도장이 있으면 자동으로 로드
-      loadEntryStampImage();
-    }
-    
-    // 입장 시 사용한 도장 이미지 로드
-    function loadEntryStampImage() {
-      const entryType = sessionStorage.getItem('entryType');
-      const stampImage = sessionStorage.getItem('stampImage');
-      
-      if (entryType === 'stamp' && stampImage) {
-        customStampImage = new Image();
-        customStampImage.src = stampImage;
-        
-        customStampImage.onload = function() {
-          const previewDiv = document.getElementById('stampPreview');
-          previewDiv.innerHTML = '';
-          
-          const img = document.createElement('img');
-          img.src = stampImage;
-          previewDiv.appendChild(img);
-          
-          console.log('입장 시 사용한 도장 이미지가 로드되었습니다.');
-        };
-      }
-    }
-    
-    // 도장 버튼 클릭 시 입장 방식에 따른 처리
-    function handleStampButtonClick() {
-      const entryType = sessionStorage.getItem('entryType');
-      const stampImage = sessionStorage.getItem('stampImage');
-      
-      if (entryType === 'stamp' && stampImage) {
-        // 입장 시 사용한 도장이 있으면 바로 배치 모드로 전환
-        customStampImage = new Image();
-        customStampImage.src = stampImage;
-        
-        customStampImage.onload = function() {
-          mode = 'stamp';
-          document.getElementById('currentMode').textContent = '도장 위치 선택';
-          updateToolbarButtons('stampBtn');
-          showToast("위치 선택", "도장을 추가할 위치를 클릭하세요.", "info");
-        };
-      } else {
-        // 일반적인 도장 팝업 열기
-        openStampPopup();
-      }
-    }
-    
-    // 도장 팝업 닫기
-    function closeStampPopup() {
-      document.getElementById('stampPopup').style.display = 'none';
-      setCursor();
-    }
-    
-    // 도장 탭 전환
-    function switchStampTab(tabName) {
-      // 모든 탭 비활성화
-      document.querySelectorAll('.stamp-tab').forEach(tab => {
-        tab.classList.remove('active');
-      });
-      document.querySelectorAll('.stamp-tab-content').forEach(content => {
-        content.classList.remove('active');
-      });
-      
-      // 선택된 탭 활성화
-      event.target.classList.add('active');
-      document.getElementById(tabName + 'Tab').classList.add('active');
-      
-      // 탭별 초기화
-      if (tabName === 'uploaded') {
-        loadUploadedStamps();
-      }
     }
     
     // 업로드된 도장 목록 로드
     function loadUploadedStamps() {
       const stampsList = document.getElementById('uploadedStampsList');
+      const entryType = serverEntryType || sessionStorage.getItem('entryType');
+      
+      // 이미 입장 시 사용한 도장이 있으면 그것을 표시
+      if (entryType === 'stamp' && customStampImage) {
+        stampsList.innerHTML = `
+          <div class="uploaded-stamp-item selected">
+            <img src="${customStampImage.src}" class="uploaded-stamp-image" alt="내 도장">
+            <div class="uploaded-stamp-info">
+              <div>입장 시 사용한 도장</div>
+              <div class="uploaded-stamp-date">현재 세션</div>
+            </div>
+          </div>
+        `;
+        console.log('입장 시 사용한 도장으로 목록 표시');
+        return;
+      }
+      
       stampsList.innerHTML = '<p class="loading-text">도장 목록을 불러오는 중...</p>';
       
       // 현재 로그인한 사용자의 도장 목록 조회
@@ -754,8 +772,8 @@
             stampsList.innerHTML = `
               <div class="text-center" style="padding: 20px; color: #dc3545;">
                 <i class="fas fa-exclamation-triangle" style="font-size: 2em; margin-bottom: 10px;"></i>
-                <p>로그인이 필요합니다.</p>
-                <a href="/login" class="clear-btn">로그인</a>
+                <p>도장 기능을 사용하려면 로그인이 필요합니다.</p>
+                <p style="font-size: 0.9em;">현재 세션의 도장을 계속 사용할 수 있습니다.</p>
               </div>
             `;
           } else {
@@ -768,6 +786,32 @@
             `;
           }
         });
+    }
+    
+    // 도장 팝업 닫기
+    function closeStampPopup() {
+      document.getElementById('stampPopup').style.display = 'none';
+      setCursor();
+    }
+    
+    // 도장 탭 전환
+    function switchStampTab(tabName) {
+      // 모든 탭 비활성화
+      document.querySelectorAll('.stamp-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelectorAll('.stamp-tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      
+      // 선택된 탭 활성화
+      event.target.classList.add('active');
+      document.getElementById(tabName + 'Tab').classList.add('active');
+      
+      // 탭별 초기화
+      if (tabName === 'uploaded') {
+        loadUploadedStamps();
+      }
     }
     
     // 업로드된 도장 선택
@@ -837,59 +881,6 @@
       mode = 'signature';
       document.getElementById('currentMode').textContent = '서명';
       updateToolbarButtons('signatureBtn');
-      
-      // 입장 시 사용한 서명이 있으면 자동으로 로드
-      loadEntrySignatureImage();
-    }
-    
-    // 입장 시 사용한 서명 이미지 로드
-    function loadEntrySignatureImage() {
-      const entryType = sessionStorage.getItem('entryType');
-      const signatureImage = sessionStorage.getItem('signatureImage');
-      
-      if (entryType === 'signature' && signatureImage) {
-        // 서명 이미지를 customStampImage에 저장 (서명 배치 시 사용)
-        customStampImage = new Image();
-        customStampImage.src = signatureImage;
-        
-        customStampImage.onload = function() {
-          console.log('입장 시 사용한 서명 이미지가 로드되었습니다.');
-          
-          // 서명 팝업을 닫고 바로 서명 배치 모드로 전환
-          closeSignaturePopup();
-          mode = 'signature';
-          document.getElementById('currentMode').textContent = '서명 위치 선택';
-          showToast("위치 선택", "서명을 추가할 위치를 클릭하세요.", "info");
-        };
-      }
-    }
-    
-    // 서명 버튼 클릭 시 입장 방식에 따른 처리
-    function handleSignatureButtonClick() {
-      const entryType = sessionStorage.getItem('entryType');
-      const signatureImage = sessionStorage.getItem('signatureImage');
-      
-      if (entryType === 'signature' && signatureImage) {
-        // 입장 시 사용한 서명이 있으면 바로 배치 모드로 전환
-        customStampImage = new Image();
-        customStampImage.src = signatureImage;
-        
-        customStampImage.onload = function() {
-          mode = 'signature';
-          document.getElementById('currentMode').textContent = '서명 위치 선택';
-          updateToolbarButtons('signatureBtn');
-          showToast("위치 선택", "서명을 추가할 위치를 클릭하세요.", "info");
-        };
-      } else {
-        // 일반적인 서명 팝업 열기
-        openSignaturePopup();
-      }
-    }
-    
-    // 서명 팝업 닫기
-    function closeSignaturePopup() {
-      document.getElementById('signaturePopup').style.display = 'none';
-      setCursor();
     }
     
     // 서명 지우기
@@ -931,6 +922,12 @@
       
       // 사용자에게 안내 메시지 표시
       showToast("위치 선택", "서명을 추가할 위치를 클릭하세요.", "info");
+    }
+    
+    // 서명 팝업 닫기
+    function closeSignaturePopup() {
+      document.getElementById('signaturePopup').style.display = 'none';
+      setCursor();
     }
     
     // 기존 setStampMode 함수 대체
@@ -1081,6 +1078,54 @@
       
       // 세션 데이터 저장
       saveSessionData();
+    }
+    
+    // 도장 버튼 클릭 시 입장 방식에 따른 처리
+    function handleStampButtonClick() {
+      const entryType = serverEntryType || sessionStorage.getItem('entryType');
+      
+      console.log('=== 도장 버튼 클릭 ===');
+      console.log('entryType:', entryType);
+      console.log('customStampImage 존재 여부:', !!customStampImage);
+      console.log('customStampImage src:', customStampImage ? customStampImage.src.substring(0, 50) + '...' : 'null');
+      
+      // 이미 로드된 도장 이미지가 있으면 바로 배치 모드로 전환
+      if (customStampImage && entryType === 'stamp') {
+        console.log('✅ 기존 도장으로 바로 배치 모드 진입');
+        mode = 'stamp';
+        document.getElementById('currentMode').textContent = '도장 위치 선택';
+        updateToolbarButtons('stampBtn');
+        showToast("위치 선택", "도장을 추가할 위치를 클릭하세요.", "info");
+        return;
+      }
+      
+      console.log('⚠️  도장 팝업을 열어야 함 - customStampImage:', !!customStampImage, ', entryType:', entryType);
+      // 도장이 없으면 일반적인 도장 팝업 열기
+      openStampPopup();
+    }
+    
+    // 서명 버튼 클릭 시 입장 방식에 따른 처리
+    function handleSignatureButtonClick() {
+      const entryType = serverEntryType || sessionStorage.getItem('entryType');
+      
+      console.log('=== 서명 버튼 클릭 ===');
+      console.log('entryType:', entryType);
+      console.log('customStampImage 존재 여부:', !!customStampImage);
+      console.log('customStampImage src:', customStampImage ? customStampImage.src.substring(0, 50) + '...' : 'null');
+      
+      // 이미 로드된 서명 이미지가 있으면 바로 배치 모드로 전환
+      if (customStampImage && entryType === 'signature') {
+        console.log('✅ 기존 서명으로 바로 배치 모드 진입');
+        mode = 'signature';
+        document.getElementById('currentMode').textContent = '서명 위치 선택';
+        updateToolbarButtons('signatureBtn');
+        showToast("위치 선택", "서명을 추가할 위치를 클릭하세요.", "info");
+        return;
+      }
+      
+      console.log('⚠️  서명 팝업을 열어야 함 - customStampImage:', !!customStampImage, ', entryType:', entryType);
+      // 서명이 없으면 일반적인 서명 팝업 열기
+      openSignaturePopup();
     }
   </script>
 </body>

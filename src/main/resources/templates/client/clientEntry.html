@@ -429,7 +429,7 @@
         // 선택한 도장으로 입장
         function enterWithSelectedStamp() {
             if (!selectedStampId || !selectedStampImage) {
-                alert('도장을 선택해주세요.');
+                showError('도장을 선택해주세요.');
                 return;
             }
             
@@ -466,8 +466,8 @@
                     sessionStorage.setItem("entryType", "stamp");
                     sessionStorage.setItem("selectedStampId", selectedStampId);
                     
-                    // 대기실로 이동
-                    location.href = "/waiting-room";
+                    // 대기실로 이동 시 입장 방식 파라미터 추가
+                    location.href = "/waiting-room?entryType=stamp";
                 }
             };
             img.src = selectedStampImage;
@@ -479,7 +479,7 @@
             
             // 버튼이 비활성화된 경우 업로드 모드를 열지 않음
             if (uploadToggleBtn.disabled) {
-                alert('이미 등록된 도장이 있습니다. 새 도장을 업로드하려면 먼저 기존 도장을 삭제해주세요.');
+                showError('이미 등록된 도장이 있습니다. 새 도장을 업로드하려면 먼저 기존 도장을 삭제해주세요.');
                 return;
             }
             
@@ -496,18 +496,18 @@
             const fileInput = document.getElementById("stampUpload");
             const file = fileInput.files[0];
             if (!file) {
-                alert("도장 이미지를 선택하세요.");
+                showError("도장 이미지를 선택하세요.");
                 return;
             }
 
             // 파일 유효성 검사
             if (file.size <= 0) {
-                alert("올바른 도장 이미지 파일을 선택하세요.");
+                showError("올바른 도장 이미지 파일을 선택하세요.");
                 return;
             }
 
             if (!file.type.startsWith('image/')) {
-                alert("이미지 파일만 업로드 가능합니다.");
+                showError("이미지 파일만 업로드 가능합니다.");
                 return;
             }
 
@@ -528,7 +528,7 @@
             })
             .then(response => {
                 if (response.ok) {
-                    alert('도장이 성공적으로 업로드되었습니다.');
+                    showSuccess('도장이 성공적으로 업로드되었습니다.');
                     // 업로드 모드 숨기기
                     document.getElementById('uploadMode').style.display = 'none';
                     // 파일 입력 초기화
@@ -538,15 +538,15 @@
                 } else if (response.status === 400) {
                     // 기존 도장이 있어서 업로드가 거부된 경우
                     return response.text().then(errorMessage => {
-                        alert('업로드 실패: 이미 등록된 도장이 있습니다. 새 도장을 업로드하려면 먼저 기존 도장을 삭제해주세요.');
+                        showError('업로드 실패: 이미 등록된 도장이 있습니다. 새 도장을 업로드하려면 먼저 기존 도장을 삭제해주세요.');
                     });
                 } else {
-                    alert('도장 업로드에 실패했습니다.');
+                    showError('도장 업로드에 실패했습니다.');
                 }
             })
             .catch(error => {
                 console.error('업로드 오류:', error);
-                alert('도장 업로드 중 오류가 발생했습니다.');
+                showError('도장 업로드 중 오류가 발생했습니다.');
             });
         }
         
@@ -630,7 +630,7 @@
 
         function enterWithSignature() {
             if (!hasSignature) {
-                return alert("서명을 작성해주세요. 서명 없이는 입장할 수 없습니다.");
+                return showError("서명을 작성해주세요. 서명 없이는 입장할 수 없습니다.");
             }
             
             // 디버깅 로그 추가
@@ -653,7 +653,7 @@
             }
             
             if (!hasDrawnPixels) {
-                return alert("서명이 너무 작거나 없습니다. 다시 작성해주세요.");
+                return showError("서명이 너무 작거나 없습니다. 다시 작성해주세요.");
             }
             
             // 새 캔버스에 서명 복사하여 최적화
@@ -681,8 +681,8 @@
                 sessionStorage.setItem("signatureImage", signatureImage);
                 sessionStorage.setItem("entryType", "signature");
                 
-                // 대기실로 이동
-                location.href = "/waiting-room";
+                // 대기실로 이동 시 입장 방식 파라미터 추가
+                location.href = "/waiting-room?entryType=signature";
             }
         }
         
@@ -730,12 +730,12 @@
                     console.log('입장 완료 요청 성공');
                 } else {
                     console.error('응답 오류:', response.status, response.statusText);
-                    alert('입장 처리 중 오류가 발생했습니다.');
+                    showError('입장 처리 중 오류가 발생했습니다.');
                 }
             })
             .catch(error => {
                 console.error('입장 요청 오류:', error);
-                alert('입장 처리 중 오류가 발생했습니다.');
+                showError('입장 처리 중 오류가 발생했습니다.');
             });
         }
         
