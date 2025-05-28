@@ -27,12 +27,21 @@ document.addEventListener('DOMContentLoaded', function() {
 // 새로 추가하는 전역 변수
 let currentContractId = null;
 
+// 전역 변수로 beforeunload 핸들러 관리
+let preventRefreshHandler = null;
+let isConsultationEnding = false; // 상담종료 진행 중 플래그
+
 // 페이지 로드 시 사용자 역할 확인 및 UI 초기화
 window.onload = function() {
   console.log("=== 윈도우 로드됨 - 초기화 시작 ===");
 
   // 새로고침 방지 이벤트 리스너 추가 - 최상위 우선순위로 설정
-  const preventRefreshHandler = function(e) {
+  preventRefreshHandler = function(e) {
+    // 상담종료 진행 중이면 이벤트를 무시
+    if (isConsultationEnding) {
+      return;
+    }
+    
     // 브라우저마다 표시되는 메시지가 다를 수 있음
     var confirmationMessage = '상담이 진행 중입니다. 페이지를 떠나면 상담이 종료됩니다. 정말 나가시겠습니까?';
 
@@ -78,7 +87,7 @@ window.onload = function() {
       window.history.replaceState({}, '', newUrl);
   } else {
     console.error("역할 정보를 찾을 수 없습니다.");
-    alert("역할 정보가 필요합니다. 올바른 URL로 접속해주세요.");
+    showError("역할 정보가 필요합니다. 올바른 URL로 접속해주세요.");
     location.href = "/";
     return;
     }
@@ -775,10 +784,15 @@ function closeEndConsultationModal() {
  * 상담 종료 실행
  */
 async function endConsultation() {
+    // 상담종료 진행 중 플래그 설정 (beforeunload 이벤트 비활성화)
+    isConsultationEnding = true;
+    
     const memo = document.getElementById('consultationMemo').value.trim();
     
     if (!memo) {
-        alert('상담 메모를 입력해주세요.');
+        // 메모가 없으면 플래그 해제하고 종료
+        isConsultationEnding = false;
+        showError('상담 메모를 입력해주세요.');
         return;
     }
     
@@ -852,7 +866,7 @@ async function endConsultation() {
                 showToast("PDF 발송 실패", errorMessage + " 상담은 정상적으로 종료됩니다.", "warning");
             } else {
                 console.warn('PDF 생성/발송 실패: ' + errorMessage + ' 상담은 정상적으로 종료됩니다.');
-                alert('PDF 발송 실패: ' + errorMessage + ' 상담은 정상적으로 종료됩니다.');
+                showWarning('PDF 발송 실패: ' + errorMessage + ' 상담은 정상적으로 종료됩니다.');
             }
         }
         
@@ -925,15 +939,16 @@ async function endConsultation() {
             // 상담 종료 완료
             console.log('상담 종료 완료');
             
-            // 상담원인 경우 대시보드로, 고객인 경우 메인 페이지로 이동
-            setTimeout(() => {
+            // 상담종료 성공 메시지 표시 후 페이지 이동
+            showSuccess('상담이 종료되었습니다. 메인 페이지로 이동합니다.').then(() => {
                 const redirectUrl = userRole === 'agent' ? '/agent/dashboard' : '/';
                 console.log(`상담 종료 후 페이지 이동: ${redirectUrl}`);
                 window.location.href = redirectUrl;
-            }, 1000);
+            });
         } else {
             console.error('상담 종료 실패:', result.message);
-            alert('상담 종료에 실패했습니다: ' + result.message);
+            isConsultationEnding = false; // 실패 시 플래그 해제
+            showError('상담 종료에 실패했습니다: ' + result.message);
             
             // 실패 시 버튼 복원
             const confirmButton = document.querySelector('#endConsultationModal .btn-confirm');
@@ -944,7 +959,8 @@ async function endConsultation() {
         }
     } catch (error) {
         console.error('상담 종료 오류:', error);
-        alert('상담 종료 중 오류가 발생했습니다: ' + error.message);
+        isConsultationEnding = false; // 오류 시 플래그 해제
+        showError('상담 종료 중 오류가 발생했습니다: ' + error.message);
         
         // 오류 발생 시 버튼 복원
         const confirmButton = document.querySelector('#endConsultationModal .btn-confirm');

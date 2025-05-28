@@ -1264,7 +1264,7 @@ async function savePdfWithStampAndSignature(forEmail = false) {
 
     // 로딩 메시지 표시
     if (!forEmail) {
-      alert("PDF 저장 중입니다. 잠시만 기다려주세요...");
+      showLoading("PDF 저장 중입니다. 잠시만 기다려주세요...");
     } else {
       showToast("PDF 생성 중", "PDF 문서를 생성하고 있습니다...", "info");
     }
@@ -1412,7 +1412,7 @@ async function savePdfWithStampAndSignature(forEmail = false) {
   } catch (error) {
     console.error("PDF 저장 오류:", error);
     if (!forEmail) {
-      alert("PDF 저장 중 오류가 발생했습니다: " + error.message);
+      showError("PDF 저장 중 오류가 발생했습니다: " + error.message);
     } else {
       showToast("PDF 생성 실패", "PDF 저장 중 오류가 발생했습니다: " + error.message, "error");
     }
