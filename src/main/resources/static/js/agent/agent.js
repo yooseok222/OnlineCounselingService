@@ -4,6 +4,23 @@ function getCsrf() {
   return { header, token };
 }
 
+// 상태 변경용 유틸 함수
+function updateContractStatus(contractId, newStatus) {
+  const { header, token } = getCsrf();
+  return fetch(`/agent/schedule/status/${contractId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      [header]: token
+    },
+    body: JSON.stringify({ status: newStatus })
+  })
+  .then(res => {
+    if (!res.ok) throw new Error(`상태 변경 실패: ${res.status}`);
+    return;
+  });
+}
+
 let currentPage = 1;
 let currentStatus = 'PENDING';
 let currentSortOrder = 'DESC';
@@ -425,16 +442,31 @@ document.addEventListener('DOMContentLoaded', function() {
                 ul.appendChild(li);
               });
                document.querySelectorAll('.start-webrtc-btn').forEach(btn => {
-                  btn.addEventListener('click', () => {
+                  btn.addEventListener('click', async () => {
+                    const contractId = btn.dataset.contractId;
                     const dateStr = btn.dataset.date;
                     const timeStr = btn.dataset.time;
 
-                    if (!canEnterCall(dateStr, timeStr)) {
-                      return;
-                    }
+                    // 1) 시간/날짜 체크
+                    if (!canEnterCall(dateStr, timeStr)) return;
 
-                    const contractId = btn.dataset.contractId;
-                    window.location.href = `/contract/room?contractId=${contractId}&role=agent`;
+                    try {
+                      // 2) PENDING → IN_PROGRESS 로 상태 변경
+                      await updateContractStatus(contractId, 'IN_PROGRESS');
+
+                      // 3) 계약별로 고유한 세션 ID 생성
+                      const uniqueSessionId = `session_${contractId}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+                      
+                      // 4) 기존 세션 정보 초기화
+                      sessionStorage.removeItem('sessionId');
+                      sessionStorage.removeItem('role');
+                      
+                      // 5) 상태 변경 후 방으로 이동
+                      window.location.href = `/contract/room?contractId=${contractId}&role=agent&session=${uniqueSessionId}`;
+                    } catch (err) {
+                      console.error('상태 변경 오류', err);
+                      alert('통화 상태 변경에 실패했습니다. 다시 시도해주세요.');
+                    }
                   });
                 });
 

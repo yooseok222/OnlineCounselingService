@@ -628,4 +628,24 @@ public class ContractService {
             return null;
         }
     }
+
+    /**
+     * 통화시작 계약상태 업데이트
+     * @param contractId 계약 ID
+     * @param status 변경할 상태
+     */
+    @Transactional
+    public void updateCallContractStatus(Long contractId, String status) {
+        System.out.println("=== 계약 상태 변경 ===");
+        System.out.println("계약 ID: " + contractId + ", 새 상태: " + status);
+        
+        int updated = contractMapper.updateStatus(contractId, status);
+        
+        if (updated == 0) {
+            System.err.println("계약 상태 변경 실패 - 업데이트된 행이 없음");
+            throw new RuntimeException("계약 상태 변경에 실패했습니다. contractId: " + contractId);
+        } else {
+            System.out.println("계약 상태 변경 성공");
+        }
+    }
 }

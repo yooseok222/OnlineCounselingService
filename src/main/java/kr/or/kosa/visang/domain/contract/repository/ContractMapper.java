@@ -127,4 +127,8 @@ public interface ContractMapper {
             @Param("clientId") Long clientId
     );
 
+    // 통화시작 계약상태 업데이트
+    int updateStatus(@Param("contractId") Long contractId,
+                     @Param("status")     String status);
+
 }
