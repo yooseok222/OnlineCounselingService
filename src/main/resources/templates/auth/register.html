@@ -627,6 +627,7 @@
                             nextField.focus();
                         }
                     }
+                    updateStep2ButtonState(); // 버튼 상태 업데이트
                 },
                 error: function() {
                     emailInput.classList.add('is-invalid');
@@ -686,6 +687,7 @@
                             nextField.focus();
                         }
                     }
+                    updateStep2ButtonState(); // 버튼 상태 업데이트
                 },
                 error: function() {
                     phoneInput.classList.add('is-invalid');
@@ -740,6 +742,7 @@
                         setFeedback(feedbackElement, response.message || '사용 가능한 주민등록번호입니다.', 'success');
                         ssnVerified = true;
                     }
+                    updateStep2ButtonState(); // 버튼 상태 업데이트
                 },
                 error: function() {
                     ssnInput.classList.add('is-invalid');
@@ -794,6 +797,7 @@
                                 invitationInput.classList.add('is-valid');
                                 setFeedback(feedbackElement, `확인된 초대코드 (${response.companyName})`, 'success');
                                 invitationVerified = true;
+                                updateStep2ButtonState(); // 버튼 상태 업데이트
                             }
                         });
                     } else {
@@ -801,6 +805,7 @@
                         invitationInput.classList.remove('is-valid');
                         setFeedback(feedbackElement, response.errorMessage || '유효하지 않은 초대코드입니다.', 'error');
                         invitationVerified = false;
+                        updateStep2ButtonState(); // 버튼 상태 업데이트
                     }
                 },
                 error: function() {
@@ -847,9 +852,10 @@
                             setFeedback(feedbackElement, ERROR_MESSAGES.email, 'error');
                             isValid = false;
                         } else if (!emailVerified) {
+                            // 이메일 중복 확인 강제 - 모든 유형에서 필수
                             element.classList.add('is-invalid');
                             element.classList.remove('is-valid');
-                            setFeedback(feedbackElement, ERROR_MESSAGES.emailUnverified, 'warning');
+                            setFeedback(feedbackElement, '이메일 중복 확인을 완료해주세요.', 'warning');
                             isValid = false;
                         } else {
                             element.classList.remove('is-invalid');
@@ -883,7 +889,7 @@
                 }
             }
             
-            // 전화번호 검증 (선택 사항)
+            // 전화번호 검증 및 중복 확인 강제 (선택 사항이지만 입력했으면 중복 확인 필수)
             const phoneNumberElement = document.getElementById('phoneNumber');
             const phoneNumberFeedback = document.getElementById('phoneNumberFeedback');
             if (phoneNumberElement.value) {
@@ -892,20 +898,28 @@
                     phoneNumberElement.classList.remove('is-valid');
                     setFeedback(phoneNumberFeedback, ERROR_MESSAGES.phone, 'error');
                     isValid = false;
+                } else if (!phoneVerified) {
+                    // 전화번호를 입력했으면 중복 확인 필수
+                    phoneNumberElement.classList.add('is-invalid');
+                    phoneNumberElement.classList.remove('is-valid');
+                    setFeedback(phoneNumberFeedback, '전화번호 중복 확인을 완료해주세요.', 'warning');
+                    isValid = false;
                 } else {
                     phoneNumberElement.classList.remove('is-invalid');
                     phoneNumberElement.classList.add('is-valid');
-                    setFeedback(phoneNumberFeedback, '올바른 전화번호 형식입니다.', 'success');
+                    setFeedback(phoneNumberFeedback, '확인된 전화번호입니다.', 'success');
                 }
             } else {
+                // 전화번호를 입력하지 않았으면 검증 통과
                 phoneNumberElement.classList.remove('is-invalid');
                 phoneNumberElement.classList.remove('is-valid');
                 setFeedback(phoneNumberFeedback, '', '');
+                phoneVerified = true; // 빈 값일 때는 검증 통과로 처리
             }
             
             // 사용자 유형별 필수 필드 검증
             if (selectedUserType === 'USER') {
-                // 일반 사용자는 주민등록번호 필수
+                // 일반 사용자는 주민등록번호 필수이며 중복 확인도 필수
                 const ssnElement = document.getElementById('ssn');
                 const ssnFeedback = document.getElementById('ssnFeedback');
                 
@@ -919,10 +933,16 @@
                     ssnElement.classList.remove('is-valid');
                     setFeedback(ssnFeedback, ERROR_MESSAGES.ssn, 'error');
                     isValid = false;
+                } else if (!ssnVerified) {
+                    // 주민번호 중복 확인 강제 - 일반 사용자만
+                    ssnElement.classList.add('is-invalid');
+                    ssnElement.classList.remove('is-valid');
+                    setFeedback(ssnFeedback, '주민등록번호 중복 확인을 완료해주세요.', 'warning');
+                    isValid = false;
                 } else {
                     ssnElement.classList.remove('is-invalid');
                     ssnElement.classList.add('is-valid');
-                    setFeedback(ssnFeedback, '올바른 주민등록번호 형식입니다.', 'success');
+                    setFeedback(ssnFeedback, '확인된 주민등록번호입니다.', 'success');
                 }
             } else if (selectedUserType === 'ADMIN') {
                 // 관리자는 회사명 필수
@@ -957,7 +977,7 @@
                 } else if (!invitationVerified) {
                     invitationCodeElement.classList.add('is-invalid');
                     invitationCodeElement.classList.remove('is-valid');
-                    setFeedback(invitationFeedback, ERROR_MESSAGES.invitationCode, 'warning');
+                    setFeedback(invitationFeedback, '초대코드 확인을 완료해주세요.', 'warning');
                     isValid = false;
                 } else {
                     invitationCodeElement.classList.remove('is-invalid');
@@ -975,6 +995,17 @@
                         top: invalidField.offsetTop - 100,
                         behavior: 'smooth'
                     });
+                    
+                    // 중복 확인이 필요한 경우 추가 메시지 표시
+                    const feedbackText = invalidField.nextElementSibling?.textContent || '';
+                    if (feedbackText.includes('중복 확인을 완료해주세요')) {
+                        Swal.fire({
+                            title: '중복 확인 필요',
+                            text: '모든 필수 항목의 중복 확인을 완료한 후 다음 단계로 진행할 수 있습니다.',
+                            icon: 'warning',
+                            confirmButtonText: '확인'
+                        });
+                    }
                 }
             }
             
@@ -1064,8 +1095,65 @@
             }
         }
         
+        // 단계 2 버튼 상태 업데이트 함수
+        function updateStep2ButtonState() {
+            const step2NextBtn = document.getElementById('step2NextBtn');
+            const agreeTerms = document.getElementById('agreeTerms');
+            
+            // 기본 필수 필드들이 모두 입력되었는지 확인
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const passwordConfirm = document.getElementById('passwordConfirm').value;
+            
+            // 기본 조건: 필수 필드 입력 + 약관 동의
+            let canProceed = name && email && password && passwordConfirm && agreeTerms.checked;
+            
+            // 중복 확인 조건 체크
+            if (canProceed) {
+                // 이메일 중복 확인은 모든 유형에서 필수
+                if (!emailVerified) {
+                    canProceed = false;
+                }
+                
+                // 전화번호가 입력되었으면 중복 확인 필수
+                const phoneNumber = document.getElementById('phoneNumber').value;
+                if (phoneNumber && !phoneVerified) {
+                    canProceed = false;
+                }
+                
+                // 사용자 유형별 조건
+                if (selectedUserType === 'USER') {
+                    const ssn = document.getElementById('ssn').value;
+                    if (!ssn || !ssnVerified) {
+                        canProceed = false;
+                    }
+                } else if (selectedUserType === 'ADMIN') {
+                    const companyName = document.getElementById('companyName').value;
+                    if (!companyName || companyName.length < COMPANY_NAME_MIN_LENGTH) {
+                        canProceed = false;
+                    }
+                } else if (selectedUserType === 'AGENT') {
+                    const invitationCode = document.getElementById('invitationCode').value;
+                    if (!invitationCode || !invitationVerified) {
+                        canProceed = false;
+                    }
+                }
+                
+                // 비밀번호 검증
+                if (!PASSWORD_REGEX.test(password) || password !== passwordConfirm) {
+                    canProceed = false;
+                }
+            }
+            
+            step2NextBtn.disabled = !canProceed;
+        }
+        
         // 이벤트 리스너 등록
         document.addEventListener('DOMContentLoaded', function() {
+            // 초기 버튼 상태 설정
+            updateStep2ButtonState();
+            
             // 폼 내 Enter 키 기본 제출 방지 (중복 확인 단축키 제외)
             const registerForm = document.getElementById('registerForm');
             registerForm.addEventListener('keydown', function(e){
@@ -1101,7 +1189,14 @@
             const step2NextBtnEl = document.getElementById('step2NextBtn');
             agreeCheckbox.addEventListener('change', function(){
                 step2NextBtnEl.disabled = !this.checked;
+                updateStep2ButtonState(); // 버튼 상태 업데이트
             });
+            
+            // 필수 입력 필드들에 실시간 검증 추가
+            document.getElementById('name').addEventListener('input', updateStep2ButtonState);
+            document.getElementById('password').addEventListener('input', updateStep2ButtonState);
+            document.getElementById('passwordConfirm').addEventListener('input', updateStep2ButtonState);
+            document.getElementById('companyName').addEventListener('input', updateStep2ButtonState);
 
             // 단계 1 -> 단계 2
             document.getElementById('step1NextBtn').addEventListener('click', function() {
@@ -1276,7 +1371,10 @@
             // 이메일 필드 변경 시 중복 확인 상태 초기화
             document.getElementById('email').addEventListener('input', function() {
                 emailVerified = false;
+                this.classList.remove('is-valid');
+                this.classList.add('is-invalid');
                 setFeedback(document.getElementById('emailFeedback'), '이메일 중복 확인이 필요합니다.', 'warning');
+                updateStep2ButtonState();
             });
             
             // 전화번호 필드 변경 시 중복 확인 상태 초기화 및 하이픈 자동 추가
@@ -1284,12 +1382,17 @@
             phoneNumberInput.addEventListener('input', function() {
                 phoneVerified = false;
                 if (this.value) {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
                     setFeedback(document.getElementById('phoneNumberFeedback'), '전화번호 중복 확인이 필요합니다.', 'warning');
                     formatPhoneNumber(this);
                 } else {
+                    this.classList.remove('is-invalid');
+                    this.classList.remove('is-valid');
                     setFeedback(document.getElementById('phoneNumberFeedback'), '', '');
-                    phoneVerified = true;
+                    phoneVerified = true; // 빈 값일 때는 검증 통과
                 }
+                updateStep2ButtonState();
             });
             
             // 주민번호 필드 변경 시 중복 확인 상태 초기화 및 하이픈 자동 추가
@@ -1297,11 +1400,31 @@
             ssnInput.addEventListener('input', function() {
                 ssnVerified = false;
                 if (this.value) {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
                     setFeedback(document.getElementById('ssnFeedback'), '주민등록번호 중복 확인이 필요합니다.', 'warning');
                     formatSsn(this);
                 } else {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
                     setFeedback(document.getElementById('ssnFeedback'), '주민등록번호는 필수 입력 항목입니다.', 'error');
                 }
+                updateStep2ButtonState();
+            });
+            
+            // 초대코드 필드 변경 시 확인 상태 초기화
+            document.getElementById('invitationCode').addEventListener('input', function() {
+                invitationVerified = false;
+                if (this.value) {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
+                    setFeedback(document.getElementById('invitationFeedback'), '초대코드 확인이 필요합니다.', 'warning');
+                } else {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
+                    setFeedback(document.getElementById('invitationFeedback'), '초대코드는 필수 입력 항목입니다.', 'error');
+                }
+                updateStep2ButtonState();
             });
             
             // 폼 제출 이벤트 리스너 추가
