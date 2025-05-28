@@ -111,7 +111,7 @@ public class SecurityConfig {
 
             switch (userDetails.getRole()) {
                 case "USER":
-                    redirectUrl = "/user/dashboard";
+                    redirectUrl = "/client/dashboard";
                     break;
                 case "AGENT":
                     redirectUrl = "/agent/dashboard";
@@ -144,6 +144,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(authorize -> authorize
                 // 정적 리소스 접근 허용
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico").permitAll()
+                // 업로드된 이미지 파일 접근 허용
+                .requestMatchers("/stamp/image/**", "/client/profile/image/**").permitAll()
                 // H2 콘솔 접근 허용
                 .requestMatchers("/h2-console/**").permitAll()
                 // 공개 페이지 접근 허용
@@ -156,7 +158,11 @@ public class SecurityConfig {
                     .requestMatchers("/ws/**").permitAll()
                     // 계약 관련 페이지 접근 허용 (인증된 사용자만)
                     .requestMatchers("/contract/**").authenticated()
-                    // 사용자 페이지 접근 권한 설정
+                    // 도장 관련 페이지 접근 허용 (인증된 사용자만)
+                    .requestMatchers("/stamp/**").authenticated()
+                    // 클라이언트 페이지 접근 권한 설정
+                .requestMatchers("/client/**").hasRole("USER")
+                // 사용자 페이지 접근 권한 설정 (기존 호환성)
                 .requestMatchers("/user/**").hasRole("USER")
                 // 상담원 페이지 접근 권한 설정
                 .requestMatchers("/agent/**").hasRole("AGENT")
@@ -196,7 +202,7 @@ public class SecurityConfig {
             )
             .csrf(csrf -> csrf
                 // H2 콘솔 및 API는 CSRF 비활성화
-                .ignoringRequestMatchers("/h2-console/**", "/api/**")
+                .ignoringRequestMatchers("/h2-console/**", "/api/**", "/stamp/api/**", "/client/api/**")
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
             )
             // H2 콘솔 사용을 위한 설정

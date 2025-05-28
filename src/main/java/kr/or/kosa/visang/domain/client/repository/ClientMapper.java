@@ -68,4 +68,11 @@ public interface ClientMapper {
      * @return 영향받은 행 수
      */
     int updateProfileImageUrl(@Param("clientId") Long clientId, @Param("profileImageUrl") String profileImageUrl);
+
+    /**
+     * 고객 정보 업데이트
+     * @param client 고객 정보
+     * @return 영향받은 행 수
+     */
+    int update(Client client);
 }

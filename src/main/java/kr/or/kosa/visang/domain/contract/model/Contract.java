@@ -24,6 +24,8 @@ public class Contract {
     private String  memo; // 계약 메모
 
     private String clientName;
+    private String agentName; // 상담사 이름 (JOIN으로 조회)
+    private String invitationCode; // 초대 코드 (JOIN으로 조회)
 
 //    // 추가 필드
 //    private int totalCount; // 총 건수

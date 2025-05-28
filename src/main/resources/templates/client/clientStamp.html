@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="content">
+	<main class="dashboard-content">
+		<!-- 페이지 헤더 -->
+		<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+			<h1 class="h2">도장 관리</h1>
+		</div>
+		
+		<!-- 도장 등록 안내 -->
+		<div class="row mb-4">
+			<div class="col-12">
+				<div class="alert alert-info" role="alert">
+					<i class="bi bi-info-circle me-2"></i>
+					<strong>도장 등록 안내</strong>
+					<ul class="mb-0 mt-2">
+						<li>사용자당 하나의 도장만 등록할 수 있습니다.</li>
+						<li>등록된 도장은 계약서에 서명 대신 사용됩니다.</li>
+						<li>도장 이미지는 정사각형 형태로 업로드해주세요.</li>
+						<li>지원 형식: JPG, PNG (최대 5MB)</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+		
+		<!-- 도장 등록/관리 섹션 -->
+		<div class="row">
+			<div class="col-md-6 mx-auto">
+				<div class="card">
+					<div class="card-header">
+						<h5 class="card-title mb-0">나의 도장</h5>
+					</div>
+					<div class="card-body text-center">
+						<!-- 도장이 없는 경우 -->
+						<div th:if="${stamps.empty}" class="py-5">
+							<i class="bi bi-stamp fs-1 text-muted"></i>
+							<p class="mt-3 text-muted">등록된 도장이 없습니다.</p>
+							<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#stampUploadModal">
+								<i class="bi bi-plus-circle"></i> 도장 등록하기
+							</button>
+						</div>
+						
+						<!-- 도장이 있는 경우 -->
+						<div th:unless="${stamps.empty}" th:each="stamp : ${stamps}">
+							<div class="stamp-image-container mb-3">
+								<img th:src="@{${stamp.stampImageUrl}}" 
+									 alt="도장 이미지" 
+									 class="img-fluid"
+									 style="max-width: 200px; max-height: 200px; border: 2px solid #e9ecef; padding: 10px; background-color: #f8f9fa;">
+							</div>
+							
+							<div class="stamp-info mb-3">
+								<p class="mb-1"><strong>등록일:</strong> <span th:text="${#dates.format(stamp.createdAt, 'yyyy년 MM월 dd일')}">2024년 01월 01일</span></p>
+								<p class="mb-1" th:if="${stamp.lastUsedAt != null}">
+									<strong>마지막 사용일:</strong> <span th:text="${#dates.format(stamp.lastUsedAt, 'yyyy년 MM월 dd일 HH:mm')}">2024년 01월 15일 14:00</span>
+								</p>
+							</div>
+							
+							<div class="d-grid gap-2">
+								<button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#stampUploadModal">
+									<i class="bi bi-arrow-repeat"></i> 도장 변경
+								</button>
+								<button type="button" class="btn btn-outline-danger" id="deleteStampBtn" th:data-stamp-id="${stamp.stampId}">
+									<i class="bi bi-trash"></i> 도장 삭제
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<!-- 도장 사용 내역 -->
+		<div class="row mt-4" th:unless="${stamps.empty}">
+			<div class="col-12">
+				<div class="card">
+					<div class="card-header">
+						<h5 class="card-title mb-0">도장 사용 내역</h5>
+					</div>
+					<div class="card-body">
+						<div class="table-responsive">
+							<table class="table table-hover">
+								<thead>
+									<tr>
+										<th>사용일시</th>
+										<th>계약번호</th>
+										<th>계약서명</th>
+										<th>상담사</th>
+									</tr>
+								</thead>
+								<tbody>
+									<!-- 실제 사용 내역이 있다면 여기에 표시 -->
+									<tr>
+										<td colspan="4" class="text-center text-muted py-3">
+											도장 사용 내역이 없습니다.
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<!-- 도장 업로드 모달 -->
+		<div class="modal fade" id="stampUploadModal" tabindex="-1" aria-labelledby="stampUploadModalLabel" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="stampUploadModalLabel">도장 등록/변경</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body">
+						<form id="stampUploadForm">
+							<div class="mb-3">
+								<label for="stampFile" class="form-label">도장 이미지 파일</label>
+								<input type="file" class="form-control" id="stampFile" accept="image/*" required>
+								<div class="form-text">
+									정사각형 이미지를 권장합니다. (JPG, PNG 형식, 최대 5MB)
+								</div>
+							</div>
+							
+							<div id="stampPreview" class="text-center" style="display: none;">
+								<p class="text-muted mb-2">미리보기</p>
+								<div style="background-color: #f8f9fa; padding: 20px; border: 2px solid #e9ecef;">
+									<img src="" alt="도장 미리보기" class="img-fluid" style="max-width: 200px; max-height: 200px;">
+								</div>
+							</div>
+						</form>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+						<button type="button" class="btn btn-primary" id="uploadStampBtn">등록하기</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+</div>
+
+<div th:fragment="script">
+<script th:inline="javascript">
+$(document).ready(function() {
+	// 도장 이미지 미리보기
+	$('#stampFile').on('change', function(e) {
+		const file = e.target.files[0];
+		if (file) {
+			// 파일 크기 체크
+			if (file.size > 5 * 1024 * 1024) {
+				Swal.fire({
+					icon: 'error',
+					title: '파일 크기 초과',
+					text: '파일 크기는 5MB를 초과할 수 없습니다.',
+					confirmButtonColor: '#0057d7'
+				});
+				$(this).val('');
+				return;
+			}
+			
+			// 이미지 형식 체크
+			if (!file.type.startsWith('image/')) {
+				Swal.fire({
+					icon: 'error',
+					title: '파일 형식 오류',
+					text: '이미지 파일만 업로드 가능합니다.',
+					confirmButtonColor: '#0057d7'
+				});
+				$(this).val('');
+				return;
+			}
+			
+			const reader = new FileReader();
+			reader.onload = function(e) {
+				$('#stampPreview img').attr('src', e.target.result);
+				$('#stampPreview').show();
+			};
+			reader.readAsDataURL(file);
+		}
+	});
+	
+	// 도장 업로드
+	$('#uploadStampBtn').on('click', function() {
+		const fileInput = $('#stampFile')[0];
+		const file = fileInput.files[0];
+		
+		if (!file) {
+			Swal.fire({
+				icon: 'warning',
+				title: '파일 선택 필요',
+				text: '파일을 선택해주세요.',
+				confirmButtonColor: '#0057d7'
+			});
+			return;
+		}
+		
+		const formData = new FormData();
+		formData.append('file', file);
+		
+		// 로딩 표시
+		$(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>업로드 중...');
+		
+		$.ajax({
+			url: '/stamp/api/upload',
+			type: 'POST',
+			data: formData,
+			processData: false,
+			contentType: false,
+			headers: {
+				'X-CSRF-TOKEN': $('meta[name="_csrf"]').attr('content')
+			},
+			success: function(response) {
+				if (response.success || response) {
+					Swal.fire({
+						icon: 'success',
+						title: '도장 등록 완료',
+						text: '도장이 성공적으로 등록되었습니다.',
+						confirmButtonColor: '#0057d7'
+					}).then(() => {
+						location.reload();
+					});
+				} else {
+					Swal.fire({
+						icon: 'error',
+						title: '도장 등록 실패',
+						text: response.message || '도장 등록에 실패했습니다.',
+						confirmButtonColor: '#0057d7'
+					});
+				}
+			},
+			error: function(xhr) {
+				let errorMessage = '도장 등록 중 오류가 발생했습니다.';
+				if (xhr.responseJSON && xhr.responseJSON.message) {
+					errorMessage = xhr.responseJSON.message;
+				}
+				Swal.fire({
+					icon: 'error',
+					title: '오류 발생',
+					text: errorMessage,
+					confirmButtonColor: '#0057d7'
+				});
+			},
+			complete: function() {
+				$('#uploadStampBtn').prop('disabled', false).html('등록하기');
+			}
+		});
+	});
+	
+	// 도장 삭제
+	$('#deleteStampBtn').on('click', function() {
+		const stampId = $(this).data('stamp-id');
+		
+		Swal.fire({
+			title: '도장 삭제 확인',
+			text: '도장을 삭제하시겠습니까?\n삭제된 도장은 복구할 수 없습니다.',
+			icon: 'warning',
+			showCancelButton: true,
+			confirmButtonColor: '#dc3545',
+			cancelButtonColor: '#6c757d',
+			confirmButtonText: '삭제하기',
+			cancelButtonText: '취소',
+			customClass: {
+				confirmButton: 'btn btn-danger me-2',
+				cancelButton: 'btn btn-secondary'
+			},
+			buttonsStyling: false
+		}).then((result) => {
+			if (result.isConfirmed) {
+				$.ajax({
+					url: '/stamp/api/' + stampId,
+					type: 'DELETE',
+					headers: {
+						'X-CSRF-TOKEN': $('meta[name="_csrf"]').attr('content')
+					},
+					success: function(response) {
+						if (response.success || response) {
+							Swal.fire({
+								icon: 'success',
+								title: '도장 삭제 완료',
+								text: '도장이 삭제되었습니다.',
+								confirmButtonColor: '#0057d7'
+							}).then(() => {
+								location.reload();
+							});
+						} else {
+							Swal.fire({
+								icon: 'error',
+								title: '도장 삭제 실패',
+								text: response.message || '도장 삭제에 실패했습니다.',
+								confirmButtonColor: '#0057d7'
+							});
+						}
+					},
+					error: function() {
+						Swal.fire({
+							icon: 'error',
+							title: '오류 발생',
+							text: '도장 삭제 중 오류가 발생했습니다.',
+							confirmButtonColor: '#0057d7'
+						});
+					}
+				});
+			}
+		});
+	});
+	
+	// 모달 초기화
+	$('#stampUploadModal').on('hidden.bs.modal', function() {
+		$('#stampUploadForm')[0].reset();
+		$('#stampPreview').hide();
+	});
+});
+</script>
+</div>
+</html> 

@@ -87,4 +87,12 @@
         SET profile_image_url = #{profileImageUrl}
         WHERE client_id = #{clientId}
     </update>
+
+    <update id="update" parameterType="kr.or.kosa.visang.domain.client.model.Client">
+        UPDATE client
+        SET name = #{name},
+            phone_number = #{phoneNumber},
+            address = #{address}
+        WHERE client_id = #{clientId}
+    </update>
 </mapper>

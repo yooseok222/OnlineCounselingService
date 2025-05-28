@@ -1,8 +1,9 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
 <div th:fragment="sidebar">
 	<div class="col-md-3 col-lg-2 d-md-block sidebar collapse"
 		id="sidebarMenu">
 		<div class="position-sticky pt-3">
-
 
 			<!-- 계약 시작하기 버튼 -->
 			<div class="start-contract-btn-wrapper">
@@ -11,34 +12,41 @@
 			</div>
 
 			<!-- 메인 내비게이션 -->
-			<ul class="nav flex-column main-nav">
-				<!-- 계약관리 -->
-				<li class="nav-item"><a
-					class="nav-link d-flex justify-content-between align-items-center"
-					data-bs-toggle="collapse" href="#contractMenu" role="button"
-					aria-expanded="false" aria-controls="contractMenu"> <span><i
-							class="bi bi-file-earmark-text me-2"></i> 상담방 관리 </span> <i
-						class="bi bi-chevron-down"></i>
-				</a>
+			<ul class="nav flex-column">
+				<!-- 대시보드 -->
+				<li class="nav-item mb-2">
+					<a class="nav-link" th:href="@{/client/dashboard}">
+						<i class="bi bi-house-door me-1"></i> 대시보드
+					</a>
+				</li>
+				
+				<!-- 계약 서비스 -->
+				<li class="nav-item mb-2">
+					<a class="nav-link d-flex justify-content-between align-items-center"
+						data-bs-toggle="collapse" href="#contractMenu" role="button"
+						aria-expanded="false" aria-controls="contractMenu">
+						<span><i class="bi bi-calendar-check me-1"></i> 계약 서비스</span>
+						<i class="bi bi-chevron-down"></i>
+					</a>
 					<div class="collapse ps-4" id="contractMenu">
-						<a class="nav-link sub-nav" href="#">상담 예약취소</a>
-						<a class="nav-link sub-nav" href="#">초대링크 접속확인</a>
-					</div></li>
+						<a class="nav-link sub-nav" th:href="@{/client/contracts/today}">오늘의 계약</a>
+						<a class="nav-link sub-nav" th:href="@{/client/contracts}">나의 계약 현황</a>
+					</div>
+				</li>
 
-				<!-- 문서관리 -->
-				<li class="nav-item"><a
-					class="nav-link d-flex justify-content-between align-items-center"
-					data-bs-toggle="collapse" href="#docMenu" role="button"
-					aria-expanded="false" aria-controls="docMenu"> <span><i
-							class="bi bi-folder me-2"></i>마이 페이지</span>
-					<i class="bi bi-chevron-down"></i>
-				</a>
-					<div class="collapse ps-4" id="docMenu">
-						<a class="nav-link sub-nav" href="#">계약서 관리</a>
-						<a class="nav-link sub-nav" href="#">도장/서명 등록</a>
-					</div></li>
-
-
+				<!-- 마이페이지 -->
+				<li class="nav-item mb-2">
+					<a class="nav-link d-flex justify-content-between align-items-center"
+						data-bs-toggle="collapse" href="#mypageMenu" role="button"
+						aria-expanded="false" aria-controls="mypageMenu">
+						<span><i class="bi bi-person-circle me-1"></i> 마이페이지</span>
+						<i class="bi bi-chevron-down"></i>
+					</a>
+					<div class="collapse ps-4" id="mypageMenu">
+						<a class="nav-link sub-nav" th:href="@{/client/stamp}">도장 등록</a>
+						<a class="nav-link sub-nav" th:href="@{/client/profile}">개인정보 수정</a>
+					</div>
+				</li>
 			</ul>
 
 			<!-- 사이드바 푸터 정보 -->
@@ -70,3 +78,4 @@
 		</div>
 	</div>
 </div>
+</html>

@@ -1,0 +1,13 @@
+<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <!-- 배경 원 -->
+  <circle cx="100" cy="100" r="100" fill="#e9ecef"/>
+  
+  <!-- 프로필 아이콘 배경 -->
+  <circle cx="100" cy="100" r="80" fill="#6c757d"/>
+  
+  <!-- 머리 -->
+  <circle cx="100" cy="80" r="30" fill="#ffffff"/>
+  
+  <!-- 몸통 -->
+  <ellipse cx="100" cy="140" rx="50" ry="40" fill="#ffffff"/>
+</svg>

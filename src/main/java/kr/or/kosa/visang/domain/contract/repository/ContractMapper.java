@@ -128,5 +128,17 @@ public interface ContractMapper {
             @Param("agentId") Long agentId, 
             @Param("clientId") Long clientId
     );
+    
+    // 고객의 오늘 계약 조회
+    List<Contract> selectTodayContractsByClientId(Map<String, Object> params);
+    
+    // 고객별 계약 상태 카운트
+    Map<String, Integer> selectContractCountsByClientId(Long clientId);
+    
+    // 고객별 계약 목록 페이징 조회
+    List<Contract> selectContractsByClientIdPaged(Map<String, Object> params);
+    
+    // 고객별 계약 총 개수 (페이징용)
+    int countContractsByClientId(Map<String, Object> params);
 
 }
