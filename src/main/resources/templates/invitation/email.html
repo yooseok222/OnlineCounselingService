@@ -44,7 +44,7 @@
 				초대코드: <strong th:text="${code}"></strong>
 			</p>
 			<p>
-				<a th:href="@{'https://your-domain.com/invite?code=' + ${code}}"
+				<a th:href="${serverUrl} + '/client/invitation?code=' + ${code} + '&contractId=' + ${contractId} + '&session=' + ${consultingSessionId}"
 					class="btn">초대 링크로 가기</a>
 			</p>
 			<p>감사합니다.</p>

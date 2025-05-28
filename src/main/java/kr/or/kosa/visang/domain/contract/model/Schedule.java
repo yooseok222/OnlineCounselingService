@@ -23,6 +23,8 @@ public class Schedule {
 
 	private String invitationCode;
 
+	private String sessionId;
+
 	private String time;
 
 	public String getTime() {

@@ -120,6 +120,16 @@ EXCEPTION
 END;
 /
 
+BEGIN
+  EXECUTE IMMEDIATE 'DROP SEQUENCE chat_seq';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2289 THEN
+      RAISE;
+    END IF;
+END;
+/
+
 -- 시퀀스 생성
 CREATE SEQUENCE company_seq START WITH 2 INCREMENT BY 1
 /
@@ -140,6 +150,14 @@ NOCYCLE
 
 -- Voice Record 시퀀스 생성
 CREATE SEQUENCE voice_record_seq
+START WITH 1
+INCREMENT BY 1
+NOCACHE
+NOCYCLE
+/
+
+-- Chat 시퀀스 생성
+CREATE SEQUENCE chat_seq
 START WITH 1
 INCREMENT BY 1
 NOCACHE
@@ -371,6 +389,46 @@ END;
 
 BEGIN
   EXECUTE IMMEDIATE 'CREATE INDEX idx_voice_record_created_at ON voice_record(created_at)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- Chat 테이블 생성
+BEGIN
+  EXECUTE IMMEDIATE '
+  CREATE TABLE chat (
+      chat_id NUMBER(19) PRIMARY KEY,
+      contract_id NUMBER(19) NOT NULL,
+      chat_content CLOB,
+      chat_type VARCHAR2(20),
+      send_time TIMESTAMP DEFAULT SYSDATE,
+      export_filepath VARCHAR2(500)
+  )';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- Chat 테이블 인덱스 생성
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE INDEX idx_chat_contract_id ON chat(contract_id)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE INDEX idx_chat_send_time ON chat(send_time)';
 EXCEPTION
   WHEN OTHERS THEN
     IF SQLCODE != -955 THEN

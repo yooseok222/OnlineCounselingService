@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	// 통화하기 입장
 	function canEnterCall(reservationDateStr, reservationTimeStr) {
-		/*
+
       const now = new Date();
 
       // 로컬 날짜 문자열 (YYYY-MM-DD) 생성
@@ -236,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         return false;
       }
-*/
+
       return true;
     }
 
@@ -435,7 +435,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     class="btn btn-sm btn-primary start-webrtc-btn"
                     data-contract-id="${c.contractId}"
                     data-date="${iso}"
-                    data-time="${c.time}">
+                    data-time="${c.time}"
+                    data-session-id="${c.sessionId}">
                     통화 시작
                   </button>
                 `;
@@ -446,6 +447,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     const contractId = btn.dataset.contractId;
                     const dateStr = btn.dataset.date;
                     const timeStr = btn.dataset.time;
+                    const sessionId = btn.dataset.sessionId; // 서버에서 받은 세션 ID 사용
+
+                    console.log("상담원 통화 시작 - contractId:", contractId, "sessionId:", sessionId);
 
                     // 1) 시간/날짜 체크
                     if (!canEnterCall(dateStr, timeStr)) return;
@@ -454,15 +458,15 @@ document.addEventListener('DOMContentLoaded', function() {
                       // 2) PENDING → IN_PROGRESS 로 상태 변경
                       await updateContractStatus(contractId, 'IN_PROGRESS');
 
-                      // 3) 계약별로 고유한 세션 ID 생성
-                      const uniqueSessionId = `session_${contractId}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+                      // 3) 서버에서 받은 세션 ID 사용 (새로 생성하지 않음)
+                      console.log("상담원이 사용할 세션 ID:", sessionId);
                       
                       // 4) 기존 세션 정보 초기화
                       sessionStorage.removeItem('sessionId');
                       sessionStorage.removeItem('role');
                       
                       // 5) 상태 변경 후 방으로 이동
-                      window.location.href = `/contract/room?contractId=${contractId}&role=agent&session=${uniqueSessionId}`;
+                      window.location.href = `/contract/room?contractId=${contractId}&role=agent&session=${sessionId}`;
                     } catch (err) {
                       console.error('상태 변경 오류', err);
                       alert('통화 상태 변경에 실패했습니다. 다시 시도해주세요.');
