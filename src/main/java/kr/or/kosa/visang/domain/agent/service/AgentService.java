@@ -147,7 +147,7 @@ public class AgentService {
         c.setAgentId(dto.getAgentId());
         c.setContractTime(dto.getContractTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
         c.setCompanyId(dto.getCompanyId());
-        c.setTemplateId(dto.getTemplateId());
+        c.setTemplateId(dto.getContractTemplateId());
         c.setMemo(dto.getMemo());
         c.setCreatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         c.setStatus("PENDING");

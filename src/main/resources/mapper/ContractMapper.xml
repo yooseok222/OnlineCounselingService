@@ -88,8 +88,7 @@
         <result column="agent_name"    property="agentName"/>
     </resultMap>
 
-	<resultMap id="scheduleResultMap"
-		type="kr.or.kosa.visang.domain.contract.model.Schedule">
+	<resultMap id="scheduleResultMap" type="kr.or.kosa.visang.domain.contract.model.Schedule">
 		<result column="contract_id" property="contractId" />
 		<result column="created_at" property="createdAt" jdbcType="VARCHAR" />
 		<result column="status" property="status" />
@@ -100,10 +99,12 @@
 		<result column="email" property="email" />
 		<result column="name" property="clientName" />
 		<result column="phone_number" property="phoneNumber" />
-
 		<result column="time" property="time" />
-		<result column="invitation_code" property="invitationCode" />
-	</resultMap>
+		<result column="contract_template_id" property="contractTemplateId" />
+        <result column="contractTemplateName"  property="contractTemplateName"/>
+        <result column="company_id" property="companyId" />
+        <result column="invitation_code" property="invitationCode" />
+    </resultMap>
 
 	<resultMap id="CompleteCountsByMonthResultMap" type="kr.or.kosa.visang.domain.contract.model.ContractCompleteCountsByMonthDTO">
 		<result property="firstMonthCount" column="first_month_count"/>
@@ -300,28 +301,29 @@
 
     <select id="findTodayContracts" parameterType="map" resultMap="scheduleResultMap">
         SELECT
-        c.contract_id,
-        c.created_at,
-        c.status,
-        c.contract_time,
-        TO_CHAR(c.contract_time, 'HH24:MI') AS time,
-        i.invitation_code,
-        cl.client_id,
-        cl.name,
-        cl.email,
-        cl.phone_number
+            c.contract_id,
+            c.created_at,
+            c.status,
+            c.contract_time,
+            TO_CHAR(c.contract_time, 'HH24:MI') AS time,
+            i.invitation_code,
+            cl.client_id,
+            cl.name,
+            cl.email AS email,
+            cl.phone_number,
+            tmpl.contract_name AS contractTemplateName
         FROM contract c
-        JOIN
-        client cl ON c.client_id = cl.client_id
-        LEFT JOIN invitation i ON
-        i.contract_id = c.contract_id
+        JOIN client cl
+        ON c.client_id = cl.client_id
+        LEFT JOIN invitation i
+        ON i.contract_id = c.contract_id
+        LEFT JOIN contract_templates tmpl
+        ON c.contract_template_id = tmpl.contract_template_id
         WHERE
-        TRUNC(c.contract_time) =
-        TO_DATE(#{date}, 'YYYY-MM-DD')
+        TRUNC(c.contract_time) = TO_DATE(#{date}, 'YYYY-MM-DD')
         AND c.agent_id = #{agentId}
         AND c.status = 'PENDING'
-        ORDER BY
-        c.contract_time
+        ORDER BY c.contract_time
     </select>
 
     <select id="findById" parameterType="long"
