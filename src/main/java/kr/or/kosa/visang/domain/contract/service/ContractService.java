@@ -170,7 +170,7 @@ public class ContractService {
 
         // 상태 처리
         if (contract.getStatus() == null || contract.getStatus().trim().isEmpty()) {
-            contract.setStatus("완료");
+            contract.setStatus("COMPLETED");
         }
 
         // ID 확인 (null로 설정되어야 자동 생성됨)
@@ -225,8 +225,8 @@ public class ContractService {
         // 현재 시간을 생성일로 설정 - String으로 직접 설정
         contract.setCreatedAt(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()));
 
-        // 상태를 '진행중'으로 설정
-        contract.setStatus("진행중");
+        // 상태를 'IN_PROGRESS'로 설정
+        contract.setStatus("IN_PROGRESS");
 
         // 사용자 역할에 따라 ID 설정 (이메일로 실제 ID 조회)
         if ("AGENT".equals(currentUserRole)) {
@@ -355,15 +355,15 @@ public class ContractService {
             if (existingContract != null) {
                 System.out.println("세션 ID로 기존 계약 발견: " + existingContract.toString());
                 // 이미 진행중인 계약이면 그대로 반환
-                if ("진행중".equals(existingContract.getStatus())) {
+                if ("IN_PROGRESS".equals(existingContract.getStatus())) {
                     System.out.println("이미 진행중인 계약입니다.");
                     return existingContract;
                 }
                 // PENDING 상태면 진행중으로 변경 후 반환
                 if ("PENDING".equals(existingContract.getStatus())) {
-                    contractMapper.updateContractStatus(existingContract.getContractId(), "진행중");
-                    existingContract.setStatus("진행중");
-                    System.out.println("PENDING 계약을 진행중으로 변경: " + existingContract.getContractId());
+                    contractMapper.updateContractStatus(existingContract.getContractId(), "IN_PROGRESS");
+                    existingContract.setStatus("IN_PROGRESS");
+                    System.out.println("PENDING 계약을 IN_PROGRESS로 변경: " + existingContract.getContractId());
                     return existingContract;
                 }
             }
@@ -416,10 +416,10 @@ public class ContractService {
             return createConsultationRoom(sessionId);
         }
 
-        // 기존 계약의 상태를 '진행중'으로 변경
+        // 기존 계약의 상태를 'IN_PROGRESS'로 변경
         try {
-            contractMapper.updateContractStatus(existingContract.getContractId(), "진행중");
-            existingContract.setStatus("진행중");
+            contractMapper.updateContractStatus(existingContract.getContractId(), "IN_PROGRESS");
+            existingContract.setStatus("IN_PROGRESS");
             
             // 세션 ID를 메모에 추가 (상담 종료 시 필요)
             String updatedMemo = existingContract.getMemo() + " [SessionId: " + sessionId + "]";
@@ -448,7 +448,7 @@ public class ContractService {
             System.out.println("계약 ID: " + contractId);
             System.out.println("메모: " + memo);
             
-            // 계약 상태를 '완료'로 변경하고 메모 업데이트
+            // 계약 상태를 'COMPLETED'로 변경하고 메모 업데이트
             int result = contractMapper.endConsultation(contractId, memo);
             
             if (result > 0) {
