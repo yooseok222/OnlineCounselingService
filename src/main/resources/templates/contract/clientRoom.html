@@ -310,7 +310,7 @@
     
     <!-- 탭 메뉴 -->
     <div class="stamp-tabs">
-      <button class="stamp-tab active" onclick="switchStampTab('uploaded')">내 도장</button>
+      <button class="stamp-tab active" onclick="switchStampTab('uploaded')">도장</button>
       <button class="stamp-tab" onclick="switchStampTab('upload')">새 업로드</button>
       <button class="stamp-tab" onclick="switchStampTab('default')">기본 도장</button>
     </div>
@@ -360,11 +360,16 @@
   
   <!-- 서명 팝업 -->
   <div id="signaturePopup" class="signature-popup">
-    <h4><i class="fas fa-signature"></i> 서명 그리기</h4>
-    <div class="signature-canvas-container">
-      <canvas id="signatureCanvas" width="300" height="150"></canvas>
+    <h4><i class="fas fa-signature"></i> 서명 입력</h4>
+    
+    <!-- 서명 입력 영역만 표시 -->
+    <div class="signature-input-area">
+      <div class="signature-canvas-container">
+        <canvas id="signatureCanvas" width="300" height="150"></canvas>
+      </div>
+      <button class="clear-btn" onclick="clearSignature()">지우기</button>
     </div>
-    <button class="clear-btn" onclick="clearSignature()">지우기</button>
+    
     <div class="popup-buttons">
       <button onclick="confirmSignature()">확인</button>
       <button onclick="closeSignaturePopup()">취소</button>
@@ -529,6 +534,7 @@
         // 서명으로 입장한 경우 - 서명 버튼만 표시
         if (stampBtn) {
           stampBtn.style.display = 'none';
+          console.log('도장 버튼 숨김');
         }
         if (signatureBtn) {
           signatureBtn.style.display = 'inline-block';
@@ -714,9 +720,9 @@
       if (entryType === 'stamp' && customStampImage) {
         stampsList.innerHTML = `
           <div class="uploaded-stamp-item selected">
-            <img src="${customStampImage.src}" class="uploaded-stamp-image" alt="내 도장">
+            <img src="/stamp/image/${customStampImage.src}" class="uploaded-stamp-image" alt="도장">
             <div class="uploaded-stamp-info">
-              <div>입장 시 사용한 도장</div>
+              <div>도장</div>
               <div class="uploaded-stamp-date">현재 세션</div>
             </div>
           </div>
@@ -753,9 +759,9 @@
             const date = new Date(stamp.createdAt).toLocaleDateString('ko-KR');
             const stampsHtml = `
               <div class="uploaded-stamp-item selected" onclick="selectUploadedStamp(${stamp.stampId}, '${stamp.imagePath}')">
-                <img src="/stamp/image/${stamp.imagePath}" class="uploaded-stamp-image" alt="내 도장">
+                <img src="/stamp/image/${stamp.imagePath}" class="uploaded-stamp-image" alt="도장">
                 <div class="uploaded-stamp-info">
-                  <div>내 도장</div>
+                  <div>도장</div>
                   <div class="uploaded-stamp-date">등록일: ${date}</div>
                 </div>
               </div>
@@ -1087,20 +1093,24 @@
       console.log('=== 도장 버튼 클릭 ===');
       console.log('entryType:', entryType);
       console.log('customStampImage 존재 여부:', !!customStampImage);
-      console.log('customStampImage src:', customStampImage ? customStampImage.src.substring(0, 50) + '...' : 'null');
       
-      // 이미 로드된 도장 이미지가 있으면 바로 배치 모드로 전환
-      if (customStampImage && entryType === 'stamp') {
-        console.log('✅ 기존 도장으로 바로 배치 모드 진입');
-        mode = 'stamp';
-        document.getElementById('currentMode').textContent = '도장 위치 선택';
-        updateToolbarButtons('stampBtn');
-        showToast("위치 선택", "도장을 추가할 위치를 클릭하세요.", "info");
-        return;
+      // 도장으로 입장한 경우는 무조건 바로 배치 모드로 전환
+      if (entryType === 'stamp') {
+        if (customStampImage) {
+          console.log('✅ 기존 도장으로 바로 배치 모드 진입');
+          mode = 'stamp';
+          document.getElementById('currentMode').textContent = '도장 위치 선택';
+          updateToolbarButtons('stampBtn');
+          showToast("위치 선택", "도장을 추가할 위치를 클릭하세요.", "info");
+          return;
+        } else {
+          console.warn('⚠️  도장 이미지가 없습니다 - 새로 선택 필요');
+          showToast("오류", "도장 데이터가 없습니다. 새로 선택해주세요.", "error");
+        }
       }
       
-      console.log('⚠️  도장 팝업을 열어야 함 - customStampImage:', !!customStampImage, ', entryType:', entryType);
-      // 도장이 없으면 일반적인 도장 팝업 열기
+      console.log('🔖 도장 팝업을 엽니다');
+      // 새로운 도장이 필요한 경우만 팝업 열기
       openStampPopup();
     }
     
@@ -1111,20 +1121,24 @@
       console.log('=== 서명 버튼 클릭 ===');
       console.log('entryType:', entryType);
       console.log('customStampImage 존재 여부:', !!customStampImage);
-      console.log('customStampImage src:', customStampImage ? customStampImage.src.substring(0, 50) + '...' : 'null');
       
-      // 이미 로드된 서명 이미지가 있으면 바로 배치 모드로 전환
-      if (customStampImage && entryType === 'signature') {
-        console.log('✅ 기존 서명으로 바로 배치 모드 진입');
-        mode = 'signature';
-        document.getElementById('currentMode').textContent = '서명 위치 선택';
-        updateToolbarButtons('signatureBtn');
-        showToast("위치 선택", "서명을 추가할 위치를 클릭하세요.", "info");
-        return;
+      // 서명으로 입장한 경우는 무조건 바로 배치 모드로 전환
+      if (entryType === 'signature') {
+        if (customStampImage) {
+          console.log('✅ 기존 서명으로 바로 배치 모드 진입');
+          mode = 'signature';
+          document.getElementById('currentMode').textContent = '서명 위치 선택';
+          updateToolbarButtons('signatureBtn');
+          showToast("위치 선택", "서명을 추가할 위치를 클릭하세요.", "info");
+          return;
+        } else {
+          console.warn('⚠️  서명 이미지가 없습니다 - 새로 생성 필요');
+          showToast("오류", "서명 데이터가 없습니다. 새로 그려주세요.", "error");
+        }
       }
       
-      console.log('⚠️  서명 팝업을 열어야 함 - customStampImage:', !!customStampImage, ', entryType:', entryType);
-      // 서명이 없으면 일반적인 서명 팝업 열기
+      console.log('📝 서명 팝업을 엽니다');
+      // 새로운 서명이 필요한 경우만 팝업 열기
       openSignaturePopup();
     }
   </script>

@@ -348,9 +348,9 @@
                         const date = new Date(stamp.createdAt).toLocaleDateString('ko-KR');
                         const stampsHtml = `
                             <div class="stamp-item selected" onclick="selectStamp(${stamp.stampId}, '${stamp.imagePath}', this)">
-                                <img src="/stamp/image/${stamp.imagePath}" alt="내 도장">
+                                <img src="/stamp/image/${stamp.imagePath}" alt="도장">
                                 <div class="stamp-info">
-                                    <div class="stamp-id">내 도장</div>
+                                    <div class="stamp-id">도장</div>
                                     <div class="stamp-date">등록일: ${date}</div>
                                 </div>
                             </div>

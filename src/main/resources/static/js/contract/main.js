@@ -347,7 +347,7 @@ function initializeUIByRole() {
       // 도장으로 입장한 경우 - 도장 버튼만 표시
       if (stampBtn) {
         stampBtn.style.display = 'inline-block';
-        stampBtn.innerHTML = '<i class="fas fa-stamp"></i> 내 도장';
+        stampBtn.innerHTML = '<i class="fas fa-stamp"></i> 도장';
         console.log('고객 도장 모드 - 도장 버튼만 표시');
       }
       
@@ -357,13 +357,18 @@ function initializeUIByRole() {
       }, 1000);
       
     } else if (entryType === 'signature') {
-      // 서명으로 입장한 경우 - 서명 버튼 추가
+      // 서명으로 입장한 경우 - 서명 버튼만 표시
       if (stampBtn) {
-        // 기존 도장 버튼을 서명 버튼으로 변경
-        stampBtn.style.display = 'inline-block';
-        stampBtn.innerHTML = '<i class="fas fa-signature"></i> 내 서명';
-        stampBtn.onclick = function() { setSignatureMode(); };
-        console.log('고객 서명 모드 - 서명 버튼으로 변경');
+        // 내서명 버튼(stampBtn)을 숨김
+        stampBtn.style.display = 'none';
+        console.log('고객 서명 모드 - 내서명 버튼 숨김');
+      }
+      
+      // signatureBtn 표시
+      const signatureBtn = document.getElementById('signatureBtn');
+      if (signatureBtn) {
+        signatureBtn.style.display = 'inline-block';
+        console.log('고객 서명 모드 - 서명 버튼만 표시');
       }
       
       // sessionStorage에서 고객의 서명 데이터 복원
