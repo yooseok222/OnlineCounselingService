@@ -282,6 +282,7 @@ public class ClientController {
         model.addAttribute("contentFragment", "client/clientStamp");
         model.addAttribute("scriptFragment", "client/clientStamp");
         model.addAttribute("sideFragment", "client/clientSidebar");
+        model.addAttribute("stampGuide", "도장은 계약서에 서명 대신 사용됩니다. 한 사용자는 하나의 도장만 등록할 수 있습니다.");
         
         return "layout/main";
     }

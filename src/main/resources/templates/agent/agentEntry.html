@@ -157,9 +157,15 @@
                 sessionId = sessionIdFromUrl;
                 console.log("URL에서 받은 세션 ID 사용:", sessionId);
             } else {
-                // 백업용: 세션 ID가 없으면 새로 생성 (하지만 경고 표시)
-                sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-                console.warn("세션 ID가 없어서 새로 생성:", sessionId);
+                // 백업용: 세션 ID가 없으면 contractId 기반으로 생성
+                if (contractId) {
+                    sessionId = 'session_' + contractId + '_fixed';
+                    console.log("계약 ID 기반으로 세션 ID 생성:", sessionId);
+                } else {
+                    // contractId도 없는 경우에만 랜덤 생성 (예외 케이스)
+                    sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+                    console.warn("세션 ID와 계약 ID가 모두 없어서 랜덤 생성:", sessionId);
+                }
             }
             
             // 세션 ID를 sessionStorage에 저장

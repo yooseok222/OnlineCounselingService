@@ -313,25 +313,31 @@ public class StampController {
      * 도장 이미지 파일 서빙
      */
     @GetMapping("/image/{filename}")
-    public ResponseEntity<Resource> getStampImage(@PathVariable String filename) {
-        try {
-            // 업로드 경로를 절대 경로로 변환
-            Path uploadPath = Paths.get(UPLOAD_DIR).toAbsolutePath().normalize();
-            Path filePath = uploadPath.resolve(filename);
-            Resource resource = new UrlResource(filePath.toUri());
-            
-            if (resource.exists() && resource.isReadable()) {
-                return ResponseEntity.ok()
-                        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
-                        .contentType(MediaType.IMAGE_PNG)
-                        .body(resource);
-            } else {
-                log.warn("도장 이미지 파일을 찾을 수 없습니다: {}", filePath);
-                return ResponseEntity.notFound().build();
-            }
-        } catch (Exception e) {
-            log.error("이미지 파일 서빙 실패: {}", filename, e);
-            return ResponseEntity.internalServerError().build();
+public ResponseEntity<Resource> getStampImage(@PathVariable String filename) {
+    try {
+        if (filename == null || filename.equals("undefined")) {
+            log.warn("잘못된 파일명: {}", filename);
+            return ResponseEntity.badRequest().build();
         }
+        
+        // 환경 변수에서 지정된 절대 경로 사용
+        Path filePath = Paths.get(UPLOAD_DIR).resolve(filename).normalize();
+        log.info("도장 이미지 로드 시도: {}", filePath);
+        
+        Resource resource = new UrlResource(filePath.toUri());
+        
+        if (!resource.exists() || !resource.isReadable()) {
+            log.error("도장 이미지 파일을 찾을 수 없습니다: {}", filePath);
+            return ResponseEntity.notFound().build();
+        }
+        
+        return ResponseEntity.ok()
+            .contentType(MediaType.IMAGE_PNG)
+            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
+            .body(resource);
+    } catch (Exception e) {
+        log.error("도장 이미지 로드 실패: {}", filename, e);
+        return ResponseEntity.internalServerError().build();
     }
+}
 } 
