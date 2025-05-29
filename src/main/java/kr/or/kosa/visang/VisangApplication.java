@@ -9,7 +9,7 @@ import com.ulisesbocchio.jasyptspringboot.annotation.EnableEncryptableProperties
 public class VisangApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(VisangApplication.class, args);
+		    SpringApplication.run(VisangApplication.class, args);
 	}
 
 }

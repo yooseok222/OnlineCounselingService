@@ -158,9 +158,9 @@ public class PdfSyncController {
         return signatureData;
     }
     
-    // 특정 방 입장 메시지 처리
-    @MessageMapping("/room/{roomId}/join")
-    @SendTo("/topic/room/{roomId}/join")
+    // 특정 방 입장 메시지 처리 (PDF 동기화 전용)
+    @MessageMapping("/room/{roomId}/pdf/join")
+    @SendTo("/topic/room/{roomId}/pdf/join")
     public Map<String, Object> roomJoin(@DestinationVariable String roomId, Map<String, Object> joinData) {
         logger.info("방 입장 메시지 수신: 세션={}, 역할={}", 
                 roomId, joinData.get("role"));

@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			{ label: '17:00 - 18:00', time: '17:00' },
 		];
 
-		// 월요일 기준 계산
+		// 월요일 기준 계산 
 		const td = new Date(baseDate);
 		const offset = td.getDay() === 0 ? -6 : 1 - td.getDay();
 		const monday = new Date(td);
@@ -605,9 +605,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	// 오늘의 계약 불러오기
 	async function loadTodayContracts() {
+	    // 중복 호출 방지 (함수에 상태 저장)
+	    if (loadTodayContracts.isLoading) return;
+	    loadTodayContracts.isLoading = true;
 
+	    // 상세 정보 초기화
 	    const detailsDiv = document.getElementById('todayContractDetails');
-	    if(detailsDiv) {
+	    if (detailsDiv) {
 	        detailsDiv.innerHTML = '';
 	    }
 
@@ -626,13 +630,24 @@ document.addEventListener('DOMContentLoaded', function() {
 			if (!res.ok) throw new Error('오늘 계약 로드 실패');
 			const list = await res.json();
 
+			// 계약 ID 기준으로 중복 제거
+			const uniqueContracts = [];
+			const contractIds = new Set();
+
+			for (const contract of list) {
+			    if (!contractIds.has(contract.contractId)) {
+			        contractIds.add(contract.contractId);
+			        uniqueContracts.push(contract);
+			    }
+			}
+
 			const ul = document.querySelector('#todayContractsList ul');
 			ul.innerHTML = '';
-			if (list.length === 0) {
+			if (uniqueContracts.length === 0) {
 				ul.innerHTML = '<li class="list-group-item text-center text-muted">오늘 계약 예정이 없습니다.</li>';
 				return;
 			}
-			 list.forEach(c => {
+			 uniqueContracts.forEach(c => {
                 const li = document.createElement('li');
                 li.className = 'list-group-item d-flex justify-content-between align-items-center';
                 li.innerHTML = `
@@ -646,7 +661,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     class="btn btn-sm btn-primary start-webrtc-btn"
                     data-contract-id="${c.contractId}"
                     data-date="${iso}"
-                    data-time="${c.time}">
+                    data-time="${c.time}"
+                    data-session-id="${c.sessionId}">
                     통화 시작
                   </button>
                 `;
@@ -674,8 +690,11 @@ document.addEventListener('DOMContentLoaded', function() {
                document.querySelectorAll('.start-webrtc-btn').forEach(btn => {
                  btn.addEventListener('click', async () => {
                    const contractId = btn.dataset.contractId;
-                   const dateStr    = btn.dataset.date;
-                   const timeStr    = btn.dataset.time;
+                   const dateStr = btn.dataset.date;
+                   const timeStr = btn.dataset.time;
+                   const sessionId = btn.dataset.sessionId; // 서버에서 받은 세션 ID 사용
+
+                   console.log("상담원 통화 시작 - contractId:", contractId, "sessionId:", sessionId);
 
                    // 1) 시간/날짜 체크
                    if (!canEnterCall(dateStr, timeStr)) return;
@@ -684,7 +703,14 @@ document.addEventListener('DOMContentLoaded', function() {
                      // 2) PENDING → IN_PROGRESS 로 상태 변경
                      await updateContractStatus(contractId, 'IN_PROGRESS');
 
-                     // 3) 상태 변경 후 방으로 이동
+                     // 3) 서버에서 받은 세션 ID 사용 (새로 생성하지 않음)
+                     console.log("상담원이 사용할 세션 ID:", sessionId);
+
+                       // 4) 기존 세션 정보 초기화
+                       sessionStorage.removeItem('sessionId');
+                       sessionStorage.removeItem('role');
+
+                       // 5) 상태 변경 후 방으로 이동
                      window.location.href = `/contract/room?contractId=${contractId}&role=agent`;
                    } catch (err) {
                      console.error('상태 변경 오류', err);
@@ -695,6 +721,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 		} catch (err) {
 			console.error(err);
+		} finally {
+		    // 함수 호출이 완료되면 플래그 초기화
+		    loadTodayContracts.isLoading = false;
 		}
 	}
 
@@ -833,6 +862,7 @@ document.addEventListener('DOMContentLoaded', function() {
               contractTime:`${fd.get('date')}T${fd.get('time')}`,
               clientId:    Number(fd.get('clientId')),
               agentId:     Number(fd.get('agentId')),
+              clientName: fd.get('clientName'),
               companyId:   Number(fd.get('companyId')),
               contractTemplateId: Number(fd.get('contractTemplateId')),
               memo:        fd.get('memo'),

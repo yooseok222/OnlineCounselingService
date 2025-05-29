@@ -23,6 +23,9 @@ public class Schedule {
 	private String status;
 	private String contractTemplateName;
 	private String invitationCode;
+
+	private String sessionId;
+
 	private String time;
 
 	public String getTime() {

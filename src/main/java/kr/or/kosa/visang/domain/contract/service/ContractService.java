@@ -17,6 +17,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
+import kr.or.kosa.visang.domain.chat.service.ChatService;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -34,6 +35,7 @@ public class ContractService {
     private final ContractMapper contractMapper;
     private final JavaMailSender mailSender;
     private final SpringTemplateEngine templateEngine;
+    private final ChatService chatService;
 
     // 모든 계약 조회
     public List<Contract> getAllContracts() {
@@ -454,7 +456,17 @@ public class ContractService {
             System.out.println("계약 ID: " + contractId);
             System.out.println("메모: " + memo);
             
-            // 계약 상태를 'COMPLETED'로 변경하고 메모 업데이트
+            // 1. 채팅 기록을 Redis에서 DB로 저장
+            try {
+                System.out.println("채팅 기록 저장 시작 - 계약 ID: " + contractId);
+                chatService.endAndExport(contractId, "시스템");
+                System.out.println("채팅 기록 저장 완료");
+            } catch (Exception chatException) {
+                System.err.println("채팅 기록 저장 실패: " + chatException.getMessage());
+                // 채팅 기록 저장 실패해도 상담 종료는 계속 진행
+            }
+
+            // 2. 계약 상태를 'COMPLETED'로 변경하고 메모 업데이트
             int result = contractMapper.endConsultation(contractId, memo);
             
             if (result > 0) {
@@ -623,9 +635,24 @@ public class ContractService {
         }
     }
 
+    /**
+     * 통화시작 계약상태 업데이트
+     * @param contractId 계약 ID
+     * @param status 변경할 상태
+     */
     @Transactional
     public void updateCallContractStatus(Long contractId, String status) {
+        System.out.println("=== 계약 상태 변경 ===");
+        System.out.println("계약 ID: " + contractId + ", 새 상태: " + status);
+
         int updated = contractMapper.updateStatus(contractId, status);
+
+        if (updated == 0) {
+            System.err.println("계약 상태 변경 실패 - 업데이트된 행이 없음");
+            throw new RuntimeException("계약 상태 변경에 실패했습니다. contractId: " + contractId);
+        } else {
+            System.out.println("계약 상태 변경 성공");
+        }
     }
 
     public boolean isParticipant(Long roomId, Long userId) {

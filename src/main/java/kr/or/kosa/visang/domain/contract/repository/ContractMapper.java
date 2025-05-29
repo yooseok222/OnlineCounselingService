@@ -140,6 +140,10 @@ public interface ContractMapper {
     // 고객별 계약 총 개수 (페이징용)
     int countContractsByClientId(Map<String, Object> params);
 
+    /*int updateStatus(@Param("contractId") Long contractId,
+                     @Param("status")     String status);*/
+
+    // 통화시작 계약상태 업데이트
     int updateStatus(@Param("contractId") Long contractId,
                      @Param("status")     String status);
 

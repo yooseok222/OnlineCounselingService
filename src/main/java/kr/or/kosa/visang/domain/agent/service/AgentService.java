@@ -35,6 +35,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -117,7 +119,7 @@ public class AgentService {
     }
 
     @Transactional
-    public String addSchedule(Schedule dto) throws MessagingException {
+    public Map<String, String> addSchedule(Schedule dto, HttpServletRequest request) throws MessagingException {
 
         LocalDateTime time = dto.getContractTime();
 
@@ -159,6 +161,9 @@ public class AgentService {
         String randPart = UUID.randomUUID().toString().replaceAll("-", "").substring(0, 8).toUpperCase();
         String code = timePart + "-" + randPart;
 
+        // 상담 세션 ID 생성 (contractId 기반으로 결정론적 생성)
+        String consultingSessionId = generateSessionId(c.getContractId());
+
         // INVITATION 삽입
         Invitation inv = new Invitation();
         inv.setContractId(c.getContractId());
@@ -167,6 +172,11 @@ public class AgentService {
         inv.setExpiredTime(dto.getContractTime().plusHours(1));
         invitationMapper.insertInvitation(inv);
 
+        // 동적 서버 URL 생성
+        String serverUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
+        
+        log.info("초대링크 생성 - contractId: {}, 세션 ID: {}, 초대코드: {}", c.getContractId(), consultingSessionId, code);
+        
         // 메일 발송
         MimeMessage mime = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mime, true, "UTF-8");
@@ -175,6 +185,9 @@ public class AgentService {
         ctx.setVariable("clientName", dto.getClientName());
         ctx.setVariable("reserveTime", dto.getContractTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
         ctx.setVariable("code", code);
+        ctx.setVariable("contractId", c.getContractId());
+        ctx.setVariable("serverUrl", serverUrl);
+        ctx.setVariable("consultingSessionId", consultingSessionId); // 세션 ID 추가
 
         String html = templateEngine.process("invitation/email", ctx);
 
@@ -185,7 +198,23 @@ public class AgentService {
 
         mailSender.send(mime);
 
-        return code;
+        log.info("초대링크 생성 완료 - contractId: {}, 세션 ID: {}, 초대코드: {}", c.getContractId(), consultingSessionId, code);
+        log.info("상담원은 다음 링크로 입장: /contract/room?contractId={}&role=agent&session={}", c.getContractId(), consultingSessionId);
+
+        // 초대코드와 세션 ID를 모두 반환
+        Map<String, String> result = new HashMap<>();
+        result.put("invitationCode", code);
+        result.put("consultingSessionId", consultingSessionId);
+        result.put("contractId", String.valueOf(c.getContractId()));
+        
+        return result;
+    }
+
+    /**
+     * contractId 기반으로 항상 동일한 세션 ID 생성
+     */
+    private String generateSessionId(Long contractId) {
+        return "session_" + contractId + "_fixed";
     }
 
     @Transactional(readOnly = true)
@@ -228,7 +257,15 @@ public class AgentService {
         Map<String, Object> params = new HashMap<>();
         params.put("agentId", agentId);
         params.put("date", date);
-        return contractMapper.findTodayContracts(params);
+        List<Schedule> schedules = contractMapper.findTodayContracts(params);
+        
+        // 각 스케줄에 대해 동일한 세션 ID 생성 로직 사용
+        for (Schedule schedule : schedules) {
+            String consultingSessionId = generateSessionId(schedule.getContractId());
+            schedule.setSessionId(consultingSessionId);
+        }
+        
+        return schedules;
     }
 
 

@@ -60,7 +60,7 @@
         <result column="contract_time" property="contractTime"/>
         <result column="client_id" property="clientId"/>
         <result column="agent_id" property="agentId"/>
-        <result column="contract_template_id" property="templateId"/>
+        <result column="contract_template_id" property="contractTemplateId"/>
         <result column="memo" property="memo"/>
         <result column="client_name" property="clientName"/>
         <result column="client_email"       property="clientEmail"/>
@@ -227,7 +227,7 @@
         #{clientId,        jdbcType=NUMERIC},
         #{agentId,         jdbcType=NUMERIC},
         #{memo,            jdbcType=CLOB},
-        #{templateId,      jdbcType=NUMERIC}
+        #{contractTemplateId,      jdbcType=NUMERIC}
         )
     </insert>
 

@@ -1,5 +1,6 @@
 package kr.or.kosa.visang.domain.agent.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import kr.or.kosa.visang.common.config.security.CustomUserDetails;
 import kr.or.kosa.visang.domain.agent.service.AgentService;
 import kr.or.kosa.visang.domain.client.model.Client;
@@ -72,12 +73,28 @@ public class AgentController {
     // 스케줄 + 계약 + 초대코드 생성
     @PostMapping("/schedule/add")
     @ResponseBody
-    public ResponseEntity<Map<String, String>> addSchedule(@RequestBody Schedule dto) {
+    public ResponseEntity<Map<String, String>> addSchedule(@RequestBody Schedule dto, HttpServletRequest request) {
         try {
-            String code = agentService.addSchedule(dto);
-            Map<String, String> body = Map.of("invitationCode", code);
-            return ResponseEntity.ok(body);
+            Map<String, String> result = agentService.addSchedule(dto, request);
+
+            // 상담원 입장 링크 생성 (/agent-entry로 먼저 이동 후 상담실 입장)
+            String agentEntryUrl = String.format("/agent-entry?contractId=%s&session=%s",
+                    result.get("contractId"), result.get("consultingSessionId"));
+
+            // 최종 상담실 링크도 포함
+            String agentRoomUrl = String.format("/contract/room?contractId=%s&role=agent&session=%s",
+                    result.get("contractId"), result.get("consultingSessionId"));
+
+            log.info("스케줄 생성 완료 - 초대코드: {}, 상담원 입장링크: {}, 최종 상담실링크: {}",
+                    result.get("invitationCode"), agentEntryUrl, agentRoomUrl);
+
+            // 응답에 상담원 링크들 포함
+            result.put("agentEntryUrl", agentEntryUrl);
+            result.put("agentRoomUrl", agentRoomUrl);
+
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
+            log.error("스케줄 생성 실패: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "서버 에러"));
         }
     }
@@ -176,8 +193,13 @@ public class AgentController {
             return ResponseEntity.badRequest().body(Map.of("updated", false));
         }
 
+        try {
         contractService.updateCallContractStatus(contractId, newStatus);
         return ResponseEntity.ok(Map.of("updated", true));
+        } catch (Exception e) {
+            log.error("계약 상태 변경 실패 - 계약 ID: {}, 상태: {}, 오류: {}", contractId, newStatus, e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("updated", false));
+        }
     }
 
 

@@ -150,7 +150,7 @@ function closeTextPopup() {
 function confirmText() {
   const textInput = document.getElementById('textInput').value.trim();
   if (!textInput) {
-    alert('텍스트를 입력해주세요.');
+    showError('텍스트를 입력해주세요.');
     return;
   }
 
@@ -429,6 +429,23 @@ function handleStampPlacement(event) {
   const x = event.clientX - rect.left;
   const y = event.clientY - rect.top;
   
+  // 고객의 경우 sessionStorage에서 도장 이미지 확인
+  if (userRole === 'client') {
+    const savedStampImage = sessionStorage.getItem("stampImage");
+    if (savedStampImage) {
+      console.log('고객의 저장된 도장 이미지 사용');
+      
+      // base64 이미지를 Image 객체로 변환
+      const stampImg = new Image();
+      stampImg.onload = function() {
+        processStampPlacement(x, y, stampImg);
+      };
+      stampImg.src = savedStampImage;
+      return;
+    }
+  }
+  
+  // 기존 로직 (상담원이거나 고객이지만 저장된 도장이 없는 경우)
   if (!customStampImage) {
     // 사용자 정의 도장 이미지가 없는 경우 기본 도장 이미지 사용
     const stampImage = new Image();
@@ -543,6 +560,25 @@ function handleSignaturePlacement(event) {
   const x = event.clientX - rect.left;
   const y = event.clientY - rect.top;
   
+  // 고객의 경우 sessionStorage에서 서명 이미지 확인
+  let signatureImageToUse = null;
+  
+  if (userRole === 'client') {
+    const savedSignatureImage = sessionStorage.getItem("signatureImage");
+    if (savedSignatureImage) {
+      console.log('고객의 저장된 서명 이미지 사용');
+      
+      // base64 이미지를 Image 객체로 변환
+      const signatureImg = new Image();
+      signatureImg.onload = function() {
+        processSignaturePlacement(x, y, signatureImg);
+      };
+      signatureImg.src = savedSignatureImage;
+      return;
+    }
+  }
+  
+  // 기존 로직 (상담원이거나 고객이지만 저장된 서명이 없는 경우)
   if (!customStampImage && !customSignatureImage) {
     // 사용자 정의 서명 이미지가 없는 경우 기본 서명 사용
     processSignaturePlacement(x, y, null);
