@@ -442,7 +442,7 @@
 
     <!-- 계약 기본 컬럼 -->
     <sql id="baseColumns">
-        contract_id, status, client_id, agent_id, memo
+        contract_id, status, client_id, agent_id, memo, contract_template_id, company_id
     </sql>
 
     <!-- 계약 조회 -->
