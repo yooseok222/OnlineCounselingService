@@ -23,7 +23,7 @@ public interface AgentMapper {
      * 모든 상담원 조회
      * @return 상담원 목록
      */
-    List<Agent> selectAllAgents();
+    List<Agent> selectAllAgents(Long companyId);
     
     /**
      * ID로 상담원 조회

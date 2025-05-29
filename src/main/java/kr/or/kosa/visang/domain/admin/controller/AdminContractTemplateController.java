@@ -50,8 +50,12 @@ public class AdminContractTemplateController {
         contractTemplate.setCompanyId(companyId);
 
         // 계약서 템플릿 생성 로직
-        contractTemplateService.createTemplate(contractTemplate);
-        return new ResponseEntity<String>("success", HttpStatus.CREATED);
+        try{
+            contractTemplateService.createTemplate(contractTemplate);
+            return new ResponseEntity<String>("success", HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<String>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
     }
 
     @PutMapping("/template/{templateId}")

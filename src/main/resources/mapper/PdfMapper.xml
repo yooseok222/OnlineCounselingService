@@ -9,6 +9,12 @@
         <result property="createdAt" column="created_at" />
         <result property="contractId" column="contract_id" />
     </resultMap>
+
+    <resultMap id="ContractSignedInfoResultMap" type="kr.or.kosa.visang.domain.contract.model.ContractSingedDTO">
+        <result property="agentName" column="agent_name" />
+        <result property="clientName" column="client_name" />
+    </resultMap>
+
     <!-- PDF 기본 컬럼 -->
     <sql id="baseColumns">
         pdf_id, file_path, file_hash, created_at, contract_id
@@ -61,5 +67,15 @@
         FROM pdf
         WHERE pdf_id = #{pdfId}
     </select>
-    
+
+
+    <select id="selectSignedContractInfoByContractId" resultMap="ContractSignedInfoResultMap">
+        SELECT
+        a.name AS agent_name,
+        cl.name AS client_name
+        FROM contract c
+        LEFT JOIN agent a ON c.agent_id = a.agent_id
+        LEFT JOIN client cl ON c.client_id = cl.client_id
+        WHERE c.contract_id = #{contractId}
+    </select>
 </mapper> 

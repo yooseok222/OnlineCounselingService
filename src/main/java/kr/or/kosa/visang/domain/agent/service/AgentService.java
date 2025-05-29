@@ -57,8 +57,8 @@ public class AgentService {
     private String Email;
 
     // 에이전트 목록 조회
-    public List<Agent> getAgentList() {
-        return agentMapper.selectAllAgents();
+    public List<Agent> getAgentList(Long companyId) {
+        return agentMapper.selectAllAgents(companyId);
     }
 
     // 에이전트 추가
