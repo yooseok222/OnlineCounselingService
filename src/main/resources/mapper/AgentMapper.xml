@@ -29,6 +29,7 @@
     <select id="selectAllAgents" resultMap="AgentResultMap">
         SELECT agent_id, company_id, name, phone_number, state, email, address, role, created_at, profile_image_url, email_verified
         FROM agent
+        where company_id = #{companyId}
     </select>
 
     <select id="selectAgentById" resultMap="AgentResultMap">
