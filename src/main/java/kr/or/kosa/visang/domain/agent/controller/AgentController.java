@@ -187,8 +187,8 @@ public class AgentController {
     @PutMapping("/schedule/status/{contractId}")
     public ResponseEntity<Map<String, Boolean>> updateStatus(
             @PathVariable Long contractId,
-            @RequestBody Map<String, String> payload) {
-        String newStatus = payload.get("status");
+            @RequestBody Map<String, String> body) {
+        String newStatus = body.get("status");
         if (newStatus == null) {
             return ResponseEntity.badRequest().body(Map.of("updated", false));
         }

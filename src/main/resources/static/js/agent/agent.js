@@ -57,6 +57,9 @@ document.addEventListener('DOMContentLoaded', function() {
      scheduleModalEl.addEventListener('hidden.bs.modal', () => {
         document.body.classList.remove('modal-open');
         document.body.style.paddingRight = '';
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+
         document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
      });
 
