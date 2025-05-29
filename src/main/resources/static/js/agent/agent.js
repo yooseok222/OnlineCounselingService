@@ -915,6 +915,7 @@ document.addEventListener('DOMContentLoaded', function() {
             loadStatusCounts();
             showFilteredContracts(currentStatus);
             loadSchedules();
+            loadTodayContracts();
 
             bootstrap.Modal.getInstance(scheduleModal).hide();
             scheduleForm.reset();
