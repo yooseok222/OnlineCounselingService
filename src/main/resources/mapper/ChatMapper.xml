@@ -62,5 +62,11 @@
         WHERE ROWNUM = 1
     </select>
 
+    <select id="getChatExportFilePathByContractId" parameterType="Long" resultType="String">
+        SELECT export_filepath
+        FROM chat
+        WHERE contract_id = #{contractId}
+    </select>
+
 </mapper>
 

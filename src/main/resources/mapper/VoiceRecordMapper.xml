@@ -50,4 +50,9 @@
         WHERE voice_id = #{voiceId}
     </delete>
 
+    <select id="getVoiceIdByContractId" parameterType="Long">
+        SELECT voice_id
+        FROM voice_record
+        WHERE contract_id = #{contractId}
+    </select>
 </mapper> 

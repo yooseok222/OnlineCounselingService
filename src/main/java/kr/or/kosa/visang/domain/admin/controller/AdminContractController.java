@@ -1,6 +1,7 @@
 package kr.or.kosa.visang.domain.admin.controller;
 
 import kr.or.kosa.visang.common.config.security.CustomUserDetails;
+import kr.or.kosa.visang.domain.chat.service.ChatService;
 import kr.or.kosa.visang.domain.contract.enums.ContractStatus;
 import kr.or.kosa.visang.domain.contract.model.Contract;
 import kr.or.kosa.visang.domain.contract.model.ContractDetail;
@@ -10,6 +11,8 @@ import kr.or.kosa.visang.domain.contractTemplate.service.ContractTemplateService
 import kr.or.kosa.visang.domain.page.model.PageRequest;
 import kr.or.kosa.visang.domain.page.model.PageResult;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -21,12 +24,16 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.File;
+
+@Slf4j
 @Controller
 @RequestMapping("/admin")
 @RequiredArgsConstructor
 public class AdminContractController {
     private final ContractService contractService;
     private final ContractTemplateService contractTemplateService;
+    private final ChatService chatService;
 
     @GetMapping("/contract-list/{status}")
     public String templateList(@AuthenticationPrincipal CustomUserDetails admin,
@@ -180,6 +187,26 @@ public class AdminContractController {
         } catch (Exception e) {
             // 기타 예외
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "PDF 파일을 미리보기할 수 없습니다.");
+        }
+    }
+
+    /**
+     * 채팅 파일 다운로드 API
+     */
+    @GetMapping("/contract/chat/{contractId}/download")
+    public ResponseEntity<Resource> downloadChatTing(@PathVariable Long contractId) {
+        try {
+            File file = chatService.getChatFile(contractId);
+            Resource resource = new FileSystemResource(file);
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(resource);
+
+        } catch (Exception e) {
+            log.error("채팅 파일 다운로드 실패: voiceId={}", contractId, e);
+            return ResponseEntity.notFound().build();
         }
     }
 }
