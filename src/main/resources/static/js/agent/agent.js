@@ -204,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	// 통화하기 입장
 	function canEnterCall(reservationDateStr, reservationTimeStr) {
-/*
+
       const now = new Date();
 
       // 로컬 날짜 문자열 (YYYY-MM-DD) 생성
@@ -236,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         return false;
       }
-*/
+
       return true;
     }
 
