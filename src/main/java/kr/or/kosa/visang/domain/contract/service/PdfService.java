@@ -1,7 +1,9 @@
 package kr.or.kosa.visang.domain.contract.service;
 
+import kr.or.kosa.visang.common.config.hash.HashUtil;
 import kr.or.kosa.visang.domain.contract.model.PdfDTO;
 import kr.or.kosa.visang.domain.contract.repository.PdfMapper;
+import kr.or.kosa.visang.domain.pdf.service.PdfSignerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
@@ -13,13 +15,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +34,15 @@ public class PdfService {
     
     @Value("${file.upload-dir.pdf}")
     private String uploadDirPdf;
+
+    @Value("${server.ssl.key-store}")
+    private String keyStorePath;
+
+    @Value("${server.ssl.key-store-password}")
+    private String keyStorePassword;
+
+    @Value("${file.upload-dir.signed-pdf}")
+    private String signedPdfPath;
     
     // 실제 DB에 저장된 PDF의 메모리 캐시 (선택적으로 사용)
     private static final Map<String, byte[]> pdfMemoryCache = new HashMap<>();
@@ -64,7 +76,7 @@ public class PdfService {
             System.out.println("프리픽스 제거 후 파일명: " + fileName);
         }
         
-        // 1. 메모리 캐시에서 확인 (원본 PDF 및 최종 PDF)
+        // 메모리 캐시에서 확인
         if (pdfMemoryCache.containsKey(fileName)) {
             System.out.println("메모리 캐시에서 PDF 파일 찾음: " + fileName);
             byte[] pdfData = pdfMemoryCache.get(fileName);
@@ -90,10 +102,10 @@ public class PdfService {
             if (Files.exists(filePath)) {
                 System.out.println("파일 시스템에서 PDF 파일 찾음: " + filePath);
                 FileSystemResource resource = new FileSystemResource(filePath);
-                
+
                 // 캐시 방지를 위한 랜덤 값
                 String etag = "\"" + UUID.randomUUID().toString() + "\"";
-                
+
                 return ResponseEntity.ok()
                         .header(HttpHeaders.CONTENT_DISPOSITION, "inline;filename=" + fileName)
                         .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate, max-age=0")
@@ -107,95 +119,86 @@ public class PdfService {
         } catch (Exception e) {
             System.err.println("파일 시스템에서 PDF 파일 읽기 오류: " + e.getMessage());
         }
-        
+
         System.out.println("메모리 캐시와 파일 시스템에서 PDF 파일을 찾을 수 없음: " + fileName);
         return ResponseEntity.notFound().build();
     }
-    
-    // PDF 업로드 및 저장 (메모리 + 파일 시스템 사용)
+
     public PdfDTO uploadPdf(MultipartFile file, Long contractId) throws IOException {
         System.out.println("PdfService.uploadPdf: 파일명=" + file.getOriginalFilename() + ", 계약ID=" + contractId);
-        
+
         // 임시 계약인 경우 (contractId < 0)
         boolean isTemporary = contractId < 0;
-        
-        // 기존 PDF 파일 삭제 (contractId에 해당하는 모든 PDF) - 임시 계약이 아닌 경우만
-        if (!isTemporary) {
-            List<PdfDTO> existingPdfs = getPdfsByContractId(contractId);
-            if (existingPdfs != null && !existingPdfs.isEmpty()) {
-                for (PdfDTO existingPdf : existingPdfs) {
-                    // 기존 파일을 메모리 캐시에서 삭제
-                    pdfMemoryCache.remove(existingPdf.getFilePath());
-                    
-                    // 파일 시스템에서도 삭제 - 기존 파일이 있는 경우만 삭제
-                    try {
-                        File existingFile = new File(uploadDirPdf, existingPdf.getFilePath());
-                        if (existingFile.exists()) {
-                            existingFile.delete();
-                            System.out.println("기존 PDF 파일 삭제: " + existingFile.getAbsolutePath());
-                        }
-                    } catch (Exception e) {
-                        System.err.println("기존 파일 삭제 중 오류: " + e.getMessage());
-                    }
-                    
-                    // DB에서 삭제
-                    pdfMapper.deletePdf(existingPdf.getPdfId());
-                }
-            }
-        }
-        
+
         // 고유한 파일명 생성
         String originalFilename = file.getOriginalFilename();
         String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
-        String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
-        
+        String uniqueFilename = UUID.randomUUID() + fileExtension;
+
         // 파일 내용 읽기
         byte[] fileBytes = file.getBytes();
-        
-                // 파일명으로 원본 PDF와 최종 PDF 구분
+
+        // 파일명으로 원본 PDF와 최종 PDF 구분
         boolean isFinalPdf = originalFilename.contains("상담문서_");
-        
+
         // 모든 PDF는 메모리에 저장
         System.out.println("PDF 메모리 캐시에 저장: " + uniqueFilename + " (" + fileBytes.length + " bytes)");
         pdfMemoryCache.put(uniqueFilename, fileBytes);
-        
-        if (isFinalPdf) {
-            // 최종 PDF만 파일 시스템에 저장
-            try {
-                Path uploadPath = Paths.get(uploadDirPdf);
-                Files.createDirectories(uploadPath); // 디렉토리가 없으면 생성
-                Path filePath = uploadPath.resolve(uniqueFilename);
-                Files.write(filePath, fileBytes);
-                System.out.println("최종 PDF 파일 시스템에 저장: " + filePath.toString());
-            } catch (Exception e) {
-                System.err.println("최종 PDF 파일 시스템 저장 오류: " + e.getMessage());
-                // 파일 시스템 저장 실패해도 메모리 캐시는 유지
-            }
-        } else {
-            // 원본 PDF는 메모리에만 저장
-            System.out.println("원본 PDF는 메모리에만 저장 (서버 저장 안함): " + uniqueFilename);
-        }
-         
-         // 파일 해시값 계산
-        String fileHash = generateFileHash(fileBytes);
-        
+
+
         // PDF 정보 객체 생성
         PdfDTO pdfDTO = new PdfDTO();
         pdfDTO.setFilePath(uniqueFilename);
-        pdfDTO.setFileHash(fileHash);
+
         pdfDTO.setCreatedAt(new Date());
         pdfDTO.setContractId(contractId);
-        
-        // 임시 계약이 아닌 경우만 DB에 저장
-        if (!isTemporary) {
-            pdfMapper.insertPdf(pdfDTO);
-            System.out.println("PDF 정보 DB에 저장: " + pdfDTO.getFilePath());
-        } else {
-            // 임시 파일에 대한 가상 ID 할당
-            pdfDTO.setPdfId(-1L);
-            System.out.println("임시 PDF 파일 (DB 저장 안함): " + pdfDTO.getFilePath());
+
+
+        // 임시 파일에 대한 가상 ID 할당
+        pdfDTO.setPdfId(-1L);
+        System.out.println("임시 PDF 파일 (DB 저장 안함): " + pdfDTO.getFilePath());
+
+
+        return pdfDTO;
+    };
+    
+    // PDF 업로드 및 저장 (메모리 + 파일 시스템 사용)
+    public PdfDTO uploadFinalPdf(MultipartFile file, Long contractId) throws IOException, NoSuchAlgorithmException {
+        System.out.println("PdfService.uploadPdf: 파일명=" + file.getOriginalFilename() + ", 계약ID=" + contractId);
+
+        // 업로드된 PDF 파일(MultipartFile)을 InputStream으로 변환
+        InputStream inputStreamPDF = file.getInputStream();
+
+        String outputFileName = createOutputFileName(file.getOriginalFilename(), contractId);
+
+        try {
+            PdfSignerService.signPdf(
+                    inputStreamPDF,     // 원본 PDF
+                    outputFileName,
+                    keyStorePath,           // 생성한 키스토어
+                    keyStorePassword,                    // 비밀번호
+                    "contract-signing-key",            // alias
+                    signedPdfPath
+            );
+            System.out.println("✅ 서명 완료: contract-signed.pdf");
+        } catch (Exception e) {
+            System.err.println("서명 중 오류 발생: " + e.getMessage());
         }
+
+        Path signedFilePath = Paths.get(signedPdfPath).resolve(outputFileName);
+        String hash = HashUtil.sha256(signedFilePath.toString());
+
+        //DB 저장 주소
+        String dbFilePath = "files/signed_pdf/" + outputFileName;
         
+        // PDF 정보 객체 생성
+        PdfDTO pdfDTO = new PdfDTO();
+        pdfDTO.setFilePath(dbFilePath);
+        pdfDTO.setFileHash(hash);
+        pdfDTO.setCreatedAt(new Date());
+        pdfDTO.setContractId(contractId);
+        pdfMapper.insertPdf(pdfDTO);
+
         return pdfDTO;
     }
     
@@ -216,35 +219,23 @@ public class PdfService {
         }
         return 0;
     }
-    
-    // 파일 해시 생성
-    private String generateFileHash(byte[] data) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(data);
-            
-            // 바이트 배열을 16진수 문자열로 변환
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) {
-                    hexString.append('0');
-                }
-                hexString.append(hex);
-            }
-            return hexString.toString();
-        } catch (NoSuchAlgorithmException e) {
-            return null;
+
+    private String createOutputFileName(String originalFileName, Long contractId) {
+        if (originalFileName == null || originalFileName.isEmpty()) {
+            throw new IllegalArgumentException("Original file name cannot be null or empty");
         }
-    }
-    
-    // 파일 해시 생성 (Path 버전 - 기존 코드 호환성 유지)
-    private String generateFileHash(Path filePath) {
-        try {
-            byte[] data = Files.readAllBytes(filePath);
-            return generateFileHash(data);
-        } catch (IOException e) {
-            return null;
+        if (contractId == null || contractId <= 0) {
+            throw new IllegalArgumentException("Contract ID must be a positive number");
         }
+        System.out.println("Creating output file name for contract ID: " + contractId + ", original file name: " + originalFileName);
+
+        // 파일 이름에서 확장자 추출
+        String extension = originalFileName.substring(originalFileName.lastIndexOf("."));
+        // UUID를 사용하여 고유한 파일 이름 생성
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+        String timestamp = LocalDateTime.now().format(fmt);
+
+        return String.format("signed_%d_%s_%s%s", contractId, timestamp, UUID.randomUUID(), extension);
     }
 } 

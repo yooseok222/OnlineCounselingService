@@ -24,7 +24,7 @@ public class CustomAuthenticationFailureHandler extends SimpleUrlAuthenticationF
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
                                         AuthenticationException exception) throws IOException, ServletException {
         
-        log.debug("인증 실패: 예외 타입={}, 메시지={}", exception.getClass().getName(), exception.getMessage());
+        //log.debug("인증 실패: 예외 타입={}, 메시지={}", exception.getClass().getName(), exception.getMessage());
         
         String errorMessage;
         String email = request.getParameter("email");

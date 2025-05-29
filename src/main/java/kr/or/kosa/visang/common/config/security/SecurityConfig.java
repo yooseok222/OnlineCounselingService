@@ -1,6 +1,7 @@
 package kr.or.kosa.visang.common.config.security;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -24,6 +25,12 @@ import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+
+    @Value("${http.port}")
+    private int httpPort;
+
+    @Value("${server.port}")
+    private int httpsPort;
 
     private final CustomUserDetailsService userDetailsService;
     private final String REMEMBER_ME_KEY = "visangSecretKey";
@@ -98,32 +105,32 @@ public class SecurityConfig {
         return (request, response, authentication) -> {
             // 원래 요청했던 URL 확인 (Spring Security가 자동으로 저장)
             String redirectUrl = request.getParameter("redirectUrl");
-            
+
             if (redirectUrl != null && !redirectUrl.isEmpty()) {
                 response.sendRedirect(redirectUrl);
                 return;
             }
-            
+
             // SavedRequest에서 원래 요청 URL 확인
-            var savedRequest = (org.springframework.security.web.savedrequest.SavedRequest) 
+            var savedRequest = (org.springframework.security.web.savedrequest.SavedRequest)
                 request.getSession().getAttribute("SPRING_SECURITY_SAVED_REQUEST");
-            
+
             if (savedRequest != null) {
                 String originalUrl = savedRequest.getRedirectUrl();
-                
+
                 // 초대링크인 경우 원래 URL로 리다이렉트
                 if (originalUrl != null && originalUrl.contains("/client/invitation")) {
                     response.sendRedirect(originalUrl);
                     return;
                 }
             }
-            
+
             // 기본 역할별 리다이렉트
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-            
+
             switch (userDetails.getRole()) {
                 case "USER":
-                    response.sendRedirect("/user/dashboard");
+                    response.sendRedirect("/client/dashboard");
                     break;
                 case "AGENT":
                     response.sendRedirect("/agent/dashboard");
@@ -146,10 +153,16 @@ public class SecurityConfig {
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
+        http.requiresChannel(channel -> channel.anyRequest().requiresSecure())
+                // 포트 매핑은 동일하게 지정
+                .portMapper(mapper -> mapper
+                        .http(httpPort).mapsTo(httpsPort)
+                )
             .authorizeHttpRequests(authorize -> authorize
                 // 정적 리소스 접근 허용
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico").permitAll()
+                // 업로드된 이미지 파일 접근 허용
+                .requestMatchers("/stamp/image/**", "/client/profile/image/**").permitAll()
                 // H2 콘솔 접근 허용
                 .requestMatchers("/h2-console/**").permitAll()
                 // 공개 페이지 접근 허용
@@ -169,6 +182,11 @@ public class SecurityConfig {
                     // 고객 입장 페이지 - 인증 필요 (초대링크 검증 후 접근)
                     .requestMatchers("/client-entry").authenticated()
                     // 사용자 페이지 접근 권한 설정
+                    // 도장 관련 페이지 접근 허용 (인증된 사용자만)
+                    .requestMatchers("/stamp/**").authenticated()
+                    // 클라이언트 페이지 접근 권한 설정
+                .requestMatchers("/client/**").hasRole("USER")
+                // 사용자 페이지 접근 권한 설정 (기존 호환성)
                 .requestMatchers("/user/**").hasRole("USER")
                 // 상담원 페이지 접근 권한 설정
                 .requestMatchers("/agent/**").hasRole("AGENT")
@@ -208,7 +226,7 @@ public class SecurityConfig {
             )
             .csrf(csrf -> csrf
                 // H2 콘솔 및 API는 CSRF 비활성화
-                .ignoringRequestMatchers("/h2-console/**", "/api/**")
+                .ignoringRequestMatchers("/h2-console/**", "/api/**", "/stamp/api/**", "/client/api/**")
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
             )
             // H2 콘솔 사용을 위한 설정

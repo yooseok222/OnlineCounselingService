@@ -32,22 +32,22 @@ public class ChatStompController {
     public void sendMessageLegacy(@Payload ChatMessage message, Authentication authentication) {
         try {
             log.info("레거시 채팅 메시지 수신: contractId={}", message.getContractId());
-            
+
             // 로그인한 사용자로 설정
             if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
                 CustomUserDetails user = (CustomUserDetails) authentication.getPrincipal();
                 message.setSender(user.getName());
             }
-            
+
             // 시간 설정
             message.setTimestamp(LocalDateTime.now());
-            
+
             // DB 저장
             chatService.saveMessageToRedis(message);
 
             // 브로드 캐스트 (레거시 토픽 사용)
             template.convertAndSend("/topic/chat/" + message.getContractId(), message);
-            
+
         } catch (Exception e) {
             log.error("레거시 채팅 메시지 처리 중 오류 발생", e);
         }
@@ -63,7 +63,7 @@ public class ChatStompController {
                 CustomUserDetails user = (CustomUserDetails) authentication.getPrincipal();
                 message.setSender(user.getName());
             }
-            
+
             message.setType(ChatMessage.MessageType.JOIN);
             message.setTimestamp(LocalDateTime.now());
 
@@ -72,7 +72,7 @@ public class ChatStompController {
 
             //토픽 발행 (레거시 토픽 사용)
             template.convertAndSend("/topic/chat/" + message.getContractId(), message);
-            
+
         } catch (Exception e) {
             log.error("레거시 사용자 입장 처리 중 오류 발생", e);
         }
@@ -86,7 +86,7 @@ public class ChatStompController {
         try {
             if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
                 CustomUserDetails user = (CustomUserDetails) authentication.getPrincipal();
-                
+
                 Long roomId = message.getContractId();
                 String name = user.getName();
 

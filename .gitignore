@@ -278,3 +278,6 @@ $RECYCLE.BIN/
 build/*
 
 *.p12
+
+# 업로드 파일 무시
+upload/*

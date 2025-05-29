@@ -42,7 +42,13 @@ public class ContractService {
         return contractMapper.selectAllContracts();
     }
     // 계약관련 비즈니스 로직 구현
-
+    public Long getPdfIdByContractId(Long contractId) {
+        // 계약 ID를 사용하여 PDF ID를 조회하는 로직을 구현합니다.
+        Long pdfId = contractMapper.selectPdfIdByContractId(contractId);
+        if (pdfId == null)
+            throw new RuntimeException("해당 계약 ID에 대한 PDF ID를 찾을 수 없습니다.");
+        return pdfId;
+    }
 
     //searchContracts
     public PageResult<Contract> searchContracts(ContractSearchRequest request, PageRequest pageRequest) {
@@ -459,7 +465,7 @@ public class ContractService {
                 System.err.println("채팅 기록 저장 실패: " + chatException.getMessage());
                 // 채팅 기록 저장 실패해도 상담 종료는 계속 진행
             }
-            
+
             // 2. 계약 상태를 'COMPLETED'로 변경하고 메모 업데이트
             int result = contractMapper.endConsultation(contractId, memo);
             
@@ -638,14 +644,112 @@ public class ContractService {
     public void updateCallContractStatus(Long contractId, String status) {
         System.out.println("=== 계약 상태 변경 ===");
         System.out.println("계약 ID: " + contractId + ", 새 상태: " + status);
-        
+
         int updated = contractMapper.updateStatus(contractId, status);
-        
+
         if (updated == 0) {
             System.err.println("계약 상태 변경 실패 - 업데이트된 행이 없음");
             throw new RuntimeException("계약 상태 변경에 실패했습니다. contractId: " + contractId);
         } else {
             System.out.println("계약 상태 변경 성공");
         }
+    }
+
+    public boolean isParticipant(Long roomId, Long userId) {
+        Contract contract = contractMapper.selectContractById(roomId);
+        if (contract == null) {
+            return false;
+        }
+        return (contract.getAgentId() != null && contract.getAgentId().equals(userId))
+                || (contract.getClientId() != null && contract.getClientId().equals(userId));
+    }
+
+    /**
+     * 고객의 오늘 계약 조회
+     * @param clientId 고객 ID
+     * @return 오늘의 계약 목록
+     */
+    public List<Contract> getTodayContractsByClientId(Long clientId) {
+        // 오늘 날짜의 계약만 조회
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        String today = sdf.format(new Date());
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("clientId", clientId);
+        params.put("contractDate", today);
+        params.put("status", "PENDING"); // 예약된 상태만
+
+        return contractMapper.selectTodayContractsByClientId(params);
+    }
+
+    /**
+     * 고객별 계약 상태 카운트 조회
+     * @param clientId 고객 ID
+     * @return 상태별 계약 수
+     */
+    public Map<String, Integer> getContractCountsByClientId(Long clientId) {
+        Map<String, Integer> rawCounts = contractMapper.selectContractCountsByClientId(clientId);
+
+        // 대소문자 문제를 해결하기 위해 명시적으로 키를 매핑
+        Map<String, Integer> counts = new HashMap<>();
+        counts.put("pending", getIntValueFromMap(rawCounts, "pending", "PENDING"));
+        counts.put("inProgress", getIntValueFromMap(rawCounts, "inProgress", "INPROGRESS"));
+        counts.put("completed", getIntValueFromMap(rawCounts, "completed", "COMPLETED"));
+        counts.put("canceled", getIntValueFromMap(rawCounts, "canceled", "CANCELED"));
+        counts.put("total", getIntValueFromMap(rawCounts, "total", "TOTAL"));
+
+        return counts;
+    }
+
+    private Integer getIntValueFromMap(Map<String, Integer> map, String... keys) {
+        for (String key : keys) {
+            if (map.containsKey(key)) {
+                Object value = map.get(key);
+                if (value instanceof Integer) {
+                    return (Integer) value;
+                } else if (value instanceof java.math.BigDecimal) {
+                    return ((java.math.BigDecimal) value).intValue();
+                } else if (value instanceof Number) {
+                    return ((Number) value).intValue();
+                }
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * 고객별 계약 목록 페이징 조회
+     * @param clientId 고객 ID
+     * @param status 계약 상태 (선택사항)
+     * @param page 페이지 번호
+     * @param size 페이지 크기
+     * @return 페이징된 계약 목록
+     */
+    public Map<String, Object> getContractsByClientIdPaged(Long clientId, String status, int page, int size) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("clientId", clientId);
+        params.put("status", status);
+        params.put("offset", (page - 1) * size);
+        params.put("pageSize", size);
+
+        List<Contract> contracts = contractMapper.selectContractsByClientIdPaged(params);
+        int totalCount = contractMapper.countContractsByClientId(params);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("contracts", contracts);
+        result.put("totalCount", totalCount);
+        result.put("totalPages", (int) Math.ceil((double) totalCount / size));
+
+        return result;
+    }
+
+    /**
+     * 계약 취소
+     * @param contractId 계약 ID
+     * @return 업데이트된 행 수
+     */
+    @Transactional
+    public int cancelContract(Long contractId) {
+        return contractMapper.updateContractStatus(contractId, "CANCELED");
     }
 }

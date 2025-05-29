@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <title>에러 발생</title>
+    <style>
+        body { font-family: 'Pretendard', sans-serif; background: #f9f9f9; text-align: center; margin-top: 100px; }
+        .error-card { background: white; padding: 40px 60px; border-radius: 18px; box-shadow: 0 4px 16px #0002; display: inline-block; }
+        h1 { color: #e54b4b; }
+        p { font-size: 18px; color: #555; }
+    </style>
+</head>
+<body>
+<div class="error-card">
+    <h1>⚠️ 에러가 발생했습니다</h1>
+    <p th:text="${message}"></p>
+    <small th:text="'오류 코드: ' + ${code}"></small>
+</div>
+</body>
+</html>

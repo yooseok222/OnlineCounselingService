@@ -17,8 +17,10 @@
         SELECT CONTRACT_TEMPLATE_SEQ.NEXTVAL FROM dual
     </select>
 
-    <select id="getPath" resultType="string">
-        SELECT file_path FROM contract_templates
+    <select id="getPathAndHash" resultType="kr.or.kosa.visang.domain.contractTemplate.model.ContractTemplate">
+        SELECT file_path AS filePath,
+               file_hash AS fileHash
+        FROM contract_templates
         WHERE contract_template_id = #{contractTemplateId}
     </select>
 
@@ -37,10 +39,10 @@
 
     <insert id="insertTemplate">
         INSERT INTO contract_templates (
-        contract_template_id, company_id, contract_name, descript, file_path, version, created_at, updated_at
+        contract_template_id, company_id, contract_name, descript, file_path, version, created_at, updated_at, file_hash
         )
         VALUES (
-        #{contractTemplateId}, #{companyId}, #{contractName}, #{descript}, #{filePath}, #{version}, SYSTIMESTAMP, SYSTIMESTAMP
+        #{contractTemplateId}, #{companyId}, #{contractName}, #{descript}, #{filePath}, #{version}, SYSTIMESTAMP, SYSTIMESTAMP, #{fileHash}
         )
     </insert>
 
@@ -51,11 +53,25 @@
             descript = #{descript},
             file_path = #{filePath},
             version = #{version},
-            updated_at = SYSTIMESTAMP
+            updated_at = SYSTIMESTAMP,
+            file_hash = #{fileHash}
         WHERE contract_template_id = #{contractTemplateId}
     </update>
     <delete id="deleteTemplate" >
         DELETE FROM contract_templates
         WHERE contract_template_id = #{contractTemplateId}
     </delete>
+
+    <select id="selectByCompanyId" resultMap="ContractTemplateResultMap" parameterType="long">
+        SELECT contract_template_id, company_id, contract_name, descript, file_path, version, created_at, updated_at
+        FROM contract_templates
+        WHERE company_id = #{companyId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findByFileHash" resultMap="ContractTemplateResultMap">
+        SELECT contract_template_id, company_id, contract_name, descript, file_path, version, created_at, updated_at
+        FROM contract_templates
+        WHERE file_hash = #{fileHash}
+    </select>
 </mapper>

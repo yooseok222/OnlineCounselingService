@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="content">
+	<main class="dashboard-content">
+		<!-- 페이지 헤더 -->
+		<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+			<h1 class="h2">나의 계약 현황</h1>
+		</div>
+		
+		<!-- 상태별 필터 탭 -->
+		<div class="row mb-4">
+			<div class="col-12">
+				<ul class="nav nav-tabs">
+					<li class="nav-item">
+						<a class="nav-link" th:classappend="${selectedStatus == null ? 'active' : ''}" 
+						   th:href="@{/client/contracts}">
+							전체
+						</a>
+					</li>
+					<li class="nav-item">
+						<a class="nav-link" th:classappend="${selectedStatus == 'PENDING' ? 'active' : ''}" 
+						   th:href="@{/client/contracts(status='PENDING')}">
+							예정
+						</a>
+					</li>
+					<li class="nav-item">
+						<a class="nav-link" th:classappend="${selectedStatus == 'IN_PROGRESS' ? 'active' : ''}" 
+						   th:href="@{/client/contracts(status='IN_PROGRESS')}">
+							진행중
+						</a>
+					</li>
+					<li class="nav-item">
+						<a class="nav-link" th:classappend="${selectedStatus == 'COMPLETED' ? 'active' : ''}" 
+						   th:href="@{/client/contracts(status='COMPLETED')}">
+							완료
+						</a>
+					</li>
+					<li class="nav-item">
+						<a class="nav-link" th:classappend="${selectedStatus == 'CANCELED' ? 'active' : ''}" 
+						   th:href="@{/client/contracts(status='CANCELED')}">
+							취소
+						</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+		
+		<!-- 계약 목록 -->
+		<div class="row">
+			<div class="col-12">
+				<div class="card">
+					<div class="card-body">
+						<div th:if="${contracts.empty}" class="text-center py-5">
+							<i class="bi bi-inbox fs-1 text-muted"></i>
+							<p class="mt-3 text-muted">
+								<span th:if="${selectedStatus == null}">계약 내역이 없습니다.</span>
+								<span th:if="${selectedStatus == 'PENDING'}">예정된 계약이 없습니다.</span>
+								<span th:if="${selectedStatus == 'IN_PROGRESS'}">진행중인 계약이 없습니다.</span>
+								<span th:if="${selectedStatus == 'COMPLETED'}">완료된 계약이 없습니다.</span>
+								<span th:if="${selectedStatus == 'CANCELED'}">취소된 계약이 없습니다.</span>
+							</p>
+						</div>
+						
+						<div th:unless="${contracts.empty}" class="table-responsive">
+							<table class="table table-hover">
+								<thead>
+									<tr>
+										<th>계약번호</th>
+										<th>계약일시</th>
+										<th>상담사</th>
+										<th>상태</th>
+										<th>메모</th>
+										<th>생성일</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr th:each="contract : ${contracts}">
+										<td th:text="${contract.contractId}"></td>
+										<td th:text="${contract.contractTime != null ? contract.contractTime : '-'}"></td>
+										<td th:text="${contract.agentName ?: '-'}"></td>
+										<td>
+											<span class="badge" 
+												th:classappend="${contract.status == 'PENDING' ? 'bg-warning text-dark' : 
+															   contract.status == 'IN_PROGRESS' ? 'bg-primary' : 
+															   contract.status == 'COMPLETED' ? 'bg-success' : 
+															   contract.status == 'CANCELED' ? 'bg-danger' : 'bg-secondary'}"
+												th:text="${contract.status}"></span>
+										</td>
+										<td>
+											<span th:if="${contract.memo != null and contract.memo.length() > 30}"
+												  th:text="${contract.memo.substring(0, 30) + '...'}"
+												  th:title="${contract.memo}"></span>
+											<span th:unless="${contract.memo != null and contract.memo.length() > 30}"
+												  th:text="${contract.memo ?: '-'}"></span>
+										</td>
+										<td th:text="${contract.createdAt != null ? #strings.substring(contract.createdAt, 0, 10) : '-'}"></td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+						
+						<!-- 페이징 -->
+						<div th:if="${totalPages > 1}" class="d-flex justify-content-center mt-4">
+							<nav aria-label="Page navigation">
+								<ul class="pagination">
+									<!-- 이전 페이지 -->
+									<li class="page-item" th:classappend="${currentPage == 1 ? 'disabled' : ''}">
+										<a class="page-link" 
+										   th:href="@{/client/contracts(page=${currentPage - 1}, status=${selectedStatus})}"
+										   tabindex="-1">이전</a>
+									</li>
+									
+									<!-- 페이지 번호 -->
+									<li th:each="i : ${#numbers.sequence(1, totalPages)}" 
+										class="page-item" 
+										th:classappend="${i == currentPage ? 'active' : ''}">
+										<a class="page-link" 
+										   th:href="@{/client/contracts(page=${i}, status=${selectedStatus})}"
+										   th:text="${i}"></a>
+									</li>
+									
+									<!-- 다음 페이지 -->
+									<li class="page-item" th:classappend="${currentPage == totalPages ? 'disabled' : ''}">
+										<a class="page-link" 
+										   th:href="@{/client/contracts(page=${currentPage + 1}, status=${selectedStatus})}">다음</a>
+									</li>
+								</ul>
+							</nav>
+						</div>
+						
+						<!-- 총 건수 표시 -->
+						<div class="text-center text-muted mt-3">
+							총 <span th:text="${totalCount}"></span>건
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+</div>
+
+<div th:fragment="script">
+<script th:inline="javascript">
+$(document).ready(function() {
+	// 페이지 로드 시 초기화
+	console.log('나의 계약 현황 페이지 로드');
+	
+	// 계약 상태별 색상 적용
+	$('.badge').each(function() {
+		const status = $(this).text();
+		switch(status) {
+			case 'PENDING':
+				$(this).text('예정');
+				break;
+			case 'IN_PROGRESS':
+				$(this).text('진행중');
+				break;
+			case 'COMPLETED':
+				$(this).text('완료');
+				break;
+			case 'CANCELED':
+				$(this).text('취소');
+				break;
+		}
+	});
+	
+	// 테이블 행 클릭 시 상세 정보 표시 (추후 구현 가능)
+	$('tbody tr').click(function() {
+		const contractId = $(this).find('td:first').text();
+		console.log('계약 ID:', contractId);
+		// 추후 상세 모달이나 페이지로 이동 구현 가능
+	});
+});
+</script>
+</div>
+</html> 

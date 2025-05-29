@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import kr.or.kosa.visang.domain.contract.model.*;
+import kr.or.kosa.visang.domain.contractTemplate.model.ContractTemplate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -12,6 +13,8 @@ import org.apache.ibatis.annotations.Param;
 public interface ContractMapper {
     // 모든 계약 조회
     List<Contract> selectAllContracts();
+
+    Long selectPdfIdByContractId(Long contractId);
 
     List<Contract> selectContractByStatus(
             @Param("companyId") Long companyId,
@@ -106,8 +109,6 @@ public interface ContractMapper {
 
     List<Map<String, Object>> countContractByStatus(Long agentId);
 
-    List<Contract> selectContractsByAgentIdAndStatus(Map<String, Object> param);
-
     List<Contract> selectContractsByAgentIdAndStatusPaged(
             @Param("agentId") Long agentId,
             @Param("status") String status,
@@ -126,6 +127,21 @@ public interface ContractMapper {
             @Param("agentId") Long agentId, 
             @Param("clientId") Long clientId
     );
+    
+    // 고객의 오늘 계약 조회
+    List<Contract> selectTodayContractsByClientId(Map<String, Object> params);
+    
+    // 고객별 계약 상태 카운트
+    Map<String, Integer> selectContractCountsByClientId(Long clientId);
+    
+    // 고객별 계약 목록 페이징 조회
+    List<Contract> selectContractsByClientIdPaged(Map<String, Object> params);
+    
+    // 고객별 계약 총 개수 (페이징용)
+    int countContractsByClientId(Map<String, Object> params);
+
+    /*int updateStatus(@Param("contractId") Long contractId,
+                     @Param("status")     String status);*/
 
     // 통화시작 계약상태 업데이트
     int updateStatus(@Param("contractId") Long contractId,

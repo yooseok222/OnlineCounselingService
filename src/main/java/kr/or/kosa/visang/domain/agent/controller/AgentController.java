@@ -8,6 +8,7 @@ import kr.or.kosa.visang.domain.contract.model.Contract;
 import kr.or.kosa.visang.domain.contract.model.Page;
 import kr.or.kosa.visang.domain.contract.model.Schedule;
 import kr.or.kosa.visang.domain.contract.service.ContractService;
+import kr.or.kosa.visang.domain.contractTemplate.model.ContractTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +42,10 @@ public class AgentController {
     public String dashboard(@AuthenticationPrincipal CustomUserDetails user,
                             Model model) {
 
+        Long companyId = user.getCompanyId();
+        model.addAttribute("companyId", companyId);
+        model.addAttribute("templates", agentService.findByCompanyId(companyId));
+
 
         if ("AGENT".equals(user.getRole())) {
             model.addAttribute("agentId", user.getAgentId());
@@ -71,22 +76,22 @@ public class AgentController {
     public ResponseEntity<Map<String, String>> addSchedule(@RequestBody Schedule dto, HttpServletRequest request) {
         try {
             Map<String, String> result = agentService.addSchedule(dto, request);
-            
+
             // 상담원 입장 링크 생성 (/agent-entry로 먼저 이동 후 상담실 입장)
-            String agentEntryUrl = String.format("/agent-entry?contractId=%s&session=%s", 
+            String agentEntryUrl = String.format("/agent-entry?contractId=%s&session=%s",
                     result.get("contractId"), result.get("consultingSessionId"));
-            
+
             // 최종 상담실 링크도 포함
-            String agentRoomUrl = String.format("/contract/room?contractId=%s&role=agent&session=%s", 
+            String agentRoomUrl = String.format("/contract/room?contractId=%s&role=agent&session=%s",
                     result.get("contractId"), result.get("consultingSessionId"));
-            
-            log.info("스케줄 생성 완료 - 초대코드: {}, 상담원 입장링크: {}, 최종 상담실링크: {}", 
+
+            log.info("스케줄 생성 완료 - 초대코드: {}, 상담원 입장링크: {}, 최종 상담실링크: {}",
                     result.get("invitationCode"), agentEntryUrl, agentRoomUrl);
-            
+
             // 응답에 상담원 링크들 포함
             result.put("agentEntryUrl", agentEntryUrl);
             result.put("agentRoomUrl", agentRoomUrl);
-            
+
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             log.error("스케줄 생성 실패: {}", e.getMessage(), e);
@@ -171,6 +176,13 @@ public class AgentController {
         return result;
     }
 
+    // 로그인된 상담사의 companyId로 계약서 템플릿 목록 가져오기
+    @GetMapping("/contract-templates")
+    @ResponseBody
+    public List<ContractTemplate> getContractTemplates(@AuthenticationPrincipal CustomUserDetails user) {
+        return agentService.findByCompanyId(user.getCompanyId());
+    }
+
     //통화시작 '진행중' 업데이트
     @PutMapping("/schedule/status/{contractId}")
     public ResponseEntity<Map<String, Boolean>> updateStatus(
@@ -182,8 +194,8 @@ public class AgentController {
         }
 
         try {
-            contractService.updateCallContractStatus(contractId, newStatus);
-            return ResponseEntity.ok(Map.of("updated", true));
+        contractService.updateCallContractStatus(contractId, newStatus);
+        return ResponseEntity.ok(Map.of("updated", true));
         } catch (Exception e) {
             log.error("계약 상태 변경 실패 - 계약 ID: {}, 상태: {}, 오류: {}", contractId, newStatus, e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("updated", false));

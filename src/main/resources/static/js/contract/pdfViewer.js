@@ -334,7 +334,7 @@ function handlePdfUpload(event) {
   console.log("PDF 업로드 시작:", file.name, "세션 ID:", sessionId);
 
   // 서버로 파일 업로드
-  fetch('/upload', {
+  fetch('/upload/temp', {
     method: 'POST',
     headers: {
       [header]: token,

@@ -192,3 +192,8 @@
 .fc .fc-toolbar-chunk .fc-button {
   margin-right: 0.5rem;
 }
+
+/* 툴바 챙크에서 넘치는 버튼도 보이도록 */
+.fc .fc-toolbar-chunk {
+  overflow: visible !important;
+}

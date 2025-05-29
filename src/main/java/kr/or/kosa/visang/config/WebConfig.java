@@ -21,6 +21,9 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${file.upload-dir.pdf}")
     private String uploadDirPdf;
 
+    @Value("${file.upload-dir.signed-pdf}")
+    private String uploadDirSignedPdf;
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         // /images/profile/** → upload/profile 폴더 매핑
@@ -30,6 +33,10 @@ public class WebConfig implements WebMvcConfigurer {
         // PDF 파일 매핑
         registry.addResourceHandler("/files/pdf/**")
                 .addResourceLocations("file:" + uploadDirPdf + "/");
+
+        // PDF 파일 매핑
+        registry.addResourceHandler("/files/signed-pdf/**")
+                .addResourceLocations("file:" + uploadDirSignedPdf + "/");
 
         // 채팅 내역 다운로드 파일
         // /files/** 요청 -> data/chats/ 폴더 매핑

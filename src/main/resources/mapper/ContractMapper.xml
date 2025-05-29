@@ -56,13 +56,16 @@
         <result column="contract_id" property="contractId"/>
         <result column="status" property="status"/>
         <result column="created_at" property="createdAt"/>
+        <result column="company_id" property="companyId"/>
         <result column="contract_time" property="contractTime"/>
         <result column="client_id" property="clientId"/>
         <result column="agent_id" property="agentId"/>
-        <result column="contract_template_id"
-                property="contractTemplateId"/>
+        <result column="contract_template_id" property="contractTemplateId"/>
         <result column="memo" property="memo"/>
         <result column="client_name" property="clientName"/>
+        <result column="client_email"       property="clientEmail"/>
+        <result column="agent_name" property="agentName"/>
+        <result column="invitation_code" property="invitationCode"/>
     </resultMap>
     <!--<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
@@ -74,7 +77,7 @@
         <result column="contract_time" property="contractTime" jdbcType="VARCHAR"/>
         <result column="agent_id" property="agentId" jdbcType="VARCHAR"/>
         <result column="client_id" property="clientId" jdbcType="VARCHAR"/>
-        <result column="contract_template_id" property="templateId" jdbcType="VARCHAR"/>
+        <result column="contract_template_id" property="contractTemplateId" jdbcType="VARCHAR"/>
         <result column="memo" property="memo" jdbcType="CLOB"/>
         <result column="client_email" property="clientEmail" jdbcType="VARCHAR"/>
     </resultMap>
@@ -87,8 +90,7 @@
         <result column="agent_name"    property="agentName"/>
     </resultMap>
 
-	<resultMap id="scheduleResultMap"
-		type="kr.or.kosa.visang.domain.contract.model.Schedule">
+	<resultMap id="scheduleResultMap" type="kr.or.kosa.visang.domain.contract.model.Schedule">
 		<result column="contract_id" property="contractId" />
 		<result column="created_at" property="createdAt" jdbcType="VARCHAR" />
 		<result column="status" property="status" />
@@ -99,10 +101,12 @@
 		<result column="email" property="email" />
 		<result column="name" property="clientName" />
 		<result column="phone_number" property="phoneNumber" />
-
 		<result column="time" property="time" />
-		<result column="invitation_code" property="invitationCode" />
-	</resultMap>
+		<result column="contract_template_id" property="contractTemplateId" />
+        <result column="contractTemplateName"  property="contractTemplateName"/>
+        <result column="company_id" property="companyId" />
+        <result column="invitation_code" property="invitationCode" />
+    </resultMap>
 
 	<resultMap id="CompleteCountsByMonthResultMap" type="kr.or.kosa.visang.domain.contract.model.ContractCompleteCountsByMonthDTO">
 		<result property="firstMonthCount" column="first_month_count"/>
@@ -133,8 +137,8 @@
 		cl.name   AS client_name,
 		a.name    AS agent_name
 		FROM contract c
-		JOIN client cl ON c.client_id = cl.client_id
-		JOIN agent  a  ON c.agent_id  = a.agent_id
+		LEFT JOIN client cl ON c.client_id = cl.client_id
+		LEFT JOIN agent  a  ON c.agent_id  = a.agent_id
 		WHERE c.company_id = #{companyId}
 		AND c.status     = 'COMPLETED'
 		ORDER BY c.contract_time DESC
@@ -150,8 +154,8 @@
 					 cl.name   AS client_name,
 					 a.name    AS agent_name
 				 FROM contract c
-						  JOIN client cl ON c.client_id = cl.client_id
-						  JOIN agent  a  ON c.agent_id  = a.agent_id
+						  LEFT JOIN client cl ON c.client_id = cl.client_id
+						  LEFT JOIN agent  a  ON c.agent_id  = a.agent_id
 				 WHERE c.company_id = #{companyId}
 				   AND c.status     = 'IN_PROGRESS'
 				 ORDER BY c.contract_time DESC
@@ -205,15 +209,25 @@
             SELECT contract_seq.NEXTVAL FROM DUAL
         </selectKey>
         INSERT INTO contract (
-        contract_id, status, created_at, contract_time, client_id, agent_id, memo
+        contract_id,
+        status,
+        created_at,
+        contract_time,
+        company_id,
+        client_id,
+        agent_id,
+        memo,
+        contract_template_id
         ) VALUES (
-        #{contractId},
-        #{status},
+        #{contractId,      jdbcType=NUMERIC},
+        #{status,          jdbcType=VARCHAR},
         TO_DATE(#{createdAt}, 'YYYY-MM-DD HH24:MI:SS'),
         TO_DATE(#{contractTime}, 'YYYY-MM-DD HH24:MI'),
-        #{clientId},
-        #{agentId},
-        #{memo, jdbcType=CLOB}
+        #{companyId,       jdbcType=NUMERIC},
+        #{clientId,        jdbcType=NUMERIC},
+        #{agentId,         jdbcType=NUMERIC},
+        #{memo,            jdbcType=CLOB},
+        #{contractTemplateId,      jdbcType=NUMERIC}
         )
     </insert>
 
@@ -221,6 +235,8 @@
             resultMap="scheduleResultMap">
         SELECT
         c.contract_id,
+        c.company_id,
+        c.contract_template_id,
         c.created_at,
         c.status,
         c.contract_time,
@@ -232,7 +248,7 @@
         cl.phone_number
         FROM
         contract c
-        JOIN client cl ON c.client_id = cl.client_id
+        LEFT JOIN client cl ON c.client_id = cl.client_id
         WHERE c.agent_id
         = #{agentId}
         ORDER BY c.contract_time
@@ -287,28 +303,29 @@
 
     <select id="findTodayContracts" parameterType="map" resultMap="scheduleResultMap">
         SELECT
-        c.contract_id,
-        c.created_at,
-        c.status,
-        c.contract_time,
-        TO_CHAR(c.contract_time, 'HH24:MI') AS time,
-        i.invitation_code,
-        cl.client_id,
-        cl.name,
-        cl.email,
-        cl.phone_number
+            c.contract_id,
+            c.created_at,
+            c.status,
+            c.contract_time,
+            TO_CHAR(c.contract_time, 'HH24:MI') AS time,
+            i.invitation_code,
+            cl.client_id,
+            cl.name,
+            cl.email AS email,
+            cl.phone_number,
+            tmpl.contract_name AS contractTemplateName
         FROM contract c
-        JOIN
-        client cl ON c.client_id = cl.client_id
-        LEFT JOIN invitation i ON
-        i.contract_id = c.contract_id
+        LEFT JOIN client cl
+        ON c.client_id = cl.client_id
+        LEFT JOIN invitation i
+        ON i.contract_id = c.contract_id
+        LEFT JOIN contract_templates tmpl
+        ON c.contract_template_id = tmpl.contract_template_id
         WHERE
-        TRUNC(c.contract_time) =
-        TO_DATE(#{date}, 'YYYY-MM-DD')
+        TRUNC(c.contract_time) = TO_DATE(#{date}, 'YYYY-MM-DD')
         AND c.agent_id = #{agentId}
         AND c.status = 'PENDING'
-        ORDER BY
-        c.contract_time
+        ORDER BY c.contract_time
     </select>
 
     <select id="findById" parameterType="long"
@@ -477,11 +494,11 @@
         ) VALUES (
         <!--#{contractId}, #{status}, TO_DATE(#{createdAt}, 'YYYY-MM-DD HH24:MI:SS'), #{clientId}, #{agentId}, #{memo}
         -->
-        #{contractId, jdbcType=NUMERIC}, 
-        #{status, jdbcType=VARCHAR}, 
-        TO_DATE(#{createdAt}, 'YYYY-MM-DD HH24:MI:SS'), 
-        #{clientId, jdbcType=NUMERIC}, 
-        #{agentId, jdbcType=NUMERIC}, 
+        #{contractId, jdbcType=NUMERIC},
+        #{status, jdbcType=VARCHAR},
+        TO_DATE(#{createdAt}, 'YYYY-MM-DD HH24:MI:SS'),
+        #{clientId, jdbcType=NUMERIC},
+        #{agentId, jdbcType=NUMERIC},
         #{memo, jdbcType=CLOB}
         )
     </insert>
@@ -538,16 +555,22 @@
 		) WHERE ROWNUM &lt;= 1
 	</select>
 
-    <select id="selectContractsByAgentIdAndStatusPaged"
-            resultMap="contractResultMap"
-            parameterType="map">
+    <select id="selectContractsByAgentIdAndStatusPaged" resultMap="contractResultMap" parameterType="map">
         <bind name="endIndex" value="offset + pageSize"/>
         SELECT *
         FROM (
         SELECT
-        c.*,
-        cl.name    AS client_name,
-        cl.email   AS client_email,
+        c.contract_id,
+        TO_CHAR(c.created_at,   'YYYY-MM-DD HH24:MI:SS') AS created_at,
+        c.company_id,
+        c.contract_template_id  AS contract_template_id,
+        c.contract_time,
+        c.agent_id,
+        c.client_id,
+        c.status,
+        cl.email                  AS client_email,
+        cl.name                   AS client_name,
+        c.memo,
         ROW_NUMBER() OVER (
         ORDER BY
         <choose>
@@ -560,7 +583,7 @@
         </choose>
         ) AS rn
         FROM contract c
-        JOIN client cl
+        LEFT JOIN client cl
         ON c.client_id = cl.client_id
         WHERE c.agent_id = #{agentId}
         AND c.status   = #{status}
@@ -576,6 +599,13 @@
         AND status = #{status}
     </select>
 
+    <!--contractID로 PDFID 조회-->
+    <select id="selectPdfIdByContractId" resultType="long">
+        SELECT pdf_id
+        FROM pdf
+        WHERE contract_id = #{contractId}
+    </select>
+
 	<!-- 계약 상세조회 -->
 	<select id="selectContractDetail" resultMap="contractDetailResultMap">
 		SELECT
@@ -585,18 +615,18 @@
 			, cl.profile_image_url AS client_profile_image_url, a.profile_image_url AS agent_profile_image_url
 			, ct.contract_name AS contract_name, ct.contract_template_id AS contract_template_id
 		FROM contract c
-				 JOIN client cl ON c.client_id = cl.client_id
-				 JOIN agent a ON c.agent_id = a.agent_id
-				 JOIN contract_templates ct ON c.contract_template_id = ct.contract_template_id
+				 LEFT JOIN client cl ON c.client_id = cl.client_id
+				 LEFT JOIN agent a ON c.agent_id = a.agent_id
+				 LEFT JOIN contract_templates ct ON c.contract_template_id = ct.contract_template_id
 		WHERE c.contract_id = #{contractId}
 	</select>
 
 	<!-- 계약 상세조회 (템플릿 없이) -->
 	<select id="selectContractDetailWithEmail" resultMap="contractDetailResultMap">
 		SELECT
-			c.contract_id, c.status, 
-			TO_CHAR(c.created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at, 
-			TO_CHAR(c.contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time, 
+			c.contract_id, c.status,
+			TO_CHAR(c.created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at,
+			TO_CHAR(c.contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time,
 			c.client_id, c.agent_id, c.memo,
 			cl.name AS client_name, cl.email AS client_email, cl.phone_number AS client_phone_number, cl.address AS client_address,
 			a.name AS agent_name, a.email AS agent_email, a.phone_number AS agent_phone_number, a.address AS agent_address,
@@ -618,7 +648,7 @@
 	<!-- agent_id와 client_id로 기존 계약 조회 (PENDING 상태) -->
 	<select id="selectContractByAgentAndClient" resultMap="ContractResultMap">
 		SELECT * FROM (
-			SELECT <include refid="baseColumns" />, 
+			SELECT <include refid="baseColumns" />,
 				   TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at,
 				   TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
 			FROM contract
@@ -635,4 +665,76 @@
         SET status = #{status}
         WHERE contract_id = #{contractId}
     </update>
+
+
+	<!-- 고객의 오늘 계약 조회 -->
+	<select id="selectTodayContractsByClientId" parameterType="map" resultMap="contractResultMap">
+		SELECT
+			c.contract_id,
+			c.status,
+			TO_CHAR(c.created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at,
+			TO_CHAR(c.contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time,
+			c.client_id,
+			c.agent_id,
+			c.memo,
+			a.name AS agent_name,
+			i.invitation_code
+		FROM contract c
+		LEFT JOIN agent a ON c.agent_id = a.agent_id
+		LEFT JOIN invitation i ON c.contract_id = i.contract_id
+		WHERE c.client_id = #{clientId}
+		AND TRUNC(c.contract_time) = TO_DATE(#{contractDate}, 'YYYY-MM-DD')
+		AND c.status = #{status}
+		ORDER BY c.contract_time ASC
+	</select>
+
+	<!-- 고객별 계약 상태 카운트 -->
+	<select id="selectContractCountsByClientId" parameterType="long" resultType="java.util.HashMap">
+		SELECT
+			COUNT(*) AS "total",
+			SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END) AS "pending",
+			SUM(CASE WHEN status = 'IN_PROGRESS' THEN 1 ELSE 0 END) AS "inProgress",
+			SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) AS "completed",
+			SUM(CASE WHEN status = 'CANCELED' THEN 1 ELSE 0 END) AS "canceled"
+		FROM contract
+		WHERE client_id = #{clientId}
+	</select>
+
+	<!-- 고객별 계약 목록 페이징 조회 -->
+	<select id="selectContractsByClientIdPaged" parameterType="map" resultMap="contractResultMap">
+		SELECT *
+		FROM (
+			SELECT a.*, ROWNUM rn
+			FROM (
+				SELECT
+					c.contract_id,
+					c.status,
+					TO_CHAR(c.created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at,
+					TO_CHAR(c.contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time,
+					c.client_id,
+					c.agent_id,
+					c.memo,
+					a.name AS agent_name
+				FROM contract c
+				LEFT JOIN agent a ON c.agent_id = a.agent_id
+				WHERE c.client_id = #{clientId}
+				<if test="status != null and status != ''">
+					AND c.status = #{status}
+				</if>
+				ORDER BY c.contract_time DESC
+			) a
+			WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+		)
+		WHERE rn > #{offset}
+	</select>
+
+	<!-- 고객별 계약 총 개수 (페이징용) -->
+	<select id="countContractsByClientId" parameterType="map" resultType="int">
+		SELECT COUNT(*)
+		FROM contract
+		WHERE client_id = #{clientId}
+		<if test="status != null and status != ''">
+			AND status = #{status}
+		</if>
+	</select>
 </mapper>
