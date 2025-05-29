@@ -31,7 +31,7 @@ public class CustomAuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         
         switch (userDetails.getRole()) {
             case "USER":
-                redirectUrl = "/user/dashboard";
+                redirectUrl = "/client/dashboard";
                 break;
             case "AGENT":
                 redirectUrl = "/agent/dashboard";

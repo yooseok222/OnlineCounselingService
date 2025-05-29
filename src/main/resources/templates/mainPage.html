@@ -334,7 +334,7 @@
         <!-- 인증된 사용자 메뉴 -->
         <div class="d-flex align-items-center" sec:authorize="isAuthenticated()">
           <div sec:authorize="hasRole('USER')" class="me-2">
-            <a th:href="@{/user/dashboard}" class="btn btn-outline-primary">마이페이지</a>
+            <a th:href="@{/client/dashboard}" class="btn btn-outline-primary">마이페이지</a>
           </div>
           <div sec:authorize="hasRole('AGENT')" class="me-2">
             <a th:href="@{/agent/dashboard}" class="btn btn-outline-primary">상담원 페이지</a>
