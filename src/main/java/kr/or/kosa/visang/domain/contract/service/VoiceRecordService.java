@@ -130,4 +130,12 @@ public class VoiceRecordService {
         
         return file;
     }
+
+    public Long getVoiceRecordByContractId(Long contractId) {
+        Long voiceID = voiceRecordMapper.getVoiceIdByContractId(contractId);
+        if (voiceID == null) {
+            throw new RuntimeException("해당 계약에 대한 녹음 파일이 존재하지 않습니다.");
+        }
+        return voiceID;
+    }
 } 

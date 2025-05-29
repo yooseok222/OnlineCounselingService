@@ -28,4 +28,6 @@ public interface VoiceRecordMapper {
      * 녹음 파일 삭제
      */
     void deleteById(@Param("voiceId") Long voiceId);
+
+    Long getVoiceIdByContractId(@Param("contractId") Long contractId);
 } 

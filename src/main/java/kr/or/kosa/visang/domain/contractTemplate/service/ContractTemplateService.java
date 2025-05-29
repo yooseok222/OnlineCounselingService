@@ -12,6 +12,7 @@ import kr.or.kosa.visang.domain.contractTemplate.repository.ContractTemplateMapp
 import kr.or.kosa.visang.domain.pdf.enums.PDFTYPE;
 import kr.or.kosa.visang.domain.pdf.model.PDF;
 import lombok.RequiredArgsConstructor;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
+import java.security.Security;
 import java.util.List;
 import java.util.Optional;
 
@@ -233,6 +235,11 @@ public class ContractTemplateService {
             PdfDocument pdfDoc = new PdfDocument(new PdfReader(signedPdfPath));
             SignatureUtil signUtil = new SignatureUtil(pdfDoc);
 
+            if (Security.getProvider("BC") == null) {
+                System.out.println("BouncyCastle 프로바이더가 등록되지 않았습니다. 등록합니다.");
+                Security.addProvider(new BouncyCastleProvider());
+            }
+
             List<String> signatureNames = signUtil.getSignatureNames();
             if (signatureNames.isEmpty()) {
                 throw new IllegalStateException("PDF에 전자서명 필드가 없습니다.");
@@ -249,6 +256,7 @@ public class ContractTemplateService {
 
                     if (!verified) return false;
                 } catch (Exception e) {
+                    e.printStackTrace();
                     System.out.println("서명 필드 [" + name + "] 오류: " + e.getMessage());
                     // 실제 유저에게 보여줄 안내:
                     throw new IllegalStateException("PDF 서명 정보가 비정상적입니다. (서명 필드: " + name + ")");
