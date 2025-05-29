@@ -12,6 +12,8 @@ public interface ChatMapper {
 
     void insertMessage(ChatMessage msg);
 
+    String getChatExportFilePathByContractId(@Param("contractId") Long contractId);
+
     List<ChatMessage> findByContractId(Long roomId);
 
     void updateExportPath(Map<String, Object> params);

@@ -351,7 +351,14 @@
                     td.querySelector(".chat-btn")?.addEventListener("click", (e) => {
                         console.log('채팅 버튼 클릭');
                         const contractId = e.target.dataset.id;
-                        window.open(`/admin/contract/${contractId}/chat`, "_blank");
+
+                        const downloadUrl = `/admin/contract/chat/${contractId}/download`;
+                        const a = document.createElement("a");
+                        a.href = downloadUrl;
+                        a.setAttribute("download", ""); // 파일명은 서버가 지정
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
                     });
 
                     // 음성 버튼

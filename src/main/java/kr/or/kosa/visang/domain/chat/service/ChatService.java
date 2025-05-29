@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -161,6 +162,22 @@ public class ChatService {
         log.info("=== 채팅 기록 내보내기 완료 ===");
     }
 
+    public File getChatFile(Long contractId) {
+        String exportPath = chatMapper.getChatExportFilePathByContractId(contractId);
+
+        if (exportPath == null || exportPath.isEmpty()) {
+            log.warn("채팅 기록 파일 경로가 없습니다.");
+            return null;
+        }
+
+        Path path = Paths.get(exportPath);
+        if (!Files.exists(path)) {
+            log.warn("채팅 기록 파일이 존재하지 않습니다. 경로: {}", path.toAbsolutePath());
+            return null;
+        }
+
+        return path.toFile();
+    }
 
 }
 
