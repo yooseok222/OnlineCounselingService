@@ -286,6 +286,12 @@ function loadTemplateFilePdf() {
 
   console.log("템플릿 PDF 자동 로드 시작 - Contract ID:", currentContractId);
   
+  // 기존 uploadedPdfUrl 초기화 (템플릿으로 대체하기 위함)
+  if (uploadedPdfUrl) {
+    console.log("기존 PDF URL 존재:", uploadedPdfUrl);
+    console.log("템플릿 PDF로 교체합니다.");
+  }
+  
   // 계약 템플릿 정보 가져오기
   fetch(`/api/contract/${currentContractId}/template`)
     .then(response => {
@@ -310,8 +316,25 @@ function loadTemplateFilePdf() {
         console.log("템플릿 URL 직접 구성:", pdfUrl);
       }
       
-      // PDF 로드 및 렌더링
-      loadAndRenderPDF(pdfUrl)
+      // 템플릿 PDF URL을 전역 변수로 설정 (중요)
+      uploadedPdfUrl = pdfUrl;
+      console.log("템플릿 PDF URL을 전역 변수로 설정:", uploadedPdfUrl);
+      
+      // PDF 존재 여부 확인 (HEAD 요청으로 확인)
+      fetch(pdfUrl, { method: 'HEAD' })
+        .then(headResponse => {
+          if (!headResponse.ok) {
+            console.error("템플릿 PDF 접근 실패:", headResponse.status);
+            throw new Error(`템플릿 PDF에 접근할 수 없습니다. (${headResponse.status})`);
+          }
+          
+          console.log("템플릿 PDF 존재 확인됨");
+          return pdfUrl;
+        })
+        .then(confirmedUrl => {
+          // PDF 로드 및 렌더링
+          return loadAndRenderPDF(confirmedUrl);
+        })
         .then(success => {
           if (success) {
             templatePdfLoaded = true;
@@ -326,6 +349,9 @@ function loadTemplateFilePdf() {
                 timestamp: Date.now()
               }));
             }
+            
+            // 성공 토스트 메시지 표시
+            showToast("PDF 로드 완료", "템플릿 문서가 로드되었습니다.", "success");
           } else {
             console.error("템플릿 PDF 로드 실패 - 재시도");
             // 로드 실패 시 재시도 (최대 3회)
@@ -336,6 +362,8 @@ function loadTemplateFilePdf() {
         })
         .catch(error => {
           console.error("템플릿 PDF 로드 중 오류 발생:", error);
+          showToast("오류", "템플릿 PDF 로드 중 오류: " + error.message, "error");
+          
           // 오류 발생 시 재시도 (최대 3회)
           setTimeout(() => {
             retryLoadPdf(pdfUrl, 1, 3);
@@ -344,9 +372,15 @@ function loadTemplateFilePdf() {
     })
     .catch(error => {
       console.error("템플릿 정보 가져오기 실패:", error);
+      showToast("오류", "템플릿 정보 가져오기 실패: " + error.message, "error");
+      
       // 템플릿 정보 가져오기 실패 시 직접 PDF URL 사용
       const directUrl = `/api/contract/${currentContractId}/template-pdf`;
       console.log("직접 PDF URL 사용:", directUrl);
+      
+      // 템플릿 PDF URL을 전역 변수로 설정 (중요)
+      uploadedPdfUrl = directUrl;
+      console.log("직접 URL을 전역 변수로 설정:", uploadedPdfUrl);
       
       // 직접 URL로 PDF 로드 시도
       loadAndRenderPDF(directUrl)
@@ -354,6 +388,7 @@ function loadTemplateFilePdf() {
           if (success) {
             templatePdfLoaded = true;
             console.log("직접 URL로 템플릿 PDF 로드 성공");
+            showToast("PDF 로드", "템플릿 문서가 로드되었습니다.", "success");
           } else {
             console.error("직접 URL로 템플릿 PDF 로드 실패");
             showToast("오류", "템플릿 PDF 로드에 실패했습니다.", "error");
@@ -361,7 +396,7 @@ function loadTemplateFilePdf() {
         })
         .catch(err => {
           console.error("직접 URL로 템플릿 PDF 로드 중 오류:", err);
-          showToast("오류", "템플릿 PDF 로드 중 오류가 발생했습니다.", "error");
+          showToast("오류", "템플릿 PDF 로드 중 오류가 발생했습니다: " + err.message, "error");
         });
     });
 }
@@ -1232,10 +1267,35 @@ async function generateAndSendPdf() {
         console.log('PDF 생성 함수 호출 시작');
         console.log('현재 업로드된 PDF URL:', uploadedPdfUrl);
         
+        // PDF URL 확인 - 템플릿 기반 PDF URL도 확인
+        if (!uploadedPdfUrl && currentContractId) {
+            console.log('PDF URL이 없지만 계약 ID가 있어 템플릿 URL을 확인합니다:', currentContractId);
+            // 템플릿 PDF URL 생성
+            const templateUrl = `/api/contract/${currentContractId}/template-pdf`;
+            console.log('템플릿 PDF URL 구성:', templateUrl);
+            
+            // 템플릿 URL을 uploadedPdfUrl로 설정
+            uploadedPdfUrl = templateUrl;
+            console.log('템플릿 URL을 PDF URL로 설정:', uploadedPdfUrl);
+        }
+        
         // PDF가 업로드되지 않은 경우 처리
         if (!uploadedPdfUrl) {
             console.warn('PDF가 업로드되지 않았습니다. PDF 생성을 건너뜁니다.');
             throw new Error('PDF가 업로드되지 않았습니다. 상담 문서가 없어 PDF를 생성할 수 없습니다.');
+        }
+        
+        // 템플릿 URL이 유효한지 확인
+        try {
+            const testResponse = await fetch(uploadedPdfUrl, { method: 'HEAD' });
+            if (!testResponse.ok) {
+                console.error('PDF URL 접근 실패:', testResponse.status);
+                throw new Error('PDF 파일에 접근할 수 없습니다. 상태 코드: ' + testResponse.status);
+            }
+            console.log('PDF URL 접근 확인 완료:', testResponse.status);
+        } catch (urlError) {
+            console.error('PDF URL 확인 중 오류:', urlError);
+            // 오류가 발생해도 계속 진행 (실제 PDF 다운로드에서 다시 시도)
         }
         
         const pdfData = await savePdfWithStampAndSignature(true); // forEmail = true

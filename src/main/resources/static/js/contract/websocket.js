@@ -1269,22 +1269,64 @@ async function savePdfWithStampAndSignature(forEmail = false) {
       showToast("PDF 생성 중", "PDF 문서를 생성하고 있습니다...", "info");
     }
 
-    // 원본 PDF 가져오기
+    // 원본 PDF 가져오기 - 최대 3회 재시도
     console.log("PDF 파일 다운로드 시작:", uploadedPdfUrl);
-    const pdfResponse = await fetch(uploadedPdfUrl);
+    let pdfResponse = null;
+    let retryCount = 0;
+    const maxRetries = 3;
     
-    if (!pdfResponse.ok) {
-      console.error("PDF 파일 다운로드 실패:", pdfResponse.status, pdfResponse.statusText);
-      throw new Error(`PDF 파일을 가져올 수 없습니다. (${pdfResponse.status})`);
+    while (retryCount < maxRetries) {
+      try {
+        pdfResponse = await fetch(uploadedPdfUrl + (uploadedPdfUrl.includes('?') ? '&' : '?') + '_t=' + Date.now());
+        if (pdfResponse.ok) break;
+        
+        console.warn(`PDF 파일 다운로드 실패 (시도 ${retryCount + 1}/${maxRetries}):`, pdfResponse.status);
+        retryCount++;
+        
+        if (retryCount < maxRetries) {
+          console.log(`${retryCount}초 후 재시도...`);
+          await new Promise(resolve => setTimeout(resolve, retryCount * 1000));
+        }
+      } catch (fetchError) {
+        console.error(`PDF 파일 다운로드 중 오류 (시도 ${retryCount + 1}/${maxRetries}):`, fetchError);
+        retryCount++;
+        
+        if (retryCount < maxRetries) {
+          console.log(`${retryCount}초 후 재시도...`);
+          await new Promise(resolve => setTimeout(resolve, retryCount * 1000));
+        }
+      }
+    }
+    
+    if (!pdfResponse || !pdfResponse.ok) {
+      console.error("PDF 파일 다운로드 최종 실패:", pdfResponse ? pdfResponse.status : "응답 없음");
+      throw new Error(`PDF 파일을 가져올 수 없습니다. (${pdfResponse ? pdfResponse.status : "네트워크 오류"})`);
     }
     
     const existingPdfBytes = await pdfResponse.arrayBuffer();
     console.log("PDF 파일 다운로드 완료, 크기:", existingPdfBytes.byteLength, "bytes");
     
+    if (!existingPdfBytes || existingPdfBytes.byteLength === 0) {
+      console.error("다운로드된 PDF 파일이 비어 있습니다");
+      throw new Error("다운로드된 PDF 파일이 비어 있습니다. 유효한 PDF 템플릿을 확인해주세요.");
+    }
+    
     console.log("PDF 문서 로드 시작...");
-    const pdfDocLib = await PDFDocument.load(existingPdfBytes);
+    let pdfDocLib = null;
+    try {
+      pdfDocLib = await PDFDocument.load(existingPdfBytes);
+    } catch (pdfLoadError) {
+      console.error("PDF 문서 로드 실패:", pdfLoadError);
+      throw new Error("PDF 문서 로드에 실패했습니다. 유효한 PDF 파일인지 확인해주세요: " + pdfLoadError.message);
+    }
+    
     console.log("PDF 문서 로드 완료");
     const pages = pdfDocLib.getPages();
+    
+    if (!pages || pages.length === 0) {
+      console.error("PDF 문서에 페이지가 없습니다");
+      throw new Error("PDF 문서에 페이지가 없습니다. 유효한 PDF 템플릿을 확인해주세요.");
+    }
 
     // 페이지별로 도장과 서명 데이터 처리
     for (let i = 0; i < pages.length; i++) {
@@ -1473,33 +1515,85 @@ function blobToBase64(blob) {
   });
 }
 
-// PDF 라이브러리 로드 상태 확인 함수
+// PDF 라이브러리가 로드되었는지 확인하는 함수
 function checkPdfLibraryLoaded() {
   return new Promise((resolve, reject) => {
-    // 이미 로드되어 있으면 바로 resolve
+    // 이미 로드되었는지 확인
     if (window.PDFLib && window.PDFLib.PDFDocument) {
-      console.log("PDF 라이브러리가 이미 로드되어 있습니다.");
+      console.log('PDF 라이브러리가 이미 로드되어 있습니다.');
       resolve(true);
       return;
     }
+
+    console.log('PDF 라이브러리 로드 대기 중...');
     
-    // 최대 10초 동안 대기
+    // 최대 10번 재시도, 각 시도마다 300ms 대기
     let attempts = 0;
-    const maxAttempts = 100; // 100ms * 100 = 10초
+    const maxAttempts = 10;
+    const checkInterval = 300;
     
-    const checkInterval = setInterval(() => {
-      attempts++;
-      
-      if (window.PDFLib && window.PDFLib.PDFDocument) {
-        console.log(`PDF 라이브러리 로드 완료 (${attempts * 100}ms 후)`);
-        clearInterval(checkInterval);
-        resolve(true);
-      } else if (attempts >= maxAttempts) {
-        console.error("PDF 라이브러리 로드 타임아웃");
-        clearInterval(checkInterval);
-        reject(new Error("PDF 라이브러리 로드 타임아웃"));
-      }
-    }, 100);
+    // 라이브러리 스크립트 로드 여부 확인
+    const isScriptLoaded = document.querySelector('script[src*="pdf-lib.min.js"]');
+    
+    // 스크립트가 없으면 동적으로 추가
+    if (!isScriptLoaded) {
+      console.log('PDF 라이브러리 스크립트를 동적으로 추가합니다.');
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js';
+      script.async = true;
+      script.onload = () => {
+        console.log('PDF 라이브러리 스크립트 로드 완료');
+        // 로드 완료 후 체크 시작
+        startChecking();
+      };
+      script.onerror = (error) => {
+        console.error('PDF 라이브러리 스크립트 로드 실패:', error);
+        reject(new Error('PDF 라이브러리 로드에 실패했습니다. 네트워크 연결을 확인해주세요.'));
+      };
+      document.head.appendChild(script);
+    } else {
+      // 이미 스크립트가 있으면 바로 체크 시작
+      startChecking();
+    }
+    
+    function startChecking() {
+      const checkLibrary = setInterval(() => {
+        attempts++;
+        console.log(`PDF 라이브러리 확인 시도 ${attempts}/${maxAttempts}`);
+        
+        if (window.PDFLib && window.PDFLib.PDFDocument) {
+          console.log('PDF 라이브러리 로드 확인됨');
+          clearInterval(checkLibrary);
+          resolve(true);
+        } else if (attempts >= maxAttempts) {
+          console.error('PDF 라이브러리 로드 실패: 최대 시도 횟수 초과');
+          clearInterval(checkLibrary);
+          
+          // 마지막 시도로 라이브러리 다시 로드
+          try {
+            console.log('마지막 시도로 PDF 라이브러리 다시 로드...');
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js';
+            script.async = false; // 동기 로드로 변경
+            document.head.appendChild(script);
+            
+            // 추가 대기 후 다시 확인
+            setTimeout(() => {
+              if (window.PDFLib && window.PDFLib.PDFDocument) {
+                console.log('PDF 라이브러리 다시 로드 성공');
+                resolve(true);
+              } else {
+                console.error('PDF 라이브러리 다시 로드 실패');
+                reject(new Error('PDF 라이브러리를 로드할 수 없습니다. 브라우저를 새로고침하고 다시 시도해주세요.'));
+              }
+            }, 1000);
+          } catch (e) {
+            console.error('PDF 라이브러리 다시 로드 중 오류:', e);
+            reject(new Error('PDF 라이브러리 로드 오류: ' + e.message));
+          }
+        }
+      }, checkInterval);
+    }
   });
 }
 
