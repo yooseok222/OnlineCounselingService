@@ -174,9 +174,11 @@ public class ContractController {
     /**
      * 녹음 파일 다운로드 API
      */
-    @GetMapping("/contract/recording/{voiceId}/download")
-    public ResponseEntity<Resource> downloadRecording(@PathVariable Long voiceId) {
+    @GetMapping("/contract/recording/{contractId}/download")
+    public ResponseEntity<Resource> downloadRecording(@PathVariable Long contractId) {
         try {
+            Long voiceId = voiceRecordService.getVoiceRecordByContractId(contractId);
+
             File file = voiceRecordService.getVoiceRecordFile(voiceId);
             Resource resource = new FileSystemResource(file);
             
@@ -186,7 +188,7 @@ public class ContractController {
                     .body(resource);
                     
         } catch (Exception e) {
-            log.error("녹음 파일 다운로드 실패: voiceId={}", voiceId, e);
+            log.error("녹음 파일 다운로드 실패: voiceId={}", contractId, e);
             return ResponseEntity.notFound().build();
         }
     }
