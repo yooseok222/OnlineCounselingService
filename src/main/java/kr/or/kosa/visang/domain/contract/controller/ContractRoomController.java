@@ -64,8 +64,8 @@ public class ContractRoomController {
         String sessionId = session;
         if (sessionId == null || sessionId.trim().isEmpty()) {
             // 세션 ID가 없으면 새로 생성
-            sessionId = "session_" + System.currentTimeMillis() + "_" + UUID.randomUUID().toString().substring(0, 8);
-            log.info("새 세션 ID 생성: {}", sessionId);
+            sessionId = "session_" + contractId + "_fixed";
+            log.info("계약 ID 기반 고정 세션 ID 생성: {}", sessionId);
         } else {
             log.info("기존 세션 ID 사용: {}", sessionId);
         }
