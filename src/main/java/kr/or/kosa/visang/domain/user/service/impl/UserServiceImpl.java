@@ -24,6 +24,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
@@ -64,7 +65,7 @@ public class UserServiceImpl implements UserService {
     private static final int EMAIL_RESEND_MAX_COUNT = 3;
 
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public UserResponse register(UserRegistrationRequest request) {
         // 이메일 중복 확인
         String normalizedEmail = request.getEmail().trim().toLowerCase();
@@ -116,7 +117,22 @@ public class UserServiceImpl implements UserService {
                         .build()
                         .validate();
                 
-                clientMapper.save(client);
+                try {
+                    clientMapper.save(client);
+                } catch (Exception e) {
+                    // 데이터베이스 제약 조건 위반 시 사용자 친화적인 메시지 제공
+                    if (e.getMessage() != null && e.getMessage().contains("unique constraint")) {
+                        if (e.getMessage().contains("client_email_uk") || e.getMessage().contains("email")) {
+                            throw new IllegalArgumentException("이미 사용 중인 이메일입니다. 다른 이메일을 사용해주세요.");
+                        } else if (e.getMessage().contains("phone")) {
+                            throw new IllegalArgumentException("이미 사용 중인 전화번호입니다. 다른 전화번호를 사용해주세요.");
+                        } else if (e.getMessage().contains("ssn")) {
+                            throw new IllegalArgumentException("이미 사용 중인 주민등록번호입니다.");
+                        }
+                    }
+                    log.error("고객 저장 중 오류 발생: 이메일={}, 오류={}", request.getEmail(), e.getMessage());
+                    throw new IllegalArgumentException("회원가입 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+                }
                 
                 response = UserResponse.builder()
                         .userId(client.getClientId())
@@ -153,7 +169,20 @@ public class UserServiceImpl implements UserService {
                         .build()
                         .validate();
                 
-                adminMapper.save(admin);
+                try {
+                    adminMapper.save(admin);
+                } catch (Exception e) {
+                    // 데이터베이스 제약 조건 위반 시 사용자 친화적인 메시지 제공
+                    if (e.getMessage() != null && e.getMessage().contains("unique constraint")) {
+                        if (e.getMessage().contains("admin_email_uk") || e.getMessage().contains("email")) {
+                            throw new IllegalArgumentException("이미 사용 중인 이메일입니다. 다른 이메일을 사용해주세요.");
+                        } else if (e.getMessage().contains("phone")) {
+                            throw new IllegalArgumentException("이미 사용 중인 전화번호입니다. 다른 전화번호를 사용해주세요.");
+                        }
+                    }
+                    log.error("관리자 저장 중 오류 발생: 이메일={}, 오류={}", request.getEmail(), e.getMessage());
+                    throw new IllegalArgumentException("회원가입 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+                }
                 
                 response = UserResponse.builder()
                         .userId(admin.getAdminId())
@@ -190,6 +219,11 @@ public class UserServiceImpl implements UserService {
                     throw new IllegalArgumentException("유효하지 않은 회사 정보입니다.");
                 }
                 
+                // INSERT 직전 이메일 중복 재확인 (race condition 방지)
+                if (isEmailDuplicated(request.getEmail())) {
+                    throw new IllegalArgumentException("이미 사용 중인 이메일입니다: " + request.getEmail());
+                }
+                
                 // 상담원 저장
                 Agent agent = Agent.builder()
                         .name(request.getName())
@@ -205,7 +239,20 @@ public class UserServiceImpl implements UserService {
                         .build()
                         .validate();
                 
-                agentMapper.save(agent);
+                try {
+                    agentMapper.save(agent);
+                } catch (Exception e) {
+                    // 데이터베이스 제약 조건 위반 시 사용자 친화적인 메시지 제공
+                    if (e.getMessage() != null && e.getMessage().contains("unique constraint")) {
+                        if (e.getMessage().contains("agent_email_uk") || e.getMessage().contains("email")) {
+                            throw new IllegalArgumentException("이미 사용 중인 이메일입니다. 다른 이메일을 사용해주세요.");
+                        } else if (e.getMessage().contains("phone")) {
+                            throw new IllegalArgumentException("이미 사용 중인 전화번호입니다. 다른 전화번호를 사용해주세요.");
+                        }
+                    }
+                    log.error("상담원 저장 중 오류 발생: 이메일={}, 오류={}", request.getEmail(), e.getMessage());
+                    throw new IllegalArgumentException("회원가입 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+                }
                 
                 response = UserResponse.builder()
                         .userId(agent.getAgentId())
