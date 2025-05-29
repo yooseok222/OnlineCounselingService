@@ -43,6 +43,7 @@
             </table>
         </div>
     </main>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </div>
 
 <script th:fragment="script">
@@ -108,12 +109,20 @@
                     [csrfHeader]: csrfToken,
                 }
             });
+            console.log(res);
 
-            if (!res.ok) throw new Error("저장 실패");
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(errorText || "계약서 저장에 실패했습니다.")
+            }
             location.reload();
         } catch (e) {
-            alert("계약서 저장에 실패했습니다.");
-            console.error(e);
+            Swal.fire({
+                icon: 'error',
+                title: '오류 발생',
+                text: e.message,
+                confirmButtonText: '확인'
+            });
         }
     }
 

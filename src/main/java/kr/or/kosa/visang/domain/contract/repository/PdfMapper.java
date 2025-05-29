@@ -1,5 +1,6 @@
 package kr.or.kosa.visang.domain.contract.repository;
 
+import kr.or.kosa.visang.domain.contract.model.ContractSingedDTO;
 import kr.or.kosa.visang.domain.contract.model.PdfDTO;
 import kr.or.kosa.visang.domain.pdf.model.PDF;
 import org.apache.ibatis.annotations.Mapper;
@@ -13,6 +14,8 @@ public interface PdfMapper {
     
     // 계약 ID로 PDF 조회
     List<PdfDTO> selectPdfsByContractId(Long contractId);
+
+    ContractSingedDTO selectSignedContractInfoByContractId(Long contractId);
     
     // PDF 추가
     int insertPdf(PdfDTO pdf);

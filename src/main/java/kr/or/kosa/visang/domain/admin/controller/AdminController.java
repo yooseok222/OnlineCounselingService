@@ -3,6 +3,8 @@ package kr.or.kosa.visang.domain.admin.controller;
 import java.util.List;
 
 import jakarta.servlet.http.HttpServletRequest;
+import kr.or.kosa.visang.common.config.security.CustomUserDetails;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,8 +42,9 @@ public class AdminController {
     }
 
     @GetMapping("/list")
-    public String list(HttpServletRequest request, Model model) {
-        model.addAttribute("agentList", agentService.getAgentList());
+    public String list(@AuthenticationPrincipal CustomUserDetails admin, Model model) {
+        Long companyId = admin.getCompanyId(); // 로그인한 사용자의 회사 ID
+        model.addAttribute("agentList", agentService.getAgentList(companyId));
             // 공통 레이아웃으로 전체 페이지 렌더링
         model.addAttribute("contentFragment", "adminAgentManagement");
         model.addAttribute("scriptFragment", "adminAgentManagement");
