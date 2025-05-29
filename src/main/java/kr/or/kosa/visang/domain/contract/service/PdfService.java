@@ -1,6 +1,7 @@
 package kr.or.kosa.visang.domain.contract.service;
 
 import kr.or.kosa.visang.common.config.hash.HashUtil;
+import kr.or.kosa.visang.domain.contract.model.ContractSingedDTO;
 import kr.or.kosa.visang.domain.contract.model.PdfDTO;
 import kr.or.kosa.visang.domain.contract.repository.PdfMapper;
 import kr.or.kosa.visang.domain.pdf.service.PdfSignerService;
@@ -172,13 +173,16 @@ public class PdfService {
         String outputFileName = createOutputFileName(file.getOriginalFilename(), contractId);
 
         try {
+            ContractSingedDTO contractSignedDTO = pdfMapper.selectSignedContractInfoByContractId(contractId);
+
             PdfSignerService.signPdf(
                     inputStreamPDF,     // 원본 PDF
                     outputFileName,
                     keyStorePath,           // 생성한 키스토어
                     keyStorePassword,                    // 비밀번호
                     "contract-signing-key",            // alias
-                    signedPdfPath
+                    signedPdfPath,
+                    contractSignedDTO
             );
             System.out.println("✅ 서명 완료: contract-signed.pdf");
         } catch (Exception e) {
