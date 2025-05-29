@@ -204,7 +204,7 @@
                         
                         <!-- 도장 관리 링크 -->
                         <div class="mt-2">
-                            <a href="/stamp/upload" target="_blank" class="btn btn-link btn-sm">
+                            <a href="/client/stamp" target="_blank" class="btn btn-link btn-sm">
                                 <i class="bi bi-gear me-1"></i> 도장 관리
                             </a>
                         </div>
@@ -345,10 +345,19 @@
                     } else {
                         // 첫 번째 도장만 표시 (한 고객당 하나의 도장만 허용)
                         const stamp = stamps[0];
+                        console.log('선택할 도장 정보:', stamp); // 디버깅 로그 추가
+                        
+                        // stamp 객체가 유효한지 확인
+                        if (!stamp || !stamp.stampImageUrl) {
+                            showError('도장 정보가 유효하지 않습니다.');
+                            console.error('유효하지 않은 도장 정보:', stamp);
+                            return;
+                        }
+                        
                         const date = new Date(stamp.createdAt).toLocaleDateString('ko-KR');
                         const stampsHtml = `
-                            <div class="stamp-item selected" onclick="selectStamp(${stamp.stampId}, '${stamp.imagePath}', this)">
-                                <img src="/stamp/image/${stamp.imagePath}" alt="도장">
+                            <div class="stamp-item selected" onclick="selectStamp(${stamp.stampId}, '${stamp.stampImageUrl}', this)">
+                                <img src="${stamp.stampImageUrl}" alt="도장" onerror="this.onerror=null; this.src='/images/stamp-placeholder.png'; console.error('도장 이미지 로드 실패');">
                                 <div class="stamp-info">
                                     <div class="stamp-id">도장</div>
                                     <div class="stamp-date">등록일: ${date}</div>
@@ -359,11 +368,18 @@
                         
                         // 자동으로 도장 선택 - setTimeout을 사용해 DOM이 완전히 렌더링된 후 실행
                         setTimeout(() => {
-                            const stampElement = stampList.querySelector('.stamp-item');
-                            if (stampElement) {
-                                selectStamp(stamp.stampId, stamp.imagePath, stampElement);
+                            try {
+                                const stampElement = stampList.querySelector('.stamp-item');
+                                if (stampElement) {
+                                    // 명시적으로 변수를 전달하여 호출
+                                    const stampId = stamp.stampId;
+                                    console.log('자동 선택 시도:', stampId, stamp.stampImageUrl, stampElement);
+                                    selectStamp(stampId, stamp.stampImageUrl, stampElement);
+                                }
+                            } catch (error) {
+                                console.error('자동 도장 선택 오류:', error);
                             }
-                        }, 0);
+                        }, 100);
                         
                         // 도장이 있으면 업로드 버튼 비활성화
                         uploadToggleBtn.disabled = true;
@@ -389,9 +405,104 @@
                 });
         }
         
+        // 오류 메시지 표시
+        function showError(message) {
+            const errorAlert = document.getElementById('errorAlert');
+            if (!errorAlert) {
+                // 오류 알림창이 없으면 생성
+                const alertDiv = document.createElement('div');
+                alertDiv.id = 'errorAlert';
+                alertDiv.className = 'alert alert-danger alert-dismissible fade show mt-3';
+                alertDiv.role = 'alert';
+                alertDiv.innerHTML = `
+                    <i class="bi bi-exclamation-circle me-2"></i>
+                    <span id="errorMessage"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                
+                // 알림창을 폼 상단에 추가
+                const entryForm = document.querySelector('.entry-form-container');
+                if (entryForm) {
+                    entryForm.insertBefore(alertDiv, entryForm.firstChild);
+                } else {
+                    // entry-form-container가 없는 경우 .main-container에 추가
+                    const mainContainer = document.querySelector('.main-container');
+                    mainContainer.insertBefore(alertDiv, mainContainer.firstChild);
+                }
+            }
+            
+            // 메시지 설정 및 표시
+            document.getElementById('errorMessage').textContent = message;
+            
+            // 5초 후 자동으로 닫히게 설정
+            setTimeout(() => {
+                const alertElement = document.getElementById('errorAlert');
+                if (alertElement) {
+                    // 부모 요소에서 제거
+                    alertElement.parentNode.removeChild(alertElement);
+                }
+            }, 5000);
+            
+            console.error('Error:', message);
+        }
+        
+        // 성공 메시지 표시
+        function showSuccess(message) {
+            const successAlert = document.getElementById('successAlert');
+            if (!successAlert) {
+                // 성공 알림창이 없으면 생성
+                const alertDiv = document.createElement('div');
+                alertDiv.id = 'successAlert';
+                alertDiv.className = 'alert alert-success alert-dismissible fade show mt-3';
+                alertDiv.role = 'alert';
+                alertDiv.innerHTML = `
+                    <i class="bi bi-check-circle me-2"></i>
+                    <span id="successMessage"></span>
+                    <button type="button" class="btn-close" onclick="this.parentNode.remove()" aria-label="Close"></button>
+                `;
+                
+                // 알림창을 폼 상단에 추가
+                const entryForm = document.querySelector('.entry-form-container');
+                if (entryForm) {
+                    entryForm.insertBefore(alertDiv, entryForm.firstChild);
+                } else {
+                    // entry-form-container가 없는 경우 .main-container에 추가
+                    const mainContainer = document.querySelector('.main-container');
+                    mainContainer.insertBefore(alertDiv, mainContainer.firstChild);
+                }
+            }
+            
+            // 메시지 설정 및 표시
+            document.getElementById('successMessage').textContent = message;
+            
+            // 5초 후 자동으로 닫히게 설정
+            setTimeout(() => {
+                const alertElement = document.getElementById('successAlert');
+                if (alertElement) {
+                    // 부모 요소에서 제거
+                    alertElement.parentNode.removeChild(alertElement);
+                }
+            }, 5000);
+            
+            console.log('Success:', message);
+        }
+        
         // 도장 선택
         function selectStamp(stampId, imagePath, element) {
             console.log('selectStamp 호출:', stampId, imagePath, element);
+            
+            // 매개변수 유효성 검사 강화
+            if (!stampId) {
+                console.error('유효하지 않은 stampId:', stampId);
+                showError('도장 ID가 유효하지 않습니다.');
+                return;
+            }
+            
+            if (!imagePath || imagePath === 'undefined' || imagePath === 'null') {
+                console.error('유효하지 않은 이미지 경로:', imagePath);
+                showError('도장 이미지를 찾을 수 없습니다.');
+                return;
+            }
             
             try {
                 // 기존 선택 해제
@@ -399,7 +510,7 @@
                     item.classList.remove('selected');
                 });
                 
-                // 새 선택 표시 - element가 전달되면 사용, 아니면 이벤트에서 가져오기
+                // 새 선택 표시
                 let targetElement = element;
                 if (!targetElement && typeof event !== 'undefined' && event && event.currentTarget) {
                     targetElement = event.currentTarget;
@@ -412,17 +523,44 @@
                     console.warn('선택할 요소를 찾을 수 없습니다.');
                 }
                 
+                // 이미지 경로 확인 및 설정
                 selectedStampId = stampId;
-                selectedStampImage = `/stamp/image/${imagePath}`;
                 
-                // 입장 버튼 활성화
-                const enterBtn = document.getElementById('enterStampBtn');
-                if (enterBtn) {
-                    enterBtn.disabled = false;
-                    console.log('입장 버튼 활성화됨');
+                // 이미 전체 URL인지 확인하여 설정
+                if (imagePath.startsWith('/') || imagePath.startsWith('http')) {
+                    selectedStampImage = imagePath;
+                } else {
+                    selectedStampImage = `/stamp/image/${imagePath}`;
                 }
+                console.log('선택된 도장 경로:', selectedStampImage);
+                
+                // 이미지가 실제로 존재하는지 확인
+                const testImage = new Image();
+                testImage.onload = function() {
+                    console.log('도장 이미지 로드 성공:', selectedStampImage);
+                    
+                    // 입장 버튼 활성화
+                    const enterBtn = document.getElementById('enterStampBtn');
+                    if (enterBtn) {
+                        enterBtn.disabled = false;
+                        console.log('입장 버튼 활성화됨');
+                    }
+                };
+                testImage.onerror = function() {
+                    console.error('도장 이미지 로드 실패:', selectedStampImage);
+                    showError('도장 이미지를 불러올 수 없습니다. 도장을 다시 등록해주세요.');
+                    
+                    // 입장 버튼 비활성화
+                    const enterBtn = document.getElementById('enterStampBtn');
+                    if (enterBtn) {
+                        enterBtn.disabled = true;
+                    }
+                };
+                testImage.src = selectedStampImage;
+                
             } catch (error) {
                 console.error('selectStamp 오류:', error);
+                showError('도장 선택 중 오류가 발생했습니다: ' + error.message);
             }
         }
         
@@ -519,7 +657,7 @@
             const token = document.querySelector('meta[name="_csrf"]').getAttribute('content');
             const header = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
 
-            fetch('/stamp/upload', {
+            fetch('/stamp/api/upload', {
                 method: 'POST',
                 headers: {
                     [header]: token

@@ -275,7 +275,12 @@ window.onload = function() {
 };
 
 // 세션 ID 생성 함수
-function generateSessionId() {
+function generateSessionId(contractId) {
+  // contractId가 있으면 고정 형식 사용
+  if (contractId) {
+    return 'session_' + contractId + '_fixed';
+  }
+  // 없으면 기존 랜덤 방식 사용 (레거시 지원)
   return 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
 }
 
