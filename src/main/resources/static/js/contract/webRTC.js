@@ -10,6 +10,10 @@ let networkQuality = 'unknown'; // unknown, poor, medium, good
 let lastIceConnectionState = '';
 let connectionStabilityTimer = null;
 
+// 미디어 상태 관리
+let isMicrophoneEnabled = true;
+let isCameraEnabled = true;
+
 // 로깅 향상
 function log(msg) {
   console.log(`[WebRTC] ${msg}`);
@@ -371,6 +375,10 @@ async function setupCamera() {
     
     log("카메라/마이크 액세스 성공");
     
+    // 초기 미디어 상태 설정
+    isMicrophoneEnabled = true;
+    isCameraEnabled = true;
+    
     // 로컬 비디오에 연결
     const localVideo = document.getElementById('localVideo');
     if (localVideo) {
@@ -402,6 +410,11 @@ async function setupCamera() {
     } else {
       log("로컬 비디오 요소를 찾을 수 없음");
     }
+    
+    // 미디어 컨트롤 버튼 초기 상태 설정
+    setTimeout(() => {
+      updateMediaControlButtons();
+    }, 500);
     
     return localStream;
   } catch (error) {
@@ -1987,4 +2000,213 @@ setTimeout(() => {
     // 문제 자동 해결 시도
     forceSolveConnectionIssue();
   }
-}, 10000); 
+}, 10000);
+
+// 마이크 토글 함수
+function toggleMicrophone() {
+  if (!localStream) {
+    log("로컬 스트림이 없어 마이크를 토글할 수 없습니다.");
+    if (typeof showToast === 'function') {
+      showToast("오류", "마이크를 제어할 수 없습니다. 카메라를 먼저 활성화해주세요.", "error");
+    }
+    return;
+  }
+
+  const audioTracks = localStream.getAudioTracks();
+  if (audioTracks.length === 0) {
+    log("오디오 트랙이 없습니다.");
+    if (typeof showToast === 'function') {
+      showToast("오류", "마이크 트랙을 찾을 수 없습니다.", "error");
+    }
+    return;
+  }
+
+  const audioTrack = audioTracks[0];
+  isMicrophoneEnabled = !isMicrophoneEnabled;
+  audioTrack.enabled = isMicrophoneEnabled;
+
+  // UI 업데이트
+  const micBtn = document.getElementById('toggleMicBtn');
+  if (micBtn) {
+    if (isMicrophoneEnabled) {
+      micBtn.className = 'media-btn mic-on';
+      micBtn.title = '마이크 끄기';
+      micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+    } else {
+      micBtn.className = 'media-btn mic-off';
+      micBtn.title = '마이크 켜기';
+      micBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+    }
+  }
+
+  // 상대방에게 마이크 상태 알림
+  sendMediaStateUpdate('microphone', isMicrophoneEnabled);
+
+  log(`마이크 ${isMicrophoneEnabled ? '켜짐' : '꺼짐'}`);
+  if (typeof showToast === 'function') {
+    showToast("마이크", `마이크가 ${isMicrophoneEnabled ? '켜졌습니다' : '꺼졌습니다'}`, "info");
+  }
+}
+
+// 카메라 토글 함수
+function toggleCamera() {
+  if (!localStream) {
+    log("로컬 스트림이 없어 카메라를 토글할 수 없습니다.");
+    if (typeof showToast === 'function') {
+      showToast("오류", "카메라를 제어할 수 없습니다. 먼저 카메라를 활성화해주세요.", "error");
+    }
+    return;
+  }
+
+  const videoTracks = localStream.getVideoTracks();
+  if (videoTracks.length === 0) {
+    log("비디오 트랙이 없습니다.");
+    if (typeof showToast === 'function') {
+      showToast("오류", "카메라 트랙을 찾을 수 없습니다.", "error");
+    }
+    return;
+  }
+
+  const videoTrack = videoTracks[0];
+  isCameraEnabled = !isCameraEnabled;
+  videoTrack.enabled = isCameraEnabled;
+
+  // UI 업데이트
+  const cameraBtn = document.getElementById('toggleCameraBtn');
+  if (cameraBtn) {
+    if (isCameraEnabled) {
+      cameraBtn.className = 'media-btn camera-on';
+      cameraBtn.title = '카메라 끄기';
+      cameraBtn.innerHTML = '<i class="fas fa-video"></i>';
+    } else {
+      cameraBtn.className = 'media-btn camera-off';
+      cameraBtn.title = '카메라 켜기';
+      cameraBtn.innerHTML = '<i class="fas fa-video-slash"></i>';
+    }
+  }
+
+  // 로컬 비디오 표시/숨김
+  const localVideo = document.getElementById('localVideo');
+  if (localVideo) {
+    if (isCameraEnabled) {
+      localVideo.style.opacity = '1';
+    } else {
+      localVideo.style.opacity = '0.3';
+    }
+  }
+
+  // 상대방에게 카메라 상태 알림
+  sendMediaStateUpdate('camera', isCameraEnabled);
+
+  log(`카메라 ${isCameraEnabled ? '켜짐' : '꺼짐'}`);
+  if (typeof showToast === 'function') {
+    showToast("카메라", `카메라가 ${isCameraEnabled ? '켜졌습니다' : '꺼졌습니다'}`, "info");
+  }
+}
+
+// 미디어 상태 업데이트 전송
+function sendMediaStateUpdate(mediaType, enabled) {
+  if (!stompClient || !stompClient.connected) {
+    log("WebSocket 연결이 없어 미디어 상태를 전송할 수 없습니다.");
+    return;
+  }
+
+  try {
+    const message = {
+      type: 'media_state',
+      mediaType: mediaType, // 'microphone' 또는 'camera'
+      enabled: enabled,
+      sender: userRole,
+      sessionId: sessionId,
+      timestamp: Date.now()
+    };
+
+    stompClient.send(`/topic/room/${sessionId}/media`, {}, JSON.stringify(message));
+    log(`미디어 상태 전송: ${mediaType} = ${enabled}`);
+  } catch (e) {
+    log(`미디어 상태 전송 오류: ${e.message}`);
+  }
+}
+
+// 원격 미디어 상태 업데이트 처리
+function handleRemoteMediaState(mediaData) {
+  if (!mediaData || mediaData.sender === userRole) {
+    return; // 자신이 보낸 메시지는 무시
+  }
+
+  log(`원격 미디어 상태 수신: ${mediaData.mediaType} = ${mediaData.enabled}`);
+
+  // 상대방의 미디어 상태를 UI에 표시
+  const remoteVideoStatus = document.getElementById('remoteVideoStatus');
+  if (remoteVideoStatus) {
+    let statusText = '';
+    
+    if (mediaData.mediaType === 'microphone') {
+      statusText = mediaData.enabled ? '마이크 켜짐' : '마이크 꺼짐';
+    } else if (mediaData.mediaType === 'camera') {
+      statusText = mediaData.enabled ? '카메라 켜짐' : '카메라 꺼짐';
+      
+      // 원격 비디오 표시/숨김
+      const remoteVideo = document.getElementById('remoteVideo');
+      if (remoteVideo) {
+        if (mediaData.enabled) {
+          remoteVideo.style.opacity = '1';
+        } else {
+          remoteVideo.style.opacity = '0.3';
+        }
+      }
+    }
+    
+    // 상태 메시지 임시 표시
+    const originalText = remoteVideoStatus.textContent;
+    remoteVideoStatus.textContent = statusText;
+    
+    // 3초 후 원래 상태로 복원
+    setTimeout(() => {
+      if (remoteVideoStatus.textContent === statusText) {
+        remoteVideoStatus.textContent = originalText;
+      }
+    }, 3000);
+  }
+
+  // 토스트 메시지 표시
+  if (typeof showToast === 'function') {
+    const roleText = userRole === 'agent' ? '고객' : '상담원';
+    const mediaText = mediaData.mediaType === 'microphone' ? '마이크' : '카메라';
+    const stateText = mediaData.enabled ? '켜졌습니다' : '꺼졌습니다';
+    showToast("상대방 상태", `${roleText}의 ${mediaText}가 ${stateText}`, "info");
+  }
+}
+
+// 미디어 컨트롤 버튼 상태 업데이트
+function updateMediaControlButtons() {
+  // 마이크 버튼 상태 업데이트
+  const micBtn = document.getElementById('toggleMicBtn');
+  if (micBtn) {
+    if (isMicrophoneEnabled) {
+      micBtn.className = 'media-btn mic-on';
+      micBtn.title = '마이크 끄기';
+      micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+    } else {
+      micBtn.className = 'media-btn mic-off';
+      micBtn.title = '마이크 켜기';
+      micBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+    }
+  }
+
+  // 카메라 버튼 상태 업데이트
+  const cameraBtn = document.getElementById('toggleCameraBtn');
+  if (cameraBtn) {
+    if (isCameraEnabled) {
+      cameraBtn.className = 'media-btn camera-on';
+      cameraBtn.title = '카메라 끄기';
+      cameraBtn.innerHTML = '<i class="fas fa-video"></i>';
+    } else {
+      cameraBtn.className = 'media-btn camera-off';
+      cameraBtn.title = '카메라 켜기';
+      cameraBtn.innerHTML = '<i class="fas fa-video-slash"></i>';
+    }
+  }
+
+  log("미디어 컨트롤 버튼 상태 업데이트 완료");
+} 

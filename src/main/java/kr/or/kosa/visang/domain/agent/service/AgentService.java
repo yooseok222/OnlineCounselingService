@@ -1,15 +1,15 @@
 package kr.or.kosa.visang.domain.agent.service;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import kr.or.kosa.visang.domain.contractTemplate.model.ContractTemplate;
+import kr.or.kosa.visang.domain.contractTemplate.repository.ContractTemplateMapper;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -34,23 +34,8 @@ import kr.or.kosa.visang.domain.invitation.repository.InvitationMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.thymeleaf.context.Context;
-import org.thymeleaf.spring6.ISpringTemplateEngine;
 
-import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Slf4j
 @Service
@@ -66,6 +51,7 @@ public class AgentService {
     private final InvitationMapper invitationMapper;
     private final ClientMapper clientMapper;
     private final JavaMailSender mailSender;
+    private final ContractTemplateMapper contractTemplateMapper;
 
     @Value("${spring.mail.username}")
     private String Email;
@@ -133,7 +119,7 @@ public class AgentService {
     }
 
     @Transactional
-    public String addSchedule(Schedule dto) throws MessagingException {
+    public Map<String, String> addSchedule(Schedule dto, HttpServletRequest request) throws MessagingException {
 
         LocalDateTime time = dto.getContractTime();
 
@@ -158,13 +144,14 @@ public class AgentService {
                     time.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))));
         }
 
-		// CONTRACT 삽입 - Oracle DB의 NUMBER 타입에 맞게 수정
-		Contract c = new Contract();
-		c.setClientId(dto.getClientId());
-		c.setAgentId(dto.getAgentId());
-		c.setContractTime(dto.getContractTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-		c.setMemo(dto.getMemo());
-		c.setCreatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        Contract c = new Contract();
+        c.setClientId(dto.getClientId());
+        c.setAgentId(dto.getAgentId());
+        c.setContractTime(dto.getContractTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+        c.setCompanyId(dto.getCompanyId());
+        c.setContractTemplateId(dto.getContractTemplateId());
+        c.setMemo(dto.getMemo());
+        c.setCreatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         c.setStatus("PENDING");
 
         contractMapper.insertSchedule(c);
@@ -174,6 +161,9 @@ public class AgentService {
         String randPart = UUID.randomUUID().toString().replaceAll("-", "").substring(0, 8).toUpperCase();
         String code = timePart + "-" + randPart;
 
+        // 상담 세션 ID 생성 (contractId 기반으로 결정론적 생성)
+        String consultingSessionId = generateSessionId(c.getContractId());
+
         // INVITATION 삽입
         Invitation inv = new Invitation();
         inv.setContractId(c.getContractId());
@@ -182,6 +172,11 @@ public class AgentService {
         inv.setExpiredTime(dto.getContractTime().plusHours(1));
         invitationMapper.insertInvitation(inv);
 
+        // 동적 서버 URL 생성
+        String serverUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort();
+        
+        log.info("초대링크 생성 - contractId: {}, 세션 ID: {}, 초대코드: {}", c.getContractId(), consultingSessionId, code);
+        
         // 메일 발송
         MimeMessage mime = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mime, true, "UTF-8");
@@ -190,6 +185,9 @@ public class AgentService {
         ctx.setVariable("clientName", dto.getClientName());
         ctx.setVariable("reserveTime", dto.getContractTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
         ctx.setVariable("code", code);
+        ctx.setVariable("contractId", c.getContractId());
+        ctx.setVariable("serverUrl", serverUrl);
+        ctx.setVariable("consultingSessionId", consultingSessionId); // 세션 ID 추가
 
         String html = templateEngine.process("invitation/email", ctx);
 
@@ -200,7 +198,23 @@ public class AgentService {
 
         mailSender.send(mime);
 
-        return code;
+        log.info("초대링크 생성 완료 - contractId: {}, 세션 ID: {}, 초대코드: {}", c.getContractId(), consultingSessionId, code);
+        log.info("상담원은 다음 링크로 입장: /contract/room?contractId={}&role=agent&session={}", c.getContractId(), consultingSessionId);
+
+        // 초대코드와 세션 ID를 모두 반환
+        Map<String, String> result = new HashMap<>();
+        result.put("invitationCode", code);
+        result.put("consultingSessionId", consultingSessionId);
+        result.put("contractId", String.valueOf(c.getContractId()));
+        
+        return result;
+    }
+
+    /**
+     * contractId 기반으로 항상 동일한 세션 ID 생성
+     */
+    private String generateSessionId(Long contractId) {
+        return "session_" + contractId + "_fixed";
     }
 
     @Transactional(readOnly = true)
@@ -243,7 +257,15 @@ public class AgentService {
         Map<String, Object> params = new HashMap<>();
         params.put("agentId", agentId);
         params.put("date", date);
-        return contractMapper.findTodayContracts(params);
+        List<Schedule> schedules = contractMapper.findTodayContracts(params);
+        
+        // 각 스케줄에 대해 동일한 세션 ID 생성 로직 사용
+        for (Schedule schedule : schedules) {
+            String consultingSessionId = generateSessionId(schedule.getContractId());
+            schedule.setSessionId(consultingSessionId);
+        }
+        
+        return schedules;
     }
 
 
@@ -281,15 +303,6 @@ public class AgentService {
         return result;
     }
 
-    @Transactional(readOnly = true)
-    public List<Contract> getContractsByStatus(Long agentId, String status, String sort) {
-        Map<String, Object> param = new HashMap<>();
-        param.put("agentId", agentId);
-        param.put("status", status);
-        param.put("sort", sort);
-        return contractMapper.selectContractsByAgentIdAndStatus(param);
-    }
-
     public Page<Contract> getContractsByStatusPaged(Long agentId, String status, String sort, int page, int pageSize) {
         int offset = (page - 1) * pageSize;
         List<Contract> content = contractMapper.selectContractsByAgentIdAndStatusPaged(agentId, status, sort, offset, pageSize);
@@ -299,4 +312,7 @@ public class AgentService {
     }
 
 
+    public List<ContractTemplate> findByCompanyId(Long companyId) {
+        return contractTemplateMapper.selectByCompanyId(companyId);
+    }
 }

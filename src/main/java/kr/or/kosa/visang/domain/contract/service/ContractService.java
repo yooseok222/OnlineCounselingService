@@ -17,6 +17,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
+import kr.or.kosa.visang.domain.chat.service.ChatService;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -34,6 +35,7 @@ public class ContractService {
     private final ContractMapper contractMapper;
     private final JavaMailSender mailSender;
     private final SpringTemplateEngine templateEngine;
+    private final ChatService chatService;
 
     // 모든 계약 조회
     public List<Contract> getAllContracts() {
@@ -454,7 +456,17 @@ public class ContractService {
             System.out.println("계약 ID: " + contractId);
             System.out.println("메모: " + memo);
             
-            // 계약 상태를 'COMPLETED'로 변경하고 메모 업데이트
+            // 1. 채팅 기록을 Redis에서 DB로 저장
+            try {
+                System.out.println("채팅 기록 저장 시작 - 계약 ID: " + contractId);
+                chatService.endAndExport(contractId, "시스템");
+                System.out.println("채팅 기록 저장 완료");
+            } catch (Exception chatException) {
+                System.err.println("채팅 기록 저장 실패: " + chatException.getMessage());
+                // 채팅 기록 저장 실패해도 상담 종료는 계속 진행
+            }
+
+            // 2. 계약 상태를 'COMPLETED'로 변경하고 메모 업데이트
             int result = contractMapper.endConsultation(contractId, memo);
             
             if (result > 0) {
@@ -624,6 +636,35 @@ public class ContractService {
     }
 
     /**
+     * 통화시작 계약상태 업데이트
+     * @param contractId 계약 ID
+     * @param status 변경할 상태
+     */
+    @Transactional
+    public void updateCallContractStatus(Long contractId, String status) {
+        System.out.println("=== 계약 상태 변경 ===");
+        System.out.println("계약 ID: " + contractId + ", 새 상태: " + status);
+
+        int updated = contractMapper.updateStatus(contractId, status);
+
+        if (updated == 0) {
+            System.err.println("계약 상태 변경 실패 - 업데이트된 행이 없음");
+            throw new RuntimeException("계약 상태 변경에 실패했습니다. contractId: " + contractId);
+        } else {
+            System.out.println("계약 상태 변경 성공");
+        }
+    }
+
+    public boolean isParticipant(Long roomId, Long userId) {
+        Contract contract = contractMapper.selectContractById(roomId);
+        if (contract == null) {
+            return false;
+        }
+        return (contract.getAgentId() != null && contract.getAgentId().equals(userId))
+                || (contract.getClientId() != null && contract.getClientId().equals(userId));
+    }
+
+    /**
      * 고객의 오늘 계약 조회
      * @param clientId 고객 ID
      * @return 오늘의 계약 목록
@@ -632,15 +673,15 @@ public class ContractService {
         // 오늘 날짜의 계약만 조회
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         String today = sdf.format(new Date());
-        
+
         Map<String, Object> params = new HashMap<>();
         params.put("clientId", clientId);
         params.put("contractDate", today);
         params.put("status", "PENDING"); // 예약된 상태만
-        
+
         return contractMapper.selectTodayContractsByClientId(params);
     }
-    
+
     /**
      * 고객별 계약 상태 카운트 조회
      * @param clientId 고객 ID
@@ -648,7 +689,7 @@ public class ContractService {
      */
     public Map<String, Integer> getContractCountsByClientId(Long clientId) {
         Map<String, Integer> rawCounts = contractMapper.selectContractCountsByClientId(clientId);
-        
+
         // 대소문자 문제를 해결하기 위해 명시적으로 키를 매핑
         Map<String, Integer> counts = new HashMap<>();
         counts.put("pending", getIntValueFromMap(rawCounts, "pending", "PENDING"));
@@ -656,10 +697,10 @@ public class ContractService {
         counts.put("completed", getIntValueFromMap(rawCounts, "completed", "COMPLETED"));
         counts.put("canceled", getIntValueFromMap(rawCounts, "canceled", "CANCELED"));
         counts.put("total", getIntValueFromMap(rawCounts, "total", "TOTAL"));
-        
+
         return counts;
     }
-    
+
     private Integer getIntValueFromMap(Map<String, Integer> map, String... keys) {
         for (String key : keys) {
             if (map.containsKey(key)) {
@@ -675,7 +716,7 @@ public class ContractService {
         }
         return 0;
     }
-    
+
     /**
      * 고객별 계약 목록 페이징 조회
      * @param clientId 고객 ID
@@ -690,18 +731,18 @@ public class ContractService {
         params.put("status", status);
         params.put("offset", (page - 1) * size);
         params.put("pageSize", size);
-        
+
         List<Contract> contracts = contractMapper.selectContractsByClientIdPaged(params);
         int totalCount = contractMapper.countContractsByClientId(params);
-        
+
         Map<String, Object> result = new HashMap<>();
         result.put("contracts", contracts);
         result.put("totalCount", totalCount);
         result.put("totalPages", (int) Math.ceil((double) totalCount / size));
-        
+
         return result;
     }
-    
+
     /**
      * 계약 취소
      * @param contractId 계약 ID

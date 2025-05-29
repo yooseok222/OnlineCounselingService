@@ -29,7 +29,7 @@
       </div>
       <div class="toolbar-group">
         <button id="textBtn" class="tool-btn" onclick="openTextPopup()"><i class="fas fa-font"></i> 텍스트</button>
-        <button id="stampBtn" class="tool-btn" onclick="setStampMode()"><i class="fas fa-stamp"></i> 도장</button>
+        <button id="stampBtn" class="tool-btn" onclick="setStampMode()" style="display: none;"><i class="fas fa-stamp"></i> 도장</button>
       </div>
       <div class="toolbar-group">
         <button class="tool-btn" onclick="prevPage()"><i class="fas fa-chevron-left"></i> 이전</button>
@@ -99,7 +99,7 @@
   <div id="toastContainer"></div>
 
   <!-- 전역 변수 선언 -->
-  <script>
+  <script th:inline="javascript">
     let drawingDataPerPage = {};
     let stampDataPerPage = {};
     let textDataPerPage = {};
@@ -115,6 +115,17 @@
     let uploadedPdfUrl = null;
     let userRole = null; // 'agent' | 'client'
     let sessionId = null; // 상담 세션 ID 추가
+    
+    // 서버에서 전달받은 정보
+    const serverRole = /*[[${role}]]*/ null;
+    const serverEntryType = /*[[${entryType}]]*/ null;
+    
+    console.log('서버에서 전달받은 role:', serverRole);
+    console.log('서버에서 전달받은 entryType:', serverEntryType);
+    
+    // main.js에서 접근할 수 있도록 전역 변수로 설정
+    window.serverRole = serverRole;
+    window.serverEntryType = serverEntryType;
   </script>
 
   <!-- 분리된 JS 파일 참조 -->

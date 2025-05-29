@@ -15,13 +15,16 @@ public class Schedule {
 	private String clientName;
 	private String phoneNumber;
 
+	private String companyId;
 	private Long agentId;
 	private Long contractTemplateId;
 	private LocalDateTime contractTime;
 	private String memo;
 	private String status;
-
+	private String contractTemplateName;
 	private String invitationCode;
+
+	private String sessionId;
 
 	private String time;
 

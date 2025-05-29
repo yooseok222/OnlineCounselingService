@@ -27,12 +27,21 @@ document.addEventListener('DOMContentLoaded', function() {
 // 새로 추가하는 전역 변수
 let currentContractId = null;
 
+// 전역 변수로 beforeunload 핸들러 관리
+let preventRefreshHandler = null;
+let isConsultationEnding = false; // 상담종료 진행 중 플래그
+
 // 페이지 로드 시 사용자 역할 확인 및 UI 초기화
 window.onload = function() {
   console.log("=== 윈도우 로드됨 - 초기화 시작 ===");
 
   // 새로고침 방지 이벤트 리스너 추가 - 최상위 우선순위로 설정
-  const preventRefreshHandler = function(e) {
+  preventRefreshHandler = function(e) {
+    // 상담종료 진행 중이면 이벤트를 무시
+    if (isConsultationEnding) {
+      return;
+    }
+    
     // 브라우저마다 표시되는 메시지가 다를 수 있음
     var confirmationMessage = '상담이 진행 중입니다. 페이지를 떠나면 상담이 종료됩니다. 정말 나가시겠습니까?';
 
@@ -56,8 +65,16 @@ window.onload = function() {
   console.log("URL 파라미터 - role:", roleParam, "session:", sessionParam);
   console.log("현재 URL:", window.location.href);
 
-  // 사용자 역할 설정 로직 개선
-  if (roleParam) {
+  // 서버에서 전달받은 role 정보 확인
+  const serverRole = (typeof window.serverRole !== 'undefined') ? window.serverRole : null;
+  console.log("서버에서 전달받은 role:", serverRole);
+
+  // 사용자 역할 설정 로직 개선 - 우선순위: 서버 전달 > URL 파라미터 > sessionStorage
+  if (serverRole) {
+    userRole = serverRole;
+    sessionStorage.setItem("role", serverRole);
+    console.log("서버에서 사용자 역할 설정:", userRole);
+  } else if (roleParam) {
     userRole = roleParam;
     sessionStorage.setItem("role", roleParam);
     console.log("URL에서 사용자 역할 설정:", userRole);
@@ -78,7 +95,7 @@ window.onload = function() {
       window.history.replaceState({}, '', newUrl);
   } else {
     console.error("역할 정보를 찾을 수 없습니다.");
-    alert("역할 정보가 필요합니다. 올바른 URL로 접속해주세요.");
+    showError("역할 정보가 필요합니다. 올바른 URL로 접속해주세요.");
     location.href = "/";
     return;
     }
@@ -141,7 +158,14 @@ window.onload = function() {
   // 상담원이 상담실에 입장하면 입장 상태를 자동으로 설정
   if (userRole === "agent") {
     // 상담원 입장 상태 변경 (세션 ID 포함)
+    console.log('상담원 입장 - 상태를 true로 설정');
     updateAgentStatusWithSession(true, sessionId);
+    
+    // 추가 보장: 일정 시간 후 다시 한 번 설정
+    setTimeout(() => {
+      console.log('상담원 입장 상태 재확인 및 설정');
+      updateAgentStatusWithSession(true, sessionId);
+    }, 2000);
   }
 
   // 고객인 경우에는 상담원 상태 확인 후 활성화되어 있지 않으면 대기실로 이동
@@ -296,11 +320,75 @@ function initializeUIByRole() {
     document.head.appendChild(styleElement);
   }
 
-  // 상담원이면 도장 버튼 표시
+  // URL에서 entryType 파라미터 확인
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlEntryType = urlParams.get('entryType');
+  
+  // 서버에서 전달받은 entryType 정보 확인 (전역 변수로 설정되어 있음)
+  const serverEntryType = (typeof window.serverEntryType !== 'undefined') ? window.serverEntryType : null;
+  
+  // entryType 우선순위: 서버 전달 > URL 파라미터 > sessionStorage
+  const entryType = serverEntryType || urlEntryType || sessionStorage.getItem('entryType');
+  
+  console.log('entryType 확인:');
+  console.log('- 서버 전달:', serverEntryType);
+  console.log('- URL 파라미터:', urlEntryType);
+  console.log('- sessionStorage:', sessionStorage.getItem('entryType'));
+  console.log('- 최종 선택:', entryType);
+
+  // 역할에 따른 UI 설정
   if (userRole === 'agent') {
+    // 상담원은 도장 버튼만 표시
     const stampBtn = document.getElementById('stampBtn');
     if (stampBtn) {
-      stampBtn.style.display = 'flex';
+      stampBtn.style.display = 'inline-block';
+    }
+    console.log('상담원 UI 설정 완료 - 도장 버튼 표시');
+  } else if (userRole === 'client') {
+    // 고객의 경우 선택한 입장 방식에 따라 버튼 표시
+    console.log('고객 UI 설정 시작 - entryType:', entryType);
+    
+    const stampBtn = document.getElementById('stampBtn');
+    
+    if (entryType === 'stamp') {
+      // 도장으로 입장한 경우 - 도장 버튼만 표시
+      if (stampBtn) {
+        stampBtn.style.display = 'inline-block';
+        stampBtn.innerHTML = '<i class="fas fa-stamp"></i> 도장';
+        console.log('고객 도장 모드 - 도장 버튼만 표시');
+      }
+      
+      // sessionStorage에서 고객의 도장 데이터 복원
+      setTimeout(() => {
+        restoreClientStampData();
+      }, 1000);
+      
+    } else if (entryType === 'signature') {
+      // 서명으로 입장한 경우 - 서명 버튼만 표시
+      if (stampBtn) {
+        // 내서명 버튼(stampBtn)을 숨김
+        stampBtn.style.display = 'none';
+        console.log('고객 서명 모드 - 내서명 버튼 숨김');
+      }
+      
+      // signatureBtn 표시
+      const signatureBtn = document.getElementById('signatureBtn');
+      if (signatureBtn) {
+        signatureBtn.style.display = 'inline-block';
+        console.log('고객 서명 모드 - 서명 버튼만 표시');
+      }
+      
+      // sessionStorage에서 고객의 서명 데이터 복원
+      setTimeout(() => {
+        restoreClientSignatureData();
+      }, 1000);
+      
+    } else {
+      // entryType이 없는 경우 (기존 사용자) - 도장 버튼 숨김
+      if (stampBtn) {
+        stampBtn.style.display = 'none';
+        console.log('고객 기본 모드 - 도장 버튼 숨김');
+      }
     }
   }
 }
@@ -372,6 +460,35 @@ function updateAgentStatusWithSession(isPresent, sessionId) {
 function endConsult() {
     showEndConsultationModal();
   }
+
+/**
+ * 현재 모드 해제
+ */
+function clearMode() {
+  mode = null;
+  document.getElementById('currentMode').textContent = '커서';
+  
+  // 모든 버튼 비활성화
+  const buttons = ['highlighterBtn', 'penBtn', 'cursorBtn', 'textBtn', 'stampBtn', 'signatureBtn'];
+  buttons.forEach(id => {
+    const button = document.getElementById(id);
+    if (button) {
+      button.classList.remove('active');
+    }
+  });
+  
+  // 커서 버튼 활성화
+  const cursorBtn = document.getElementById('cursorBtn');
+  if (cursorBtn) {
+    cursorBtn.classList.add('active');
+  }
+  
+  // 커서 스타일 초기화
+  const drawingCanvas = document.getElementById('drawingCanvas');
+  if (drawingCanvas) {
+    drawingCanvas.style.cursor = 'default';
+  }
+}
 
 /**
  * 홈페이지로 이동 (기존 함수 유지)
@@ -613,7 +730,14 @@ async function joinConsultationRoom(sessionId) {
             
             // 상담원인 경우 상담원 상태 업데이트 (세션 ID 포함)
             if (userRole === "agent") {
+                console.log('상담원 입장 - 상태를 true로 설정');
                 updateAgentStatusWithSession(true, sessionId);
+                
+                // 추가 보장: 일정 시간 후 다시 한 번 설정
+                setTimeout(() => {
+                  console.log('상담원 입장 상태 재확인 및 설정');
+                  updateAgentStatusWithSession(true, sessionId);
+                }, 2000);
             }
         } else {
             console.error('상담방 참여 실패:', result.message);
@@ -775,10 +899,15 @@ function closeEndConsultationModal() {
  * 상담 종료 실행
  */
 async function endConsultation() {
+    // 상담종료 진행 중 플래그 설정 (beforeunload 이벤트 비활성화)
+    isConsultationEnding = true;
+    
     const memo = document.getElementById('consultationMemo').value.trim();
     
     if (!memo) {
-        alert('상담 메모를 입력해주세요.');
+        // 메모가 없으면 플래그 해제하고 종료
+        isConsultationEnding = false;
+        showError('상담 메모를 입력해주세요.');
         return;
     }
     
@@ -852,7 +981,7 @@ async function endConsultation() {
                 showToast("PDF 발송 실패", errorMessage + " 상담은 정상적으로 종료됩니다.", "warning");
             } else {
                 console.warn('PDF 생성/발송 실패: ' + errorMessage + ' 상담은 정상적으로 종료됩니다.');
-                alert('PDF 발송 실패: ' + errorMessage + ' 상담은 정상적으로 종료됩니다.');
+                showWarning('PDF 발송 실패: ' + errorMessage + ' 상담은 정상적으로 종료됩니다.');
             }
         }
         
@@ -903,13 +1032,49 @@ async function endConsultation() {
             // 모달 닫기
             closeEndConsultationModal();
             
+            // 상담원 상태 리셋을 가장 먼저 실행 (매우 중요!)
+            if (userRole === 'agent') {
+                console.log('상담원 상태를 false로 리셋합니다.');
+                try {
+                    // 동기식으로 상담원 상태 리셋
+                    await fetch('/api/contract/status', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            [csrfHeader.getAttribute('content')]: csrfToken.getAttribute('content')
+                        },
+                        body: JSON.stringify({ 
+                            present: false,
+                            sessionId: sessionId 
+                        })
+                    });
+                    console.log('상담원 상태 리셋 완료');
+                } catch (resetError) {
+                    console.error('상담원 상태 리셋 실패:', resetError);
+                }
+                
+                // 추가 보장: AgentStatusService도 직접 리셋
+                try {
+                    await fetch('/api/agent/reset', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            [csrfHeader.getAttribute('content')]: csrfToken.getAttribute('content')
+                        }
+                    });
+                    console.log('AgentStatusService 강제 리셋 완료');
+                } catch (serviceResetError) {
+                    console.error('AgentStatusService 리셋 실패:', serviceResetError);
+                }
+            }
+            
             // WebSocket을 통해 상대방에게 상담 종료 알림 전송 (추가 보장)
             if (typeof stompClient !== 'undefined' && stompClient && stompClient.connected) {
                 try {
                     const endMessage = {
                         message: "상담이 종료되었습니다. 메인 페이지로 이동합니다.",
                         contractId: currentContractId,
-                        redirectUrl: "/",
+                        redirectUrl: userRole === 'agent' ? "/agent/dashboard" : "/",
                         sessionId: sessionId,
                         sender: userRole
                     };
@@ -924,9 +1089,21 @@ async function endConsultation() {
             
             // 상담 종료 완료
             console.log('상담 종료 완료');
+            
+            // 상담종료 성공 메시지 표시 후 페이지 이동
+            const successMessage = userRole === 'agent' ? 
+                '상담이 종료되었습니다. 대시보드로 이동합니다.' : 
+                '상담이 종료되었습니다. 메인 페이지로 이동합니다.';
+            
+            showSuccess(successMessage).then(() => {
+                const redirectUrl = userRole === 'agent' ? '/agent/dashboard' : '/';
+                console.log(`상담 종료 후 페이지 이동: ${redirectUrl}`);
+                window.location.href = redirectUrl;
+            });
         } else {
             console.error('상담 종료 실패:', result.message);
-            alert('상담 종료에 실패했습니다: ' + result.message);
+            isConsultationEnding = false; // 실패 시 플래그 해제
+            showError('상담 종료에 실패했습니다: ' + result.message);
             
             // 실패 시 버튼 복원
             const confirmButton = document.querySelector('#endConsultationModal .btn-confirm');
@@ -937,7 +1114,8 @@ async function endConsultation() {
         }
     } catch (error) {
         console.error('상담 종료 오류:', error);
-        alert('상담 종료 중 오류가 발생했습니다: ' + error.message);
+        isConsultationEnding = false; // 오류 시 플래그 해제
+        showError('상담 종료 중 오류가 발생했습니다: ' + error.message);
         
         // 오류 발생 시 버튼 복원
         const confirmButton = document.querySelector('#endConsultationModal .btn-confirm');
@@ -1072,7 +1250,135 @@ async function generateAndSendPdf() {
     }
 }
 
-// showCompletionModal 함수 제거됨 - 불필요한 팝업 제거
+/**
+ * 고객의 도장 데이터 복원
+ */
+function restoreClientStampData() {
+  try {
+    const savedStampImage = sessionStorage.getItem("stampImage");
+    const savedStampId = sessionStorage.getItem("selectedStampId");
+    
+    if (savedStampImage && savedStampId) {
+      console.log('고객 도장 데이터 복원 시작');
+      
+      // 현재 페이지에 도장 데이터 설정
+      if (!stampDataPerPage[currentPage]) {
+        stampDataPerPage[currentPage] = [];
+      }
+      
+      // 기존에 복원된 도장이 있는지 확인
+      const existingStamp = stampDataPerPage[currentPage].find(stamp => 
+        stamp.type === 'client_stamp' && stamp.stampId === savedStampId
+      );
+      
+      if (!existingStamp) {
+        // 도장 데이터를 페이지 중앙에 미리 배치
+        const canvas = document.getElementById('pdfCanvas');
+        const centerX = canvas ? canvas.width / 2 : 400;
+        const centerY = canvas ? canvas.height / 2 : 300;
+        
+        stampDataPerPage[currentPage].push({
+          type: 'client_stamp',
+          stampId: savedStampId,
+          imageData: savedStampImage,
+          x: centerX - 50, // 중앙에서 약간 왼쪽
+          y: centerY - 25, // 중앙에서 약간 위쪽
+          width: 100,
+          height: 50,
+          timestamp: Date.now()
+        });
+        
+        console.log('고객 도장 데이터 복원 완료');
+        
+        // 화면에 표시
+        if (typeof restoreStampData === 'function') {
+          restoreStampData();
+        }
+      }
+    } else {
+      console.log('복원할 고객 도장 데이터가 없습니다.');
+    }
+  } catch (error) {
+    console.error('고객 도장 데이터 복원 오류:', error);
+  }
+}
+
+/**
+ * 고객의 서명 데이터 복원
+ */
+function restoreClientSignatureData() {
+  try {
+    const savedSignatureImage = sessionStorage.getItem("signatureImage");
+    
+    if (savedSignatureImage) {
+      console.log('고객 서명 데이터 복원 시작');
+      
+      // 현재 페이지에 서명 데이터 설정
+      if (!signatureDataPerPage[currentPage]) {
+        signatureDataPerPage[currentPage] = [];
+      }
+      
+      // 기존에 복원된 서명이 있는지 확인
+      const existingSignature = signatureDataPerPage[currentPage].find(sig => 
+        sig.type === 'client_signature'
+      );
+      
+      if (!existingSignature) {
+        // 서명 데이터를 페이지 하단에 미리 배치
+        const canvas = document.getElementById('pdfCanvas');
+        const bottomX = canvas ? canvas.width - 200 : 600;
+        const bottomY = canvas ? canvas.height - 100 : 500;
+        
+        signatureDataPerPage[currentPage].push({
+          type: 'client_signature',
+          imageData: savedSignatureImage,
+          x: bottomX,
+          y: bottomY,
+          width: 150,
+          height: 75,
+          timestamp: Date.now()
+        });
+        
+        console.log('고객 서명 데이터 복원 완료');
+        
+        // 화면에 표시
+        if (typeof restoreSignatureData === 'function') {
+          restoreSignatureData();
+        }
+      }
+    } else {
+      console.log('복원할 고객 서명 데이터가 없습니다.');
+    }
+  } catch (error) {
+    console.error('고객 서명 데이터 복원 오류:', error);
+  }
+}
+
+/**
+ * 서명 모드 설정 (고객용)
+ */
+function setSignatureMode() {
+  console.log('서명 모드 설정');
+  
+  // 기존 모드 해제
+  clearMode();
+  
+  // 서명 모드 설정
+  mode = 'signature';
+  document.getElementById('currentMode').textContent = '서명';
+  
+  // 서명 버튼 활성화 표시
+  const stampBtn = document.getElementById('stampBtn');
+  if (stampBtn) {
+    stampBtn.classList.add('active');
+  }
+  
+  // 커서 스타일 변경
+  const drawingCanvas = document.getElementById('drawingCanvas');
+  if (drawingCanvas) {
+    drawingCanvas.style.cursor = 'crosshair';
+  }
+}
 
 /**
  * 모달 스타일 추가
@@ -1182,4 +1488,57 @@ function addModalStyles() {
     `;
     
     document.head.appendChild(style);
-} 
+}
+
+// 페이지 이탈 시 상담원 상태 리셋 (매우 중요!)
+window.addEventListener('beforeunload', function(e) {
+    // 상담 종료 진행 중이면 경고 메시지 비활성화
+    if (isConsultationEnding) {
+        return;
+    }
+    
+    // 상담원이 페이지를 떠날 때 상태 리셋
+    if (userRole === 'agent') {
+        console.log('상담원이 페이지를 떠남 - 상태 리셋');
+        
+        // 방법 1: sendBeacon으로 상태 리셋
+        try {
+            const resetData = JSON.stringify({ 
+                present: false,
+                sessionId: sessionId 
+            });
+            
+            const blob = new Blob([resetData], { type: 'application/json' });
+            
+            // sendBeacon은 페이지 언로드 시에도 요청을 완료할 수 있음
+            const success1 = navigator.sendBeacon('/api/contract/status', blob);
+            console.log('상담원 상태 리셋 sendBeacon 결과:', success1);
+            
+            // 방법 2: AgentStatusService 직접 리셋
+            const success2 = navigator.sendBeacon('/api/agent/reset', new Blob(['{}'], { type: 'application/json' }));
+            console.log('AgentStatusService 리셋 sendBeacon 결과:', success2);
+            
+        } catch (error) {
+            console.error('상담원 상태 리셋 중 오류:', error);
+        }
+        
+        // 방법 3: 동기식 XMLHttpRequest (최후 수단)
+        try {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/agent/reset', false); // 동기식
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            
+            // CSRF 토큰 추가
+            const csrfToken = document.querySelector("meta[name='_csrf']");
+            const csrfHeader = document.querySelector("meta[name='_csrf_header']");
+            if (csrfToken && csrfHeader) {
+                xhr.setRequestHeader(csrfHeader.getAttribute('content'), csrfToken.getAttribute('content'));
+            }
+            
+            xhr.send('{}');
+            console.log('동기식 상담원 상태 리셋 완료');
+        } catch (xhrError) {
+            console.error('동기식 상담원 상태 리셋 실패:', xhrError);
+        }
+    }
+}); 

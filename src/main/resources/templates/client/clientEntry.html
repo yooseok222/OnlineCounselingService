@@ -249,9 +249,28 @@
     <!-- 부트스트랩 5 JS 번들 (Popper 포함) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <script>
+    <script th:inline="javascript">
+        // 전역 변수
         let selectedStampId = null;
         let selectedStampImage = null;
+        
+        // 초대링크 모드 확인
+        console.log('=== Thymeleaf 변수 디버깅 ===');
+        console.log('서버에서 전달된 invitationMode:', /*[[${invitationMode}]]*/ false);
+        console.log('서버에서 전달된 contractId:', /*[[${contractId}]]*/ null);
+        console.log('서버에서 전달된 consultingSessionId:', /*[[${consultingSessionId}]]*/ null);
+        console.log('서버에서 전달된 serverUrl:', /*[[${serverUrl}]]*/ null);
+        
+        const invitationMode = /*[[${invitationMode}]]*/ false;
+        const contractId = /*[[${contractId}]]*/ null;
+        const consultingSessionId = /*[[${consultingSessionId}]]*/ null;
+        const serverUrl = /*[[${serverUrl}]]*/ window.location.origin;
+        
+        console.log('=== JavaScript 변수 최종값 ===');
+        console.log('초대링크 모드:', invitationMode);
+        console.log('계약 ID:', contractId);
+        console.log('상담 세션 ID:', consultingSessionId);
+        console.log('서버 URL:', serverUrl);
         
         // 페이지 로드 시 도장 목록 불러오기
         document.addEventListener('DOMContentLoaded', function() {
@@ -329,9 +348,9 @@
                         const date = new Date(stamp.createdAt).toLocaleDateString('ko-KR');
                         const stampsHtml = `
                             <div class="stamp-item selected" onclick="selectStamp(${stamp.stampId}, '${stamp.imagePath}', this)">
-                                <img src="/stamp/image/${stamp.imagePath}" alt="내 도장">
+                                <img src="/stamp/image/${stamp.imagePath}" alt="도장">
                                 <div class="stamp-info">
-                                    <div class="stamp-id">내 도장</div>
+                                    <div class="stamp-id">도장</div>
                                     <div class="stamp-date">등록일: ${date}</div>
                                 </div>
                             </div>
@@ -410,9 +429,16 @@
         // 선택한 도장으로 입장
         function enterWithSelectedStamp() {
             if (!selectedStampId || !selectedStampImage) {
-                alert('도장을 선택해주세요.');
+                showError('도장을 선택해주세요.');
                 return;
             }
+            
+            // 디버깅 로그 추가
+            console.log('=== 도장으로 입장 시작 ===');
+            console.log('invitationMode:', invitationMode);
+            console.log('contractId:', contractId);
+            console.log('consultingSessionId:', consultingSessionId);
+            console.log('serverUrl:', serverUrl);
             
             // 선택된 도장 이미지를 캔버스로 처리
             const img = new Image();
@@ -427,13 +453,22 @@
                 
                 const processedImageData = canvas.toDataURL('image/png');
                 
-                sessionStorage.setItem("role", "client");
-                sessionStorage.setItem("stampImage", processedImageData);
-                sessionStorage.setItem("entryType", "stamp");
-                sessionStorage.setItem("selectedStampId", selectedStampId);
-                
-                // 대기실로 이동
-                location.href = "/waiting-room";
+                // 초대링크 모드인지 확인
+                if (invitationMode && contractId) {
+                    console.log('초대링크 모드로 처리 - 서버로 POST 요청 전송');
+                    // 초대링크 모드: 서버로 POST 요청 전송
+                    submitEntryForm('stamp', processedImageData, null);
+                } else {
+                    console.log('일반 모드로 처리 - waiting-room으로 이동');
+                    // 일반 모드: 기존 방식 (sessionStorage + waiting-room)
+                    sessionStorage.setItem("role", "client");
+                    sessionStorage.setItem("stampImage", processedImageData);
+                    sessionStorage.setItem("entryType", "stamp");
+                    sessionStorage.setItem("selectedStampId", selectedStampId);
+                    
+                    // 대기실로 이동 시 입장 방식 파라미터 추가
+                    location.href = "/waiting-room?entryType=stamp";
+                }
             };
             img.src = selectedStampImage;
         }
@@ -444,7 +479,7 @@
             
             // 버튼이 비활성화된 경우 업로드 모드를 열지 않음
             if (uploadToggleBtn.disabled) {
-                alert('이미 등록된 도장이 있습니다. 새 도장을 업로드하려면 먼저 기존 도장을 삭제해주세요.');
+                showError('이미 등록된 도장이 있습니다. 새 도장을 업로드하려면 먼저 기존 도장을 삭제해주세요.');
                 return;
             }
             
@@ -461,18 +496,18 @@
             const fileInput = document.getElementById("stampUpload");
             const file = fileInput.files[0];
             if (!file) {
-                alert("도장 이미지를 선택하세요.");
+                showError("도장 이미지를 선택하세요.");
                 return;
             }
 
             // 파일 유효성 검사
             if (file.size <= 0) {
-                alert("올바른 도장 이미지 파일을 선택하세요.");
+                showError("올바른 도장 이미지 파일을 선택하세요.");
                 return;
             }
 
             if (!file.type.startsWith('image/')) {
-                alert("이미지 파일만 업로드 가능합니다.");
+                showError("이미지 파일만 업로드 가능합니다.");
                 return;
             }
 
@@ -493,7 +528,7 @@
             })
             .then(response => {
                 if (response.ok) {
-                    alert('도장이 성공적으로 업로드되었습니다.');
+                    showSuccess('도장이 성공적으로 업로드되었습니다.');
                     // 업로드 모드 숨기기
                     document.getElementById('uploadMode').style.display = 'none';
                     // 파일 입력 초기화
@@ -503,15 +538,15 @@
                 } else if (response.status === 400) {
                     // 기존 도장이 있어서 업로드가 거부된 경우
                     return response.text().then(errorMessage => {
-                        alert('업로드 실패: 이미 등록된 도장이 있습니다. 새 도장을 업로드하려면 먼저 기존 도장을 삭제해주세요.');
+                        showError('업로드 실패: 이미 등록된 도장이 있습니다. 새 도장을 업로드하려면 먼저 기존 도장을 삭제해주세요.');
                     });
                 } else {
-                    alert('도장 업로드에 실패했습니다.');
+                    showError('도장 업로드에 실패했습니다.');
                 }
             })
             .catch(error => {
                 console.error('업로드 오류:', error);
-                alert('도장 업로드 중 오류가 발생했습니다.');
+                showError('도장 업로드 중 오류가 발생했습니다.');
             });
         }
         
@@ -595,8 +630,15 @@
 
         function enterWithSignature() {
             if (!hasSignature) {
-                return alert("서명을 작성해주세요. 서명 없이는 입장할 수 없습니다.");
+                return showError("서명을 작성해주세요. 서명 없이는 입장할 수 없습니다.");
             }
+            
+            // 디버깅 로그 추가
+            console.log('=== 서명으로 입장 시작 ===');
+            console.log('invitationMode:', invitationMode);
+            console.log('contractId:', contractId);
+            console.log('consultingSessionId:', consultingSessionId);
+            console.log('serverUrl:', serverUrl);
             
             // 추가 검증: 캔버스에 실제로 그려진 픽셀이 있는지 확인
             const imageData = signCtx.getImageData(0, 0, signCanvas.width, signCanvas.height).data;
@@ -611,7 +653,7 @@
             }
             
             if (!hasDrawnPixels) {
-                return alert("서명이 너무 작거나 없습니다. 다시 작성해주세요.");
+                return showError("서명이 너무 작거나 없습니다. 다시 작성해주세요.");
             }
             
             // 새 캔버스에 서명 복사하여 최적화
@@ -626,12 +668,75 @@
             
             // PNG 형식으로 변환하여 저장 (투명도 유지)
             const signatureImage = tempCanvas.toDataURL('image/png');
-            sessionStorage.setItem("role", "client");
-            sessionStorage.setItem("signatureImage", signatureImage);
-            sessionStorage.setItem("entryType", "signature");
             
-            // 대기실로 이동
-            location.href = "/waiting-room";
+            // 초대링크 모드인지 확인
+            if (invitationMode && contractId) {
+                console.log('초대링크 모드로 처리 - 서버로 POST 요청 전송');
+                // 초대링크 모드: 서버로 POST 요청 전송
+                submitEntryForm('signature', null, signatureImage);
+            } else {
+                console.log('일반 모드로 처리 - waiting-room으로 이동');
+                // 일반 모드: 기존 방식 (sessionStorage + waiting-room)
+                sessionStorage.setItem("role", "client");
+                sessionStorage.setItem("signatureImage", signatureImage);
+                sessionStorage.setItem("entryType", "signature");
+                
+                // 대기실로 이동 시 입장 방식 파라미터 추가
+                location.href = "/waiting-room?entryType=signature";
+            }
+        }
+        
+        // 서버로 입장 완료 요청 전송 (초대링크 모드용)
+        function submitEntryForm(entryType, stampData, signatureData) {
+            console.log('=== submitEntryForm 시작 ===');
+            console.log('entryType:', entryType);
+            console.log('stampData length:', stampData ? stampData.length : 'null');
+            console.log('signatureData length:', signatureData ? signatureData.length : 'null');
+            
+            const formData = new FormData();
+            formData.append('entryType', entryType);
+            
+            if (stampData) {
+                formData.append('stampData', stampData);
+            }
+            if (signatureData) {
+                formData.append('signatureData', signatureData);
+            }
+            
+            // CSRF 토큰 추가
+            const token = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+            const header = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+            
+            console.log('POST 요청 전송 중...');
+            
+            fetch('/client-entry/complete', {
+                method: 'POST',
+                headers: {
+                    [header]: token
+                },
+                body: formData
+            })
+            .then(response => {
+                console.log('서버 응답:', response);
+                console.log('response.redirected:', response.redirected);
+                console.log('response.url:', response.url);
+                
+                if (response.redirected) {
+                    console.log('리다이렉트 URL로 이동:', response.url);
+                    // 서버에서 리다이렉트를 응답하면 해당 URL로 이동
+                    window.location.href = response.url;
+                } else if (response.ok) {
+                    // 성공 시 응답 확인
+                    console.log('입장 완료 요청 성공');
+                } else {
+                    console.error('응답 오류:', response.status, response.statusText);
+                    showError('입장 처리 중 오류가 발생했습니다.');
+                }
+            })
+            .catch(error => {
+                console.error('입장 요청 오류:', error);
+                showError('입장 처리 중 오류가 발생했습니다.');
+            });
         }
         
         // 페이지 로드 시 캔버스 설정

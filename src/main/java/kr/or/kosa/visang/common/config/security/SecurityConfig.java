@@ -97,34 +97,51 @@ public class SecurityConfig {
 
     /**
      * 인증 성공 핸들러
-     * 사용자 유형에 따라 다른 페이지로 리다이렉트
+     * 사용자 유형에 따라 다른 페이지로 리다이렉트하되, 초대링크가 있으면 원래 URL로 복귀
      * @return AuthenticationSuccessHandler
      */
     @Bean
     public AuthenticationSuccessHandler authenticationSuccessHandler() {
-        SimpleUrlAuthenticationSuccessHandler handler = new SimpleUrlAuthenticationSuccessHandler();
-        handler.setUseReferer(true);
-
         return (request, response, authentication) -> {
+            // 원래 요청했던 URL 확인 (Spring Security가 자동으로 저장)
+            String redirectUrl = request.getParameter("redirectUrl");
+
+            if (redirectUrl != null && !redirectUrl.isEmpty()) {
+                response.sendRedirect(redirectUrl);
+                return;
+            }
+
+            // SavedRequest에서 원래 요청 URL 확인
+            var savedRequest = (org.springframework.security.web.savedrequest.SavedRequest)
+                request.getSession().getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+
+            if (savedRequest != null) {
+                String originalUrl = savedRequest.getRedirectUrl();
+
+                // 초대링크인 경우 원래 URL로 리다이렉트
+                if (originalUrl != null && originalUrl.contains("/client/invitation")) {
+                    response.sendRedirect(originalUrl);
+                    return;
+                }
+            }
+
+            // 기본 역할별 리다이렉트
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-            String redirectUrl;
 
             switch (userDetails.getRole()) {
                 case "USER":
-                    redirectUrl = "/client/dashboard";
+                    response.sendRedirect("/client/dashboard");
                     break;
                 case "AGENT":
-                    redirectUrl = "/agent/dashboard";
+                    response.sendRedirect("/agent/dashboard");
                     break;
                 case "ADMIN":
-                    redirectUrl = "/admin/dashboard";
+                    response.sendRedirect("/admin/dashboard");
                     break;
                 default:
-                    redirectUrl = "/";
+                    response.sendRedirect("/");
                     break;
             }
-
-            response.sendRedirect(redirectUrl);
         };
     }
 
@@ -150,6 +167,8 @@ public class SecurityConfig {
                 .requestMatchers("/h2-console/**").permitAll()
                 // 공개 페이지 접근 허용
                 .requestMatchers("/", "/login", "/register/**", "/verify/**").permitAll()
+                // 초대링크 에러 페이지만 public 허용
+                .requestMatchers("/invitation/error").permitAll()
                 // API 엔드포인트 접근 허용
                 .requestMatchers("/api/email/check", "/api/phone/check", "/api/ssn/check", "/api/invitation/verify", "/api/verify/resend").permitAll()
                     // 상담 관련 API 접근 허용 (인증된 사용자만)
@@ -158,6 +177,11 @@ public class SecurityConfig {
                     .requestMatchers("/ws/**").permitAll()
                     // 계약 관련 페이지 접근 허용 (인증된 사용자만)
                     .requestMatchers("/contract/**").authenticated()
+                    // 초대링크 처리 - 인증 필요 (로그인 후 접근)
+                    .requestMatchers("/client/invitation**").authenticated()
+                    // 고객 입장 페이지 - 인증 필요 (초대링크 검증 후 접근)
+                    .requestMatchers("/client-entry").authenticated()
+                    // 사용자 페이지 접근 권한 설정
                     // 도장 관련 페이지 접근 허용 (인증된 사용자만)
                     .requestMatchers("/stamp/**").authenticated()
                     // 클라이언트 페이지 접근 권한 설정

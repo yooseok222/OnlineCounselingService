@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import kr.or.kosa.visang.domain.contract.model.*;
+import kr.or.kosa.visang.domain.contractTemplate.model.ContractTemplate;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -108,8 +109,6 @@ public interface ContractMapper {
 
     List<Map<String, Object>> countContractByStatus(Long agentId);
 
-    List<Contract> selectContractsByAgentIdAndStatus(Map<String, Object> param);
-
     List<Contract> selectContractsByAgentIdAndStatusPaged(
             @Param("agentId") Long agentId,
             @Param("status") String status,
@@ -140,5 +139,12 @@ public interface ContractMapper {
     
     // 고객별 계약 총 개수 (페이징용)
     int countContractsByClientId(Map<String, Object> params);
+
+    /*int updateStatus(@Param("contractId") Long contractId,
+                     @Param("status")     String status);*/
+
+    // 통화시작 계약상태 업데이트
+    int updateStatus(@Param("contractId") Long contractId,
+                     @Param("status")     String status);
 
 }

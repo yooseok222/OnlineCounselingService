@@ -1,125 +1,56 @@
 package kr.or.kosa.visang.domain.agent.controller;
 
 import kr.or.kosa.visang.domain.agent.service.AgentStatusService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @RestController
-@RequestMapping("/api/contract")
+@RequestMapping("/api/agent")
+@RequiredArgsConstructor
 public class AgentStatusController {
 
-    @Autowired
-    private AgentStatusService agentStatusService;
-
-    // 세션 ID 저장을 위한 Map (여러 세션 지원)
-    private ConcurrentHashMap<String, Date> activeSessions = new ConcurrentHashMap<>();
-    
-    // 현재 활성 세션 ID (가장 최근에 생성된 세션)
-    private volatile String currentActiveSessionId = null;
+    private final AgentStatusService agentStatusService;
 
     /**
-     * 상담원 입장 상태 확인
-     * @return 상담원 입장 상태
+     * 상담원 상태 확인 (디버깅용)
      */
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getAgentStatus() {
         boolean isPresent = agentStatusService.isAgentPresent();
-        System.out.println("상담원 상태 확인 요청 - 현재 상태: " + (isPresent ? "입장" : "미입장"));
+        int activeCount = agentStatusService.getActiveAgentCount();
+        String statusInfo = agentStatusService.getStatusInfo();
         
-        Map<String, Object> response = new HashMap<>();
-        response.put("present", isPresent);
+        log.info("상담원 상태 조회 API 호출: {}", statusInfo);
         
-        // 현재 활성 세션 ID를 응답에 추가
-        if (currentActiveSessionId != null) {
-            response.put("sessionId", currentActiveSessionId);
-            System.out.println("현재 활성 세션 ID 응답: " + currentActiveSessionId);
-        } else if (!activeSessions.isEmpty()) {
-            // 백업: 가장 최근 세션 선택
-            String latestSessionId = getLatestSessionId();
-            if (latestSessionId != null) {
-                response.put("sessionId", latestSessionId);
-                currentActiveSessionId = latestSessionId; // 현재 활성 세션으로 설정
-                System.out.println("백업 세션 ID 응답: " + latestSessionId);
-            }
-        }
-        
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(Map.of(
+            "present", isPresent,
+            "activeCount", activeCount,
+            "statusInfo", statusInfo
+        ));
     }
 
     /**
-     * 가장 최근 세션 ID 찾기
+     * 상담원 상태 강제 리셋 (디버깅용)
      */
-    private String getLatestSessionId() {
-        if (activeSessions.isEmpty()) return null;
+    @PostMapping("/reset")
+    public ResponseEntity<Map<String, String>> resetAgentStatus() {
+        String beforeStatus = agentStatusService.getStatusInfo();
+        agentStatusService.resetAgentStatus();
+        String afterStatus = agentStatusService.getStatusInfo();
         
-        String latestSessionId = null;
-        Date latestTime = new Date(0);
+        log.info("상담원 상태 리셋 API 호출");
+        log.info("리셋 전: {}", beforeStatus);
+        log.info("리셋 후: {}", afterStatus);
         
-        for (Map.Entry<String, Date> entry : activeSessions.entrySet()) {
-            if (entry.getValue().after(latestTime)) {
-                latestTime = entry.getValue();
-                latestSessionId = entry.getKey();
-            }
-        }
-        
-        return latestSessionId;
-    }
-
-    /**
-     * 상담원 입장 상태 설정
-     * @param status 상담원 상태 객체
-     * @return 결과 메시지
-     */
-    @PostMapping("/status")
-    public ResponseEntity<Map<String, Object>> setAgentStatus(@RequestBody Map<String, Object> status) {
-        Boolean present = (Boolean) status.get("present");
-        String sessionId = (String) status.get("sessionId");
-        
-        System.out.println("상담원 상태 업데이트 요청 - 상태: " + (present ? "입장" : "퇴장") + ", 세션ID: " + sessionId);
-        
-        if (present != null) {
-            agentStatusService.setAgentPresent(present);
-            
-            // 세션 ID가 포함되어 있다면 저장
-            if (sessionId != null && !sessionId.isEmpty()) {
-                if (present) {
-                    // 입장 상태이면 세션 추가
-                    activeSessions.put(sessionId, new Date());
-                    currentActiveSessionId = sessionId; // 현재 활성 세션으로 설정
-                    System.out.println("세션 활성화: " + sessionId + " (현재 활성 세션으로 설정)");
-                } else {
-                    // 퇴장 상태이면 해당 세션 제거
-                    activeSessions.remove(sessionId);
-                    // 현재 활성 세션이 제거되는 세션이면 null로 설정
-                    if (sessionId.equals(currentActiveSessionId)) {
-                        currentActiveSessionId = null;
-                        System.out.println("현재 활성 세션 해제: " + sessionId);
-                    }
-                    System.out.println("세션 비활성화: " + sessionId);
-                }
-            }
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", true);
-            response.put("message", "상담원 상태가 " + (present ? "입장" : "퇴장") + " 으로 변경되었습니다.");
-            
-            // 세션 정보도 응답에 포함
-            if (sessionId != null) {
-                response.put("sessionId", sessionId);
-            }
-            
-            return ResponseEntity.ok(response);
-        } else {
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", false);
-            response.put("message", "유효하지 않은 요청입니다.");
-            return ResponseEntity.badRequest().body(response);
-        }
+        return ResponseEntity.ok(Map.of(
+            "message", "상담원 상태가 리셋되었습니다",
+            "before", beforeStatus,
+            "after", afterStatus
+        ));
     }
 } 

@@ -140,10 +140,17 @@ function createStompConnection() {
       // 연결 성공 토스트 메시지
       showToast("연결 성공", "실시간 통신이 연결되었습니다.", "success");
       
-      // 방 입장 메시지 전송 (상담원, 고객 모두 입장 메시지 전송)
-      stompClient.send(`/app/room/${sessionId}/join`, {}, JSON.stringify({
-        type: "join",
-        userId: `${userRole}_${Date.now()}`,
+      // 채팅방 입장 메시지 전송 (상담원, 고객 모두 입장 메시지 전송)
+      stompClient.send(`/app/room/${sessionId}/chat/join`, {}, JSON.stringify({
+        type: "JOIN",
+        sender: userRole,
+        senderName: userRole === 'agent' ? '상담원' : '고객',
+        sessionId: sessionId
+        // timestamp는 서버에서 설정
+      }));
+      
+      // PDF 동기화를 위한 방 입장 메시지도 별도로 전송
+      stompClient.send(`/app/room/${sessionId}/pdf/join`, {}, JSON.stringify({
         role: userRole,
         sessionId: sessionId,
         timestamp: Date.now()
@@ -402,12 +409,31 @@ function subscribeToTopics() {
       console.error("스크롤 동기화 데이터 처리 오류:", e);
     }
   });
+
+  // 미디어 상태 동기화 이벤트 구독
+  stompClient.subscribe(`/topic/room/${sessionId}/media`, function(message) {
+    try {
+      const mediaData = JSON.parse(message.body);
+      console.log("미디어 상태 데이터 수신:", mediaData);
+      
+      // 본인이 보낸 메시지가 아닌 경우에만 처리
+      if (mediaData.sender !== userRole) {
+        if (typeof handleRemoteMediaState === 'function') {
+          handleRemoteMediaState(mediaData);
+        } else {
+          console.error("미디어 상태 핸들러가 정의되지 않았습니다.");
+        }
+      }
+    } catch (e) {
+      console.error("미디어 상태 데이터 처리 오류:", e);
+    }
+  });
   
-  // 방 입장 이벤트 구독
-  stompClient.subscribe(`/topic/room/${sessionId}/join`, function(message) {
+  // PDF 동기화 방 입장 이벤트 구독
+  stompClient.subscribe(`/topic/room/${sessionId}/pdf/join`, function(message) {
     try {
       const joinData = JSON.parse(message.body);
-      console.log("방 입장 데이터 수신:", joinData);
+      console.log("PDF 동기화 방 입장 데이터 수신:", joinData);
       
       // 상대방이 입장한 경우
       if (joinData.role !== userRole) {
@@ -431,7 +457,7 @@ function subscribeToTopics() {
         }
       }
     } catch (e) {
-      console.error("방 입장 데이터 처리 오류:", e);
+      console.error("PDF 동기화 방 입장 데이터 처리 오류:", e);
     }
   });
   
@@ -493,6 +519,22 @@ function subscribeToTopics() {
       handleConsultationEnd(endData);
     } catch (e) {
       console.error("세션별 상담 종료 메시지 처리 오류:", e);
+      console.error("원본 메시지:", message.body);
+    }
+  });
+  
+  // 채팅 메시지 구독
+  stompClient.subscribe(`/topic/room/${sessionId}/chat`, function(message) {
+    try {
+      const chatData = JSON.parse(message.body);
+      console.log("채팅 메시지 수신:", chatData);
+      
+      // 본인이 보낸 메시지가 아닌 경우에만 처리
+      if (chatData.sender !== userRole) {
+        handleChatMessage(chatData);
+      }
+    } catch (e) {
+      console.error("채팅 메시지 처리 오류:", e);
       console.error("원본 메시지:", message.body);
     }
   });
@@ -577,11 +619,54 @@ function sendRtcMessage(type, data = {}) {
 
 // 채팅 메시지 처리 함수
 function handleChatMessage(chatData) {
-  // 채팅 기능이 있다면 여기서 처리
-  console.log("채팅 메시지:", chatData.message);
+  console.log("채팅 메시지 처리:", chatData);
   
-  // 토스트 메시지로 채팅 표시
-  showToast("메시지 수신", chatData.message, "info");
+  // 채팅 UI가 있으면 채팅창에 메시지 추가
+  if (typeof addChatMessageToUI === 'function') {
+    addChatMessageToUI(chatData);
+  } else {
+    // 채팅 UI가 없으면 토스트 메시지로 표시
+    const displayMessage = chatData.content || chatData.message || "새 메시지";
+    const senderName = chatData.senderName || (chatData.sender === 'agent' ? '상담원' : '고객');
+    showToast(senderName, displayMessage, "info");
+  }
+}
+
+// 채팅 메시지 전송 함수
+function sendChatMessage(content, type = "CHAT") {
+  if (!stompClient || !stompClient.connected) {
+    console.error("WebSocket 연결이 없어 채팅 메시지를 전송할 수 없습니다.");
+    showToast("전송 실패", "연결이 끊어졌습니다. 다시 시도해주세요.", "error");
+    return;
+  }
+  
+  if (!content || content.trim() === "") {
+    console.warn("빈 메시지는 전송할 수 없습니다.");
+    return;
+  }
+  
+  try {
+    const message = {
+      type: type,
+      sender: userRole,
+      senderName: userRole === 'agent' ? '상담원' : '고객',
+      content: content.trim(),
+      sessionId: sessionId
+      // timestamp는 서버에서 설정
+    };
+    
+    console.log("채팅 메시지 전송:", message);
+    stompClient.send(`/app/room/${sessionId}/chat.send`, {}, JSON.stringify(message));
+    
+    // 본인 메시지도 UI에 추가 (에코 방지를 위해 직접 추가)
+    if (typeof addChatMessageToUI === 'function') {
+      addChatMessageToUI(message);
+    }
+    
+  } catch (e) {
+    console.error("채팅 메시지 전송 오류:", e);
+    showToast("전송 실패", "메시지 전송에 실패했습니다.", "error");
+  }
 }
 
 // 상담 종료 메시지 처리 함수
@@ -593,8 +678,9 @@ function handleConsultationEnd(endData) {
   if (userRole === 'client') {
     showClientConsultationEndModal();
   } else {
-    // 상담원인 경우 기존 모달 표시
-    showConsultationEndModal(endData.message || "상담이 종료되었습니다.", endData.redirectUrl || "/");
+    // 상담원인 경우 기존 모달 표시 - 대시보드로 이동
+    const redirectUrl = userRole === 'agent' ? "/agent/dashboard" : (endData.redirectUrl || "/");
+    showConsultationEndModal(endData.message || "상담이 종료되었습니다.", redirectUrl);
   }
 }
 
@@ -617,7 +703,7 @@ function showConsultationEndModal(message, redirectUrl) {
         <p class="modal-message">${message}</p>
         <div class="modal-buttons">
           <button onclick="confirmConsultationEnd('${redirectUrl}')" class="btn-confirm">
-            <i class="fas fa-home"></i> 메인 페이지로 이동
+            <i class="fas fa-${userRole === 'agent' ? 'tachometer-alt' : 'home'}"></i> ${userRole === 'agent' ? '대시보드로 이동' : '메인 페이지로 이동'}
           </button>
         </div>
       </div>
@@ -1178,7 +1264,7 @@ async function savePdfWithStampAndSignature(forEmail = false) {
 
     // 로딩 메시지 표시
     if (!forEmail) {
-      alert("PDF 저장 중입니다. 잠시만 기다려주세요...");
+      showLoading("PDF 저장 중입니다. 잠시만 기다려주세요...");
     } else {
       showToast("PDF 생성 중", "PDF 문서를 생성하고 있습니다...", "info");
     }
@@ -1326,7 +1412,7 @@ async function savePdfWithStampAndSignature(forEmail = false) {
   } catch (error) {
     console.error("PDF 저장 오류:", error);
     if (!forEmail) {
-      alert("PDF 저장 중 오류가 발생했습니다: " + error.message);
+      showError("PDF 저장 중 오류가 발생했습니다: " + error.message);
     } else {
       showToast("PDF 생성 실패", "PDF 저장 중 오류가 발생했습니다: " + error.message, "error");
     }
