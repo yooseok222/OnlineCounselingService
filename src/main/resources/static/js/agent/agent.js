@@ -395,10 +395,18 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 
 	loadSchedules();
-	loadTodayContracts();
 
 	// 오늘의 계약 불러오기
 	async function loadTodayContracts() {
+	    // 중복 호출 방지 (함수에 상태 저장)
+	    if (loadTodayContracts.isLoading) return;
+	    loadTodayContracts.isLoading = true;
+
+	    // 상세 정보 초기화
+	    const detailsDiv = document.getElementById('todayContractDetails');
+	    if (detailsDiv) {
+	        detailsDiv.innerHTML = '';
+	    }
 
 		try {
 			const agentId = Number(document.querySelector('input[name="agentId"]').value);
@@ -415,13 +423,24 @@ document.addEventListener('DOMContentLoaded', function() {
 			if (!res.ok) throw new Error('오늘 계약 로드 실패');
 			const list = await res.json();
 
+			// 계약 ID 기준으로 중복 제거
+			const uniqueContracts = [];
+			const contractIds = new Set();
+			
+			for (const contract of list) {
+			    if (!contractIds.has(contract.contractId)) {
+			        contractIds.add(contract.contractId);
+			        uniqueContracts.push(contract);
+			    }
+			}
+
 			const ul = document.querySelector('#todayContractsList ul');
 			ul.innerHTML = '';
-			if (list.length === 0) {
+			if (uniqueContracts.length === 0) {
 				ul.innerHTML = '<li class="list-group-item text-center text-muted">오늘 계약 예정이 없습니다.</li>';
 				return;
 			}
-			 list.forEach(c => {
+			 uniqueContracts.forEach(c => {
                 const li = document.createElement('li');
                 li.className = 'list-group-item d-flex justify-content-between align-items-center';
                 li.innerHTML = `
@@ -476,6 +495,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 		} catch (err) {
 			console.error(err);
+		} finally {
+		    // 함수 호출이 완료되면 플래그 초기화
+		    loadTodayContracts.isLoading = false;
 		}
 	}
 
@@ -666,7 +688,7 @@ document.addEventListener('DOMContentLoaded', function() {
             bootstrap.Modal.getInstance(scheduleModal).hide();
             scheduleForm.reset();
 
-			// 캘린더에 이벤트 추가
+			/*// 캘린더에 이벤트 추가
 			calendar.addEvent({
 				title: `${fd.get('clientName')} 고객`,
 				start: payload.contractTime,
@@ -678,13 +700,13 @@ document.addEventListener('DOMContentLoaded', function() {
 					email: payload.email,
 					phone: fd.get('phone')
 				}
-			});
-			calendar.addEvent({ /* … */ });
+			});*/
+			/*calendar.addEvent({ /!* … *!/ });
 			updateEventCountBadges();
 			loadSchedules();
 			if (calendar.view.type === 'listWeek') {
 				renderWeeklyTimetable(calendar.view.currentStart);
-			}
+			}*/
 
 			const modalEl = document.getElementById('scheduleModal');
 			bootstrap.Modal.getInstance(modalEl).hide();
