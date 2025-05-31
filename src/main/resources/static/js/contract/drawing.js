@@ -103,70 +103,52 @@ function openTextPopup() {
   document.getElementById('currentMode').textContent = '텍스트';
   updateToolbarButtons('textBtn');
 
-  // 팝업 초기화 및 표시
-  const textPopup = document.getElementById('textPopup');
-  const textInput = document.getElementById('textInput');
-  
-  // 팝업 위치 조정 (가운데 정렬)
-  textPopup.style.display = 'block';
-  textPopup.style.position = 'fixed';
-  textPopup.style.top = '50%';
-  textPopup.style.left = '50%';
-  textPopup.style.transform = 'translate(-50%, -50%)';
-  textPopup.style.zIndex = '1000';
-  
-  // 기존 텍스트 초기화 및 입력 필드에 포커스
-  textInput.value = '';
-  pendingText = null;
-  
-  // 텍스트 입력 필드에 자동 포커스
-  setTimeout(() => {
-    textInput.focus();
-  }, 100);
-  
-  // ESC 키로 닫기 이벤트 리스너 추가
-  document.addEventListener('keydown', closeTextPopupOnEsc);
+  // SweetAlert2로 텍스트 입력 받기
+  Swal.fire({
+    title: '텍스트 입력',
+    input: 'text',
+    inputPlaceholder: '입력할 텍스트를 작성하세요',
+    showCancelButton: true,
+    confirmButtonText: '확인',
+    cancelButtonText: '취소',
+    confirmButtonColor: '#0064E1',
+    cancelButtonColor: '#6c757d',
+    inputValidator: (value) => {
+      if (!value || !value.trim()) {
+        return '텍스트를 입력해주세요!'
+      }
+    }
+  }).then((result) => {
+    if (result.isConfirmed && result.value) {
+      // 텍스트를 캔버스에 추가하기 위한 클릭 이벤트 대기
+      pendingText = result.value.trim();
+      
+      // 사용자에게 안내 메시지 표시
+      showToast("위치 선택", "텍스트를 추가할 위치를 클릭하세요.", "info");
+    } else {
+      // 취소된 경우 커서 모드로 돌아가기
+      setCursor();
+    }
+  });
 }
 
-// ESC 키로 텍스트 팝업 닫기
+// ESC 키로 텍스트 팝업 닫기 - SweetAlert2에서는 자동으로 처리됨
 function closeTextPopupOnEsc(e) {
-  if (e.key === 'Escape') {
-    closeTextPopup();
-  }
+  // SweetAlert2에서 자동으로 ESC 키 처리하므로 이 함수는 더 이상 필요 없음
 }
 
-// 텍스트 팝업 닫기
+// 텍스트 팝업 닫기 - SweetAlert2에서는 자동으로 처리됨
 function closeTextPopup() {
-  document.getElementById('textPopup').style.display = 'none';
-  document.removeEventListener('keydown', closeTextPopupOnEsc);
-  
+  // SweetAlert2에서 자동으로 처리하므로 이 함수는 더 이상 필요 없음
   // 텍스트가 입력되지 않았을 경우 커서 모드로 돌아가기
   if (!pendingText) {
     setCursor();
   }
 }
 
-// 텍스트 확인 및 추가
+// 텍스트 확인 및 추가 - SweetAlert2에서 처리하므로 이 함수는 더 이상 필요 없음
 function confirmText() {
-  const textInput = document.getElementById('textInput').value.trim();
-  if (!textInput) {
-    showError('텍스트를 입력해주세요.');
-    return;
-  }
-
-  // 텍스트를 캔버스에 추가하기 위한 클릭 이벤트 대기
-  pendingText = textInput;
-  closeTextPopup();
-
-  // 사용자에게 안내 메시지 표시
-  showToast("위치 선택", "텍스트를 추가할 위치를 클릭하세요.", "info");
-  
-  // Enter 키 이벤트 리스너 추가 (Enter 키를 누르면 텍스트 확인)
-  document.getElementById('textInput').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-      confirmText();
-    }
-  });
+  // SweetAlert2의 then() 콜백에서 처리됨
 }
 
 // 도구 모음 버튼 업데이트

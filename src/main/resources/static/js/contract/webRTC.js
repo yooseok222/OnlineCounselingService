@@ -397,7 +397,15 @@ async function setupCamera() {
         log(`자동 재생 차단됨: ${e.message}, 사용자 상호작용 필요`);
         
         // 클릭으로 재생 유도
-        alert("화면을 클릭하여 카메라를 활성화하세요");
+        Swal.fire({
+          title: '카메라 활성화',
+          text: '화면을 클릭하여 카메라를 활성화하세요',
+          icon: 'info',
+          confirmButtonText: '확인',
+          confirmButtonColor: '#0064E1',
+          allowOutsideClick: false
+        });
+        
         const playVideoOnInteraction = () => {
           localVideo.play().catch(err => log(`재생 시도 실패: ${err.message}`));
           document.removeEventListener('click', playVideoOnInteraction);

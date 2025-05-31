@@ -624,30 +624,45 @@ function clearMode() {
  * 홈페이지로 이동 (기존 함수 유지)
  */
 function goToHomePage() {
-    // 세션 스토리지 클리어 (상담 관련 데이터)
-    sessionStorage.removeItem("sessionId");
-    sessionStorage.removeItem("role");
+    // SweetAlert2로 확인 메시지 표시
+    Swal.fire({
+        title: '사이트에서 나가시겠습니까?',
+        text: '변경사항이 저장되지 않을 수 있습니다.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '나가기',
+        cancelButtonText: '취소',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // 세션 스토리지 클리어 (상담 관련 데이터)
+            sessionStorage.removeItem("sessionId");
+            sessionStorage.removeItem("role");
 
-  // WebRTC 연결 종료
-    if (typeof pc !== 'undefined' && pc) {
-    pc.close();
-    pc = null;
-  }
+            // WebRTC 연결 종료
+            if (typeof pc !== 'undefined' && pc) {
+                pc.close();
+                pc = null;
+            }
 
-  // WebSocket 연결 종료
-  if (stompClient) {
-    stompClient.disconnect();
-    stompClient = null;
-  }
+            // WebSocket 연결 종료
+            if (stompClient) {
+                stompClient.disconnect();
+                stompClient = null;
+            }
 
-  // 로컬 트랙 종료
-  const localVideo = document.getElementById("localVideo");
-  if (localVideo && localVideo.srcObject) {
-    localVideo.srcObject.getTracks().forEach(track => track.stop());
-  }
+            // 로컬 트랙 종료
+            const localVideo = document.getElementById("localVideo");
+            if (localVideo && localVideo.srcObject) {
+                localVideo.srcObject.getTracks().forEach(track => track.stop());
+            }
 
-  // 홈으로 이동
-  window.location.href = "/";
+            // 홈으로 이동
+            window.location.href = "/";
+        }
+    });
 }
 
 // 세션 데이터 로드
@@ -1702,4 +1717,65 @@ window.addEventListener('beforeunload', function(e) {
             console.error('동기식 상담원 상태 리셋 실패:', xhrError);
         }
     }
-}); 
+    
+    // 브라우저 기본 확인창 표시
+    e.returnValue = '사이트에서 나가시겠습니까? 변경사항이 저장되지 않을 수 있습니다.';
+    return '사이트에서 나가시겠습니까? 변경사항이 저장되지 않을 수 있습니다.';
+});
+
+// 페이지 내 링크나 버튼 클릭 시 SweetAlert2 확인창 표시
+function confirmPageLeave(targetUrl) {
+    Swal.fire({
+        title: '사이트에서 나가시겠습니까?',
+        text: '변경사항이 저장되지 않을 수 있습니다.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '나가기',
+        cancelButtonText: '취소',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // 상담원 상태 리셋 후 페이지 이동
+            if (userRole === 'agent') {
+                // 상담원 상태 리셋 로직 실행
+                resetAgentStatus().then(() => {
+                    window.location.href = targetUrl || '/';
+                });
+            } else {
+                window.location.href = targetUrl || '/';
+            }
+        }
+    });
+}
+
+// 상담원 상태 리셋 함수
+async function resetAgentStatus() {
+    try {
+        const resetData = { 
+            present: false,
+            sessionId: sessionId 
+        };
+        
+        await fetch('/api/contract/status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(resetData)
+        });
+        
+        await fetch('/api/agent/reset', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({})
+        });
+        
+        console.log('상담원 상태 리셋 완료');
+    } catch (error) {
+        console.error('상담원 상태 리셋 오류:', error);
+    }
+}

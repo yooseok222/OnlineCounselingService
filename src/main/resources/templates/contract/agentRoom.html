@@ -7,6 +7,8 @@
   <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
   <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <!-- SweetAlert2 CDN 추가 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- CSRF 토큰을 위한 메타 태그 추가 -->
   <meta name="_csrf" th:content="${_csrf.token}"/>
@@ -89,7 +91,8 @@
     </div>
   </div>
   
-  <div id="textPopup">
+  <!-- 텍스트 입력 팝업 - SweetAlert2로 대체되어 더 이상 사용하지 않음 -->
+  <div id="textPopup" style="display: none;">
     <h4>텍스트 입력</h4>
     <input type="text" id="textInput" placeholder="입력할 텍스트...">
     <div>
