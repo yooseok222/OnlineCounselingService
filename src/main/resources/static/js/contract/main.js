@@ -1363,40 +1363,6 @@ async function generateAndSendPdf() {
         console.log('- Client Email:', clientEmail);
         console.log('- PDF Data 길이:', pdfData ? pdfData.length : 'null');
         
-        // 수동 PDF 파일 업로드 시도 (추가 안전장치)
-        try {
-            // Base64 데이터를 Blob으로 변환
-            const byteCharacters = atob(pdfData.split(',')[1]);
-            const byteArrays = [];
-            
-            for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-                const slice = byteCharacters.slice(offset, offset + 512);
-                
-                const byteNumbers = new Array(slice.length);
-                for (let i = 0; i < slice.length; i++) {
-                    byteNumbers[i] = slice.charCodeAt(i);
-                }
-                
-                const byteArray = new Uint8Array(byteNumbers);
-                byteArrays.push(byteArray);
-            }
-            
-            const pdfBlob = new Blob(byteArrays, { type: 'application/pdf' });
-            const fileName = `상담문서_수동업로드_${Date.now()}.pdf`;
-            
-            // 업로드 시도 (결과는 무시 - 이메일 전송을 위한 추가 보장 장치)
-            console.log("수동 PDF 업로드 시도 (안전장치):", fileName);
-            if (typeof uploadFinalPdfToServer === 'function') {
-                uploadFinalPdfToServer(pdfBlob, fileName).catch(e => {
-                    console.warn("수동 PDF 업로드 실패 (무시):", e);
-                });
-            } else {
-                console.warn("uploadFinalPdfToServer 함수를 찾을 수 없어 수동 업로드를 건너뜁니다.");
-            }
-        } catch (manualUploadError) {
-            console.warn("수동 PDF 업로드 실패 (무시):", manualUploadError);
-        }
-        
         // CSRF 토큰 가져오기
         const csrfToken = document.querySelector("meta[name='_csrf']");
         const csrfHeader = document.querySelector("meta[name='_csrf_header']");
