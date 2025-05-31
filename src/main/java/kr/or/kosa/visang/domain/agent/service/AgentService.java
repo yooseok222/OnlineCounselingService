@@ -154,6 +154,13 @@ public class AgentService {
         c.setCreatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         c.setStatus("PENDING");
 
+        // 계약 템플릿 ID가 설정되었는지 확인 및 로깅
+        if (c.getContractTemplateId() != null) {
+            log.info("계약 템플릿 ID 설정됨: {}", c.getContractTemplateId());
+        } else {
+            log.warn("계약 템플릿 ID가 설정되지 않음");
+        }
+
         contractMapper.insertSchedule(c);
 
         // 초대코드 생성

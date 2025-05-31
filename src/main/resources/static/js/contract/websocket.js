@@ -1244,6 +1244,199 @@ function handleSyncResponse(syncResponse) {
   }
 }
 
+// 최종 PDF를 서버에 업로드하는 함수
+async function uploadFinalPdfToServer(blob, fileName) {
+  try {
+    console.log("최종 PDF 서버 업로드 시작:", fileName);
+    console.log("계약 ID:", currentContractId);
+    console.log("세션 ID:", sessionId);
+    console.log("Blob 정보:", blob.size, "bytes,", blob.type);
+    
+    // FormData 생성
+    const formData = new FormData();
+    
+    // Blob에 명시적으로 파일명과 MIME 타입 지정
+    const pdfFile = new File([blob], fileName, { type: "application/pdf" });
+    formData.append('file', pdfFile);
+    console.log("FormData에 파일 추가 완료:", fileName);
+    
+    // 계약 ID 확인 및 추가
+    if (!currentContractId && typeof window.currentContractId !== 'undefined') {
+      currentContractId = window.currentContractId;
+      console.log("window 객체에서 계약 ID 가져옴:", currentContractId);
+    }
+    
+    // 계약 ID가 있으면 추가
+    if (currentContractId) {
+      formData.append('contractId', String(currentContractId));
+      console.log("FormData에 계약 ID 추가:", currentContractId);
+    } else {
+      console.warn("계약 ID가 없습니다. 세션 ID를 대신 사용합니다.");
+      formData.append('sessionId', sessionId);
+      console.log("FormData에 세션 ID 추가:", sessionId);
+    }
+    
+    // 추가 정보 (디버깅 및 식별용)
+    formData.append('uploadTime', new Date().toISOString());
+    formData.append('userRole', userRole || 'unknown');
+    
+    // FormData 내용 확인 (디버깅용)
+    console.log("FormData 내용:");
+    for (let [key, value] of formData.entries()) {
+      if (key === 'file') {
+        console.log("- file:", value.name, value.type, value.size, "bytes");
+      } else {
+        console.log(`- ${key}:`, value);
+      }
+    }
+    
+    // CSRF 토큰 가져오기
+    const token = document.querySelector("meta[name='_csrf']");
+    const header = document.querySelector("meta[name='_csrf_header']");
+    
+    const headers = {};
+    
+    // CSRF 토큰이 있으면 추가
+    if (token && header) {
+      headers[header.getAttribute('content')] = token.getAttribute('content');
+      console.log("CSRF 토큰 추가됨:");
+    } else {
+      console.warn("CSRF 토큰을 찾을 수 없습니다");
+    }
+    
+    // 실제 백엔드 엔드포인트 확인
+    console.log("PDF 업로드 API 호출 시작");
+    
+    // 백엔드 엔드포인트 사용
+    const endpointUrl = '/upload/final';
+    console.log("PDF 업로드 URL:", endpointUrl);
+    
+    // 더 자세한 로깅을 위한 타임스탬프
+    const startTime = Date.now();
+    console.log(`업로드 시작 시간: ${new Date(startTime).toISOString()}`);
+    
+    const response = await fetch(endpointUrl, {
+      method: 'POST',
+      headers: headers,
+      body: formData
+    });
+    
+    // 응답 시간 로깅
+    const endTime = Date.now();
+    console.log(`업로드 응답 시간: ${new Date(endTime).toISOString()}, 소요 시간: ${endTime - startTime}ms`);
+    
+    // 응답 확인
+    console.log("서버 응답 상태:", response.status, response.statusText);
+    console.log("서버 응답 헤더:", [...response.headers.entries()]);
+    
+    if (!response.ok) {
+      console.error(`서버 업로드 실패: ${response.status}`);
+      
+      // 응답 텍스트 확인 시도
+      let errorText = "";
+      try {
+        errorText = await response.text();
+        console.error("서버 오류 응답:", errorText);
+      } catch (e) {
+        errorText = "응답 텍스트를 가져올 수 없습니다";
+        console.error("응답 텍스트 파싱 실패:", e);
+      }
+      
+      throw new Error(`서버 업로드 실패 (${response.status}): ${errorText}`);
+    }
+    
+    // 응답 처리 (PdfUploadController는 텍스트로 반환)
+    let result;
+    try {
+      result = await response.text();
+      console.log("서버 응답 텍스트:", result);
+    } catch (textError) {
+      console.error("응답 텍스트 읽기 실패:", textError);
+      throw new Error("서버 응답을 처리할 수 없습니다: " + textError.message);
+    }
+    
+    console.log("최종 PDF 서버 업로드 성공");
+    showToast("PDF 저장 완료", "상담 문서가 서버에 저장되었습니다.", "success");
+    
+    return result;
+  } catch (error) {
+    console.error("최종 PDF 서버 업로드 오류:", error);
+    
+    // 오류 세부 정보 로깅
+    console.error("오류 세부 정보:");
+    console.error("- 메시지:", error.message);
+    console.error("- 스택:", error.stack);
+    console.error("- 계약 ID:", currentContractId);
+    console.error("- 세션 ID:", sessionId);
+    
+    showToast("PDF 저장 실패", "서버에 PDF를 저장하지 못했습니다. 상담 종료 후 다시 시도해주세요.", "error");
+    // 오류를 던지지 않고 null 반환 (상담 종료 프로세스 계속 진행)
+    return null;
+  }
+}
+
+// 폴백 PDF 업로드 함수 (대체 방법)
+async function uploadPdfFallback(blob, fileName) {
+  try {
+    console.log("폴백 PDF 업로드 시작:", fileName);
+    
+    // FormData 생성
+    const formData = new FormData();
+    
+    // Blob에 명시적으로 파일명과 MIME 타입 지정
+    const pdfFile = new File([blob], fileName, { type: "application/pdf" });
+    formData.append('file', pdfFile);
+    
+    if (currentContractId) {
+      formData.append('contractId', String(currentContractId));
+    }
+    
+    // CSRF 토큰 가져오기
+    const token = document.querySelector("meta[name='_csrf']");
+    const header = document.querySelector("meta[name='_csrf_header']");
+    
+    const headers = {};
+    if (token && header) {
+      headers[header.getAttribute('content')] = token.getAttribute('content');
+    }
+    
+    // 대체 엔드포인트들 시도
+    const fallbackEndpoints = [
+      '/api/contract/upload-pdf',
+      '/api/consultation/upload-pdf',
+      '/api/pdf/upload'
+    ];
+    
+    let result = null;
+    
+    for (const endpoint of fallbackEndpoints) {
+      try {
+        console.log(`폴백 엔드포인트 시도: ${endpoint}`);
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: headers,
+          body: formData
+        });
+        
+        if (response.ok) {
+          result = await response.text();
+          console.log(`폴백 엔드포인트 ${endpoint} 성공:`, result);
+          break;
+        } else {
+          console.warn(`폴백 엔드포인트 ${endpoint} 실패:`, response.status);
+        }
+      } catch (e) {
+        console.error(`폴백 엔드포인트 ${endpoint} 오류:`, e);
+      }
+    }
+    
+    return result;
+  } catch (error) {
+    console.error("폴백 PDF 업로드 오류:", error);
+    return null;
+  }
+}
+
 // PDF에 도장과 서명 포함해서 저장하는 함수
 async function savePdfWithStampAndSignature(forEmail = false) {
   try {
@@ -1269,22 +1462,64 @@ async function savePdfWithStampAndSignature(forEmail = false) {
       showToast("PDF 생성 중", "PDF 문서를 생성하고 있습니다...", "info");
     }
 
-    // 원본 PDF 가져오기
+    // 원본 PDF 가져오기 - 최대 3회 재시도
     console.log("PDF 파일 다운로드 시작:", uploadedPdfUrl);
-    const pdfResponse = await fetch(uploadedPdfUrl);
+    let pdfResponse = null;
+    let retryCount = 0;
+    const maxRetries = 3;
     
-    if (!pdfResponse.ok) {
-      console.error("PDF 파일 다운로드 실패:", pdfResponse.status, pdfResponse.statusText);
-      throw new Error(`PDF 파일을 가져올 수 없습니다. (${pdfResponse.status})`);
+    while (retryCount < maxRetries) {
+      try {
+        pdfResponse = await fetch(uploadedPdfUrl + (uploadedPdfUrl.includes('?') ? '&' : '?') + '_t=' + Date.now());
+        if (pdfResponse.ok) break;
+        
+        console.warn(`PDF 파일 다운로드 실패 (시도 ${retryCount + 1}/${maxRetries}):`, pdfResponse.status);
+        retryCount++;
+        
+        if (retryCount < maxRetries) {
+          console.log(`${retryCount}초 후 재시도...`);
+          await new Promise(resolve => setTimeout(resolve, retryCount * 1000));
+        }
+      } catch (fetchError) {
+        console.error(`PDF 파일 다운로드 중 오류 (시도 ${retryCount + 1}/${maxRetries}):`, fetchError);
+        retryCount++;
+        
+        if (retryCount < maxRetries) {
+          console.log(`${retryCount}초 후 재시도...`);
+          await new Promise(resolve => setTimeout(resolve, retryCount * 1000));
+        }
+      }
+    }
+    
+    if (!pdfResponse || !pdfResponse.ok) {
+      console.error("PDF 파일 다운로드 최종 실패:", pdfResponse ? pdfResponse.status : "응답 없음");
+      throw new Error(`PDF 파일을 가져올 수 없습니다. (${pdfResponse ? pdfResponse.status : "네트워크 오류"})`);
     }
     
     const existingPdfBytes = await pdfResponse.arrayBuffer();
     console.log("PDF 파일 다운로드 완료, 크기:", existingPdfBytes.byteLength, "bytes");
     
+    if (!existingPdfBytes || existingPdfBytes.byteLength === 0) {
+      console.error("다운로드된 PDF 파일이 비어 있습니다");
+      throw new Error("다운로드된 PDF 파일이 비어 있습니다. 유효한 PDF 템플릿을 확인해주세요.");
+    }
+    
     console.log("PDF 문서 로드 시작...");
-    const pdfDocLib = await PDFDocument.load(existingPdfBytes);
+    let pdfDocLib = null;
+    try {
+      pdfDocLib = await PDFDocument.load(existingPdfBytes);
+    } catch (pdfLoadError) {
+      console.error("PDF 문서 로드 실패:", pdfLoadError);
+      throw new Error("PDF 문서 로드에 실패했습니다. 유효한 PDF 파일인지 확인해주세요: " + pdfLoadError.message);
+    }
+    
     console.log("PDF 문서 로드 완료");
     const pages = pdfDocLib.getPages();
+    
+    if (!pages || pages.length === 0) {
+      console.error("PDF 문서에 페이지가 없습니다");
+      throw new Error("PDF 문서에 페이지가 없습니다. 유효한 PDF 템플릿을 확인해주세요.");
+    }
 
     // 페이지별로 도장과 서명 데이터 처리
     for (let i = 0; i < pages.length; i++) {
@@ -1394,7 +1629,19 @@ async function savePdfWithStampAndSignature(forEmail = false) {
     const fileName = `상담문서_${timestamp}.pdf`;
     
     // 최종 PDF를 서버에 저장
-    await uploadFinalPdfToServer(blob, fileName);
+    let uploadResult = null;
+    try {
+      console.log("서버에 PDF 업로드 시작");
+      uploadResult = await uploadFinalPdfToServer(blob, fileName);
+      if (uploadResult) {
+        console.log("서버 PDF 업로드 성공:", uploadResult);
+      } else {
+        console.warn("서버 PDF 업로드 결과가 없습니다. 업로드가 실패했을 수 있습니다.");
+      }
+    } catch (uploadError) {
+      console.error("서버 PDF 업로드 오류:", uploadError);
+      // 업로드 실패해도 계속 진행 (이메일 전송 등을 위해)
+    }
     
     // 로컬 다운로드 (이메일 전송이 아닌 경우)
     if (!forEmail) {
@@ -1403,7 +1650,7 @@ async function savePdfWithStampAndSignature(forEmail = false) {
       link.download = fileName;
       link.click();
       console.log("PDF 저장 완료");
-      return null;
+      return uploadResult;
     } else {
       // 이메일 전송을 위해 Base64 인코딩된 데이터 반환
       console.log("이메일 전송용 PDF 생성 완료");
@@ -1473,33 +1720,85 @@ function blobToBase64(blob) {
   });
 }
 
-// PDF 라이브러리 로드 상태 확인 함수
+// PDF 라이브러리가 로드되었는지 확인하는 함수
 function checkPdfLibraryLoaded() {
   return new Promise((resolve, reject) => {
-    // 이미 로드되어 있으면 바로 resolve
+    // 이미 로드되었는지 확인
     if (window.PDFLib && window.PDFLib.PDFDocument) {
-      console.log("PDF 라이브러리가 이미 로드되어 있습니다.");
+      console.log('PDF 라이브러리가 이미 로드되어 있습니다.');
       resolve(true);
       return;
     }
+
+    console.log('PDF 라이브러리 로드 대기 중...');
     
-    // 최대 10초 동안 대기
+    // 최대 10번 재시도, 각 시도마다 300ms 대기
     let attempts = 0;
-    const maxAttempts = 100; // 100ms * 100 = 10초
+    const maxAttempts = 10;
+    const checkInterval = 300;
     
-    const checkInterval = setInterval(() => {
-      attempts++;
-      
-      if (window.PDFLib && window.PDFLib.PDFDocument) {
-        console.log(`PDF 라이브러리 로드 완료 (${attempts * 100}ms 후)`);
-        clearInterval(checkInterval);
-        resolve(true);
-      } else if (attempts >= maxAttempts) {
-        console.error("PDF 라이브러리 로드 타임아웃");
-        clearInterval(checkInterval);
-        reject(new Error("PDF 라이브러리 로드 타임아웃"));
-      }
-    }, 100);
+    // 라이브러리 스크립트 로드 여부 확인
+    const isScriptLoaded = document.querySelector('script[src*="pdf-lib.min.js"]');
+    
+    // 스크립트가 없으면 동적으로 추가
+    if (!isScriptLoaded) {
+      console.log('PDF 라이브러리 스크립트를 동적으로 추가합니다.');
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js';
+      script.async = true;
+      script.onload = () => {
+        console.log('PDF 라이브러리 스크립트 로드 완료');
+        // 로드 완료 후 체크 시작
+        startChecking();
+      };
+      script.onerror = (error) => {
+        console.error('PDF 라이브러리 스크립트 로드 실패:', error);
+        reject(new Error('PDF 라이브러리 로드에 실패했습니다. 네트워크 연결을 확인해주세요.'));
+      };
+      document.head.appendChild(script);
+    } else {
+      // 이미 스크립트가 있으면 바로 체크 시작
+      startChecking();
+    }
+    
+    function startChecking() {
+      const checkLibrary = setInterval(() => {
+        attempts++;
+        console.log(`PDF 라이브러리 확인 시도 ${attempts}/${maxAttempts}`);
+        
+        if (window.PDFLib && window.PDFLib.PDFDocument) {
+          console.log('PDF 라이브러리 로드 확인됨');
+          clearInterval(checkLibrary);
+          resolve(true);
+        } else if (attempts >= maxAttempts) {
+          console.error('PDF 라이브러리 로드 실패: 최대 시도 횟수 초과');
+          clearInterval(checkLibrary);
+          
+          // 마지막 시도로 라이브러리 다시 로드
+          try {
+            console.log('마지막 시도로 PDF 라이브러리 다시 로드...');
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js';
+            script.async = false; // 동기 로드로 변경
+            document.head.appendChild(script);
+            
+            // 추가 대기 후 다시 확인
+            setTimeout(() => {
+              if (window.PDFLib && window.PDFLib.PDFDocument) {
+                console.log('PDF 라이브러리 다시 로드 성공');
+                resolve(true);
+              } else {
+                console.error('PDF 라이브러리 다시 로드 실패');
+                reject(new Error('PDF 라이브러리를 로드할 수 없습니다. 브라우저를 새로고침하고 다시 시도해주세요.'));
+              }
+            }, 1000);
+          } catch (e) {
+            console.error('PDF 라이브러리 다시 로드 중 오류:', e);
+            reject(new Error('PDF 라이브러리 로드 오류: ' + e.message));
+          }
+        }
+      }, checkInterval);
+    }
   });
 }
 

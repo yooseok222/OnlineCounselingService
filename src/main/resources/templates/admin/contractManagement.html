@@ -272,7 +272,7 @@
                                     <p><strong>계약 ID :</strong> ${data.contractId}</p>
                                     <p><strong>상태 :</strong> ${data.status}</p>
                                     <p><strong>계약 시간 :</strong> ${data.contractTime}</p>
-                                    ${!isCompleted ? `<p><strong>메모 :</strong> ${data.memo}</p>` : `<p`}
+                                    ${!isCompleted ? `<p><strong>메모 :</strong> ${data.memo}</p>` : ''}
 
                                     <div class="d-flex gap-2" style="margin-top: 10px;">
                                         <a href="/admin/files/${data.contractTemplateId}/download"

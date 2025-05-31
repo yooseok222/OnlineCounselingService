@@ -26,6 +26,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 새로 추가하는 전역 변수
 let currentContractId = null;
+let templatePdfLoaded = false; // 템플릿 PDF 로드 여부 플래그
+let bothParticipantsJoined = false; // 양쪽 참가자 입장 여부 플래그
 
 // 전역 변수로 beforeunload 핸들러 관리
 let preventRefreshHandler = null;
@@ -61,8 +63,15 @@ window.onload = function() {
   const urlParams = new URLSearchParams(window.location.search);
   const roleParam = urlParams.get('role');
   const sessionParam = urlParams.get('session'); // 세션 ID 파라미터 확인
+  const contractIdParam = urlParams.get('contractId'); // 계약 ID 파라미터 확인
+  
+  // 계약 ID 설정
+  if (contractIdParam) {
+    currentContractId = contractIdParam;
+    console.log("URL에서 계약 ID 로드:", currentContractId);
+  }
 
-  console.log("URL 파라미터 - role:", roleParam, "session:", sessionParam);
+  console.log("URL 파라미터 - role:", roleParam, "session:", sessionParam, "contractId:", contractIdParam);
   console.log("현재 URL:", window.location.href);
 
   // 서버에서 전달받은 role 정보 확인
@@ -136,6 +145,7 @@ window.onload = function() {
   console.log("최종 설정된 사용자 역할:", userRole);
   console.log("URL 파라미터 세션:", sessionParam);
   console.log("sessionStorage 세션:", sessionStorage.getItem("sessionId"));
+  console.log("현재 Contract ID:", currentContractId);
   console.log("=====================");
 
   // 사용자 역할 표시
@@ -198,6 +208,245 @@ window.onload = function() {
     }, 500);
   }
 
+  // WebSocket 이벤트 리스너 등록 - 양쪽 참가자 입장 확인용
+  document.addEventListener('websocketConnected', function(e) {
+    console.log("WebSocket 연결됨 이벤트 발생:", e.detail);
+    checkAndLoadTemplatePdf();
+  });
+  
+  // 모든 참가자 입장 후 템플릿 PDF 자동 로드를 위한 이벤트 리스너
+  document.addEventListener('allParticipantsJoined', function() {
+    console.log("모든 참가자 입장 이벤트 발생");
+    loadTemplateFilePdf();
+  });
+
+  // 상담방 참여 완료 후 Contract ID 확인
+  console.log("상담방 참여 완료 후 Contract ID:", currentContractId);
+};
+
+// 상담 세션에 참가자 입장 여부 확인 및 템플릿 PDF 로드 처리
+function checkAndLoadTemplatePdf() {
+  // 이미 PDF가 로드되었으면 건너뛰기
+  if (templatePdfLoaded) {
+    console.log("템플릿 PDF가 이미 로드되어 있습니다.");
+    return;
+  }
+
+  // Contract ID가 없으면 세션 정보로 Contract ID 가져오기 시도
+  if (!currentContractId) {
+    console.log("Contract ID가 없어 세션 정보로 가져오기 시도");
+    fetch(`/api/session/${sessionId}/info`)
+      .then(response => response.json())
+      .then(data => {
+        if (data && data.contractId) {
+          currentContractId = data.contractId;
+          console.log("세션 ID로 Contract ID 설정 완료:", currentContractId);
+          checkParticipantsStatus();
+        } else {
+          console.warn("세션 정보에서 Contract ID를 찾을 수 없습니다.");
+        }
+      })
+      .catch(error => {
+        console.error("세션 정보 조회 실패:", error);
+      });
+  } else {
+    // Contract ID가 있으면 바로 참가자 상태 확인
+    checkParticipantsStatus();
+  }
+}
+
+// 양쪽 참가자 입장 여부 확인
+function checkParticipantsStatus() {
+  fetch(`/api/session/${sessionId}/participants`)
+    .then(response => response.json())
+    .then(data => {
+      if (data && data.agentJoined && data.clientJoined) {
+        console.log("양쪽 참가자 모두 입장 확인");
+        bothParticipantsJoined = true;
+        // 모든 참가자 입장 이벤트 발생
+        document.dispatchEvent(new CustomEvent('allParticipantsJoined'));
+      } else {
+        console.log("아직 양쪽 참가자가 모두 입장하지 않았습니다.", data);
+        // 일정 시간 후 다시 확인
+        setTimeout(checkParticipantsStatus, 5000);
+      }
+    })
+    .catch(error => {
+      console.error("참가자 상태 확인 실패:", error);
+      // 오류 발생 시 일정 시간 후 다시 시도
+      setTimeout(checkParticipantsStatus, 5000);
+    });
+}
+
+// 템플릿 PDF 자동 로드 함수
+function loadTemplateFilePdf() {
+  if (!currentContractId || templatePdfLoaded) {
+    return;
+  }
+
+  console.log("템플릿 PDF 자동 로드 시작 - Contract ID:", currentContractId);
+  
+  // 기존 uploadedPdfUrl 초기화 (템플릿으로 대체하기 위함)
+  if (uploadedPdfUrl) {
+    console.log("기존 PDF URL 존재:", uploadedPdfUrl);
+    console.log("템플릿 PDF로 교체합니다.");
+  }
+  
+  // 계약 템플릿 정보 가져오기
+  fetch(`/api/contract/${currentContractId}/template`)
+    .then(response => {
+      // 응답이 성공이 아닌 경우에도 처리 계속 (기본 PDF 사용)
+      if (!response.ok) {
+        console.warn(`템플릿 정보 가져오기 실패: ${response.status} - 기본 PDF를 사용합니다`);
+        // 실패해도 직접 PDF URL을 구성하여 사용
+        const fallbackUrl = `/api/contract/${currentContractId}/template-pdf`;
+        return { success: true, templateUrl: fallbackUrl };
+      }
+      return response.json();
+    })
+    .then(data => {
+      let pdfUrl = "";
+      
+      if (data && data.templateUrl) {
+        pdfUrl = data.templateUrl;
+        console.log("템플릿 PDF URL 확인:", pdfUrl);
+      } else {
+        // 템플릿 URL이 없는 경우 직접 구성
+        pdfUrl = `/api/contract/${currentContractId}/template-pdf`;
+        console.log("템플릿 URL 직접 구성:", pdfUrl);
+      }
+      
+      // 템플릿 PDF URL을 전역 변수로 설정 (중요)
+      uploadedPdfUrl = pdfUrl;
+      console.log("템플릿 PDF URL을 전역 변수로 설정:", uploadedPdfUrl);
+      
+      // PDF 존재 여부 확인 (HEAD 요청으로 확인)
+      fetch(pdfUrl, { method: 'HEAD' })
+        .then(headResponse => {
+          if (!headResponse.ok) {
+            console.error("템플릿 PDF 접근 실패:", headResponse.status);
+            throw new Error(`템플릿 PDF에 접근할 수 없습니다. (${headResponse.status})`);
+          }
+          
+          console.log("템플릿 PDF 존재 확인됨");
+          return pdfUrl;
+        })
+        .then(confirmedUrl => {
+          // PDF 로드 및 렌더링
+          return loadAndRenderPDF(confirmedUrl);
+        })
+        .then(success => {
+          if (success) {
+            templatePdfLoaded = true;
+            console.log("템플릿 PDF 자동 로드 성공");
+            
+            // PDF 로드 완료 메시지를 웹소켓으로 전송
+            if (stompClient && stompClient.connected) {
+              stompClient.send(`/app/room/${sessionId}/pdf/uploaded`, {}, JSON.stringify({
+                url: pdfUrl,
+                sender: userRole,
+                sessionId: sessionId,
+                timestamp: Date.now()
+              }));
+            }
+            
+            // 성공 토스트 메시지 표시
+            showToast("PDF 로드 완료", "템플릿 문서가 로드되었습니다.", "success");
+          } else {
+            console.error("템플릿 PDF 로드 실패 - 재시도");
+            // 로드 실패 시 재시도 (최대 3회)
+            setTimeout(() => {
+              retryLoadPdf(pdfUrl, 1, 3);
+            }, 1000);
+          }
+        })
+        .catch(error => {
+          console.error("템플릿 PDF 로드 중 오류 발생:", error);
+          showToast("오류", "템플릿 PDF 로드 중 오류: " + error.message, "error");
+          
+          // 오류 발생 시 재시도 (최대 3회)
+          setTimeout(() => {
+            retryLoadPdf(pdfUrl, 1, 3);
+          }, 1000);
+        });
+    })
+    .catch(error => {
+      console.error("템플릿 정보 가져오기 실패:", error);
+      showToast("오류", "템플릿 정보 가져오기 실패: " + error.message, "error");
+      
+      // 템플릿 정보 가져오기 실패 시 직접 PDF URL 사용
+      const directUrl = `/api/contract/${currentContractId}/template-pdf`;
+      console.log("직접 PDF URL 사용:", directUrl);
+      
+      // 템플릿 PDF URL을 전역 변수로 설정 (중요)
+      uploadedPdfUrl = directUrl;
+      console.log("직접 URL을 전역 변수로 설정:", uploadedPdfUrl);
+      
+      // 직접 URL로 PDF 로드 시도
+      loadAndRenderPDF(directUrl)
+        .then(success => {
+          if (success) {
+            templatePdfLoaded = true;
+            console.log("직접 URL로 템플릿 PDF 로드 성공");
+            showToast("PDF 로드", "템플릿 문서가 로드되었습니다.", "success");
+          } else {
+            console.error("직접 URL로 템플릿 PDF 로드 실패");
+            showToast("오류", "템플릿 PDF 로드에 실패했습니다.", "error");
+          }
+        })
+        .catch(err => {
+          console.error("직접 URL로 템플릿 PDF 로드 중 오류:", err);
+          showToast("오류", "템플릿 PDF 로드 중 오류가 발생했습니다: " + err.message, "error");
+        });
+    });
+}
+
+// PDF 로드 재시도 함수
+function retryLoadPdf(url, currentAttempt, maxAttempts) {
+  console.log(`PDF 로드 재시도 (${currentAttempt}/${maxAttempts}): ${url}`);
+  
+  loadAndRenderPDF(url)
+    .then(success => {
+      if (success) {
+        templatePdfLoaded = true;
+        console.log(`PDF 로드 재시도 성공 (${currentAttempt}/${maxAttempts})`);
+      } else if (currentAttempt < maxAttempts) {
+        console.warn(`PDF 로드 재시도 실패 (${currentAttempt}/${maxAttempts}) - 다시 시도`);
+        setTimeout(() => {
+          retryLoadPdf(url, currentAttempt + 1, maxAttempts);
+        }, 2000); // 2초 후 재시도
+      } else {
+        console.error(`최대 재시도 횟수 초과 (${maxAttempts}/${maxAttempts})`);
+        showToast("오류", "PDF 로드 실패: 최대 재시도 횟수를 초과했습니다.", "error");
+      }
+    })
+    .catch(error => {
+      if (currentAttempt < maxAttempts) {
+        console.warn(`PDF 로드 중 오류 (${currentAttempt}/${maxAttempts}) - 다시 시도:`, error);
+        setTimeout(() => {
+          retryLoadPdf(url, currentAttempt + 1, maxAttempts);
+        }, 2000); // 2초 후 재시도
+      } else {
+        console.error(`최대 재시도 횟수 초과 (${maxAttempts}/${maxAttempts}):`, error);
+        showToast("오류", "PDF 로드 실패: 최대 재시도 횟수를 초과했습니다.", "error");
+      }
+    });
+}
+
+// 세션 ID 생성 함수
+function generateSessionId(contractId) {
+  // contractId가 있으면 고정 형식 사용
+  if (contractId) {
+    return 'session_' + contractId + '_fixed';
+  }
+  // 없으면 기존 랜덤 방식 사용 (레거시 지원)
+  return 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+}
+
+// 역할에 따라 UI 초기화
+function initializeUIByRole() {
+  console.log("역할에 따른 UI 초기화 - 역할:", userRole);
+  
   // 처음에 커서 버튼을 활성화 상태로 설정
   document.getElementById('cursorBtn').classList.add('active');
 
@@ -213,7 +462,7 @@ window.onload = function() {
       console.error("웹소켓 초기화 함수가 로드되지 않았습니다.");
     }
   }, 1000);
-
+  
   // 스크롤 동기화 초기화
   setTimeout(() => {
     if (typeof initializeScrollSync === 'function') {
@@ -272,130 +521,6 @@ window.onload = function() {
       console.log('상담 종료 버튼을 찾을 수 없습니다.');
     }
   }, 3000);
-};
-
-// 세션 ID 생성 함수
-function generateSessionId(contractId) {
-  // contractId가 있으면 고정 형식 사용
-  if (contractId) {
-    return 'session_' + contractId + '_fixed';
-  }
-  // 없으면 기존 랜덤 방식 사용 (레거시 지원)
-  return 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-}
-
-// 역할에 따른 UI 초기화
-function initializeUIByRole() {
-  // 비디오 요소 참조
-  const localVideo = document.getElementById("localVideo");
-  const remoteVideo = document.getElementById("remoteVideo");
-
-  // 비디오 요소 초기 설정 (역할 가리지 않고 공통으로 적용)
-  if (localVideo) {
-    localVideo.muted = true; // 자기 목소리가 스피커로 출력되는 것 방지
-  }
-
-  // 비디오 컨테이너 ID 설정 - 역할에 따라 명확하게 구분
-  const localVideoContainer = document.getElementById("localVideoContainer");
-  const remoteVideoContainer = document.getElementById("remoteVideoContainer");
-
-  if (localVideoContainer) {
-    localVideoContainer.setAttribute("data-role", userRole);
-  }
-
-  // 비디오 레이블 추가 - 역할에 따라 다르게 표시
-  if (localVideoContainer && !localVideoContainer.querySelector('.video-label')) {
-    const localVideoLabel = document.createElement("div");
-    localVideoLabel.className = "video-label";
-    localVideoLabel.innerText = userRole === "agent" ? "상담원 (나)" : "고객 (나)";
-    localVideoContainer.appendChild(localVideoLabel);
-  }
-
-  if (remoteVideoContainer && !remoteVideoContainer.querySelector('.video-label')) {
-    const remoteVideoLabel = document.createElement("div");
-    remoteVideoLabel.className = "video-label";
-    remoteVideoLabel.innerText = userRole === "agent" ? "고객" : "상담원";
-    remoteVideoContainer.appendChild(remoteVideoLabel);
-  }
-
-  // 비디오 컨테이너에 CSS 스타일 추가
-  if (!document.getElementById('video-container-styles')) {
-    const styleElement = document.createElement('style');
-    styleElement.id = 'video-container-styles';
-    document.head.appendChild(styleElement);
-  }
-
-  // URL에서 entryType 파라미터 확인
-  const urlParams = new URLSearchParams(window.location.search);
-  const urlEntryType = urlParams.get('entryType');
-  
-  // 서버에서 전달받은 entryType 정보 확인 (전역 변수로 설정되어 있음)
-  const serverEntryType = (typeof window.serverEntryType !== 'undefined') ? window.serverEntryType : null;
-  
-  // entryType 우선순위: 서버 전달 > URL 파라미터 > sessionStorage
-  const entryType = serverEntryType || urlEntryType || sessionStorage.getItem('entryType');
-  
-  console.log('entryType 확인:');
-  console.log('- 서버 전달:', serverEntryType);
-  console.log('- URL 파라미터:', urlEntryType);
-  console.log('- sessionStorage:', sessionStorage.getItem('entryType'));
-  console.log('- 최종 선택:', entryType);
-
-  // 역할에 따른 UI 설정
-  if (userRole === 'agent') {
-    // 상담원은 도장 버튼만 표시
-    const stampBtn = document.getElementById('stampBtn');
-    if (stampBtn) {
-      stampBtn.style.display = 'inline-block';
-    }
-    console.log('상담원 UI 설정 완료 - 도장 버튼 표시');
-  } else if (userRole === 'client') {
-    // 고객의 경우 선택한 입장 방식에 따라 버튼 표시
-    console.log('고객 UI 설정 시작 - entryType:', entryType);
-    
-    const stampBtn = document.getElementById('stampBtn');
-    
-    if (entryType === 'stamp') {
-      // 도장으로 입장한 경우 - 도장 버튼만 표시
-      if (stampBtn) {
-        stampBtn.style.display = 'inline-block';
-        stampBtn.innerHTML = '<i class="fas fa-stamp"></i> 도장';
-        console.log('고객 도장 모드 - 도장 버튼만 표시');
-      }
-      
-      // sessionStorage에서 고객의 도장 데이터 복원
-      setTimeout(() => {
-        restoreClientStampData();
-      }, 1000);
-      
-    } else if (entryType === 'signature') {
-      // 서명으로 입장한 경우 - 서명 버튼만 표시
-      if (stampBtn) {
-        // 내서명 버튼(stampBtn)을 숨김
-        stampBtn.style.display = 'none';
-        console.log('고객 서명 모드 - 내서명 버튼 숨김');
-      }
-      
-      // signatureBtn 표시
-      const signatureBtn = document.getElementById('signatureBtn');
-      if (signatureBtn) {
-        signatureBtn.style.display = 'inline-block';
-        console.log('고객 서명 모드 - 서명 버튼만 표시');
-      }
-      
-      // sessionStorage에서 고객의 서명 데이터 복원
-      setTimeout(() => {
-        restoreClientSignatureData();
-      }, 1000);
-      
-    } else {
-      // entryType이 없는 경우 (기존 사용자) - 도장 버튼 숨김
-      if (stampBtn) {
-        stampBtn.style.display = 'none';
-        console.log('고객 기본 모드 - 도장 버튼 숨김');
-      }
-    }
-  }
 }
 
 // 상담원 상태 업데이트 함수
@@ -499,30 +624,45 @@ function clearMode() {
  * 홈페이지로 이동 (기존 함수 유지)
  */
 function goToHomePage() {
-    // 세션 스토리지 클리어 (상담 관련 데이터)
-    sessionStorage.removeItem("sessionId");
-    sessionStorage.removeItem("role");
+    // SweetAlert2로 확인 메시지 표시
+    Swal.fire({
+        title: '사이트에서 나가시겠습니까?',
+        text: '변경사항이 저장되지 않을 수 있습니다.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '나가기',
+        cancelButtonText: '취소',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // 세션 스토리지 클리어 (상담 관련 데이터)
+            sessionStorage.removeItem("sessionId");
+            sessionStorage.removeItem("role");
 
-  // WebRTC 연결 종료
-    if (typeof pc !== 'undefined' && pc) {
-    pc.close();
-    pc = null;
-  }
+            // WebRTC 연결 종료
+            if (typeof pc !== 'undefined' && pc) {
+                pc.close();
+                pc = null;
+            }
 
-  // WebSocket 연결 종료
-  if (stompClient) {
-    stompClient.disconnect();
-    stompClient = null;
-  }
+            // WebSocket 연결 종료
+            if (stompClient) {
+                stompClient.disconnect();
+                stompClient = null;
+            }
 
-  // 로컬 트랙 종료
-  const localVideo = document.getElementById("localVideo");
-  if (localVideo && localVideo.srcObject) {
-    localVideo.srcObject.getTracks().forEach(track => track.stop());
-  }
+            // 로컬 트랙 종료
+            const localVideo = document.getElementById("localVideo");
+            if (localVideo && localVideo.srcObject) {
+                localVideo.srcObject.getTracks().forEach(track => track.stop());
+            }
 
-  // 홈으로 이동
-  window.location.href = "/";
+            // 홈으로 이동
+            window.location.href = "/";
+        }
+    });
 }
 
 // 세션 데이터 로드
@@ -963,9 +1103,9 @@ async function endConsultation() {
         // 2. PDF 생성 및 이메일 전송 (실패해도 상담 종료는 진행)
         try {
             await generateAndSendPdf();
-            console.log('PDF 생성 및 메일 발송 완료');
+            console.log('PDF 생성 및 이메일 전송 완료');
         } catch (pdfError) {
-            console.error('PDF 생성 및 메일 발송 실패 (상담 종료는 계속 진행):', pdfError);
+            console.error('PDF 생성 및 이메일 전송 실패 (상담 종료는 계속 진행):', pdfError);
             
                          // 오류 유형에 따른 메시지 구분
              let errorMessage = "PDF 생성 또는 메일 발송에 실패했습니다.";
@@ -1141,6 +1281,19 @@ async function generateAndSendPdf() {
         // PDF 생성 (기존 함수 사용)
         console.log('PDF 생성 함수 호출 시작');
         console.log('현재 업로드된 PDF URL:', uploadedPdfUrl);
+        console.log('현재 계약 ID:', currentContractId);
+        
+        // PDF URL 확인 - 템플릿 기반 PDF URL도 확인
+        if (!uploadedPdfUrl && currentContractId) {
+            console.log('PDF URL이 없지만 계약 ID가 있어 템플릿 URL을 확인합니다:', currentContractId);
+            // 템플릿 PDF URL 생성
+            const templateUrl = `/api/contract/${currentContractId}/template-pdf`;
+            console.log('템플릿 PDF URL 구성:', templateUrl);
+            
+            // 템플릿 URL을 uploadedPdfUrl로 설정
+            uploadedPdfUrl = templateUrl;
+            console.log('템플릿 URL을 PDF URL로 설정:', uploadedPdfUrl);
+        }
         
         // PDF가 업로드되지 않은 경우 처리
         if (!uploadedPdfUrl) {
@@ -1148,14 +1301,32 @@ async function generateAndSendPdf() {
             throw new Error('PDF가 업로드되지 않았습니다. 상담 문서가 없어 PDF를 생성할 수 없습니다.');
         }
         
-        const pdfData = await savePdfWithStampAndSignature(true); // forEmail = true
+        // 템플릿 URL이 유효한지 확인
+        try {
+            const testResponse = await fetch(uploadedPdfUrl, { method: 'HEAD' });
+            if (!testResponse.ok) {
+                console.error('PDF URL 접근 실패:', testResponse.status);
+                throw new Error('PDF 파일에 접근할 수 없습니다. 상태 코드: ' + testResponse.status);
+            }
+            console.log('PDF URL 접근 확인 완료:', testResponse.status);
+        } catch (urlError) {
+            console.error('PDF URL 확인 중 오류:', urlError);
+            // 오류가 발생해도 계속 진행 (실제 PDF 다운로드에서 다시 시도)
+        }
+        
+        // PDF 데이터 생성 - 명시적으로 이메일 전송 플래그를 true로 설정
+        showToast("PDF 처리 중", "PDF 문서를 생성하고 서버에 저장 중입니다...", "info");
+        
+        // savePdfWithStampAndSignature 함수 호출
+        // forEmail=true로 설정하여 이메일 전송용 PDF 생성
+        const pdfData = await savePdfWithStampAndSignature(true);
         console.log('PDF 생성 함수 호출 완료');
         console.log('PDF 데이터 존재 여부:', !!pdfData);
         console.log('PDF 데이터 타입:', typeof pdfData);
         
         if (!pdfData) {
-            console.error('PDF 생성 결과가 null 또는 undefined');
-            throw new Error('PDF 생성에 실패했습니다.');
+            console.error('PDF 생성 결과가 null 또는 undefined - 서버 저장 실패 가능성');
+            throw new Error('PDF 생성 또는 서버 저장에 실패했습니다.');
         }
         
         if (typeof pdfData !== 'string') {
@@ -1201,7 +1372,7 @@ async function generateAndSendPdf() {
         
         console.log('고객 이메일:', clientEmail);
         
-        // PDF 이메일 전송
+        // PDF 이메일 전송 - PDF 데이터(base64 문자열)를 사용
         console.log('PDF 이메일 전송 요청 시작');
         console.log('- Contract ID:', currentContractId);
         console.log('- Client Email:', clientEmail);
@@ -1546,4 +1717,65 @@ window.addEventListener('beforeunload', function(e) {
             console.error('동기식 상담원 상태 리셋 실패:', xhrError);
         }
     }
-}); 
+    
+    // 브라우저 기본 확인창 표시
+    e.returnValue = '사이트에서 나가시겠습니까? 변경사항이 저장되지 않을 수 있습니다.';
+    return '사이트에서 나가시겠습니까? 변경사항이 저장되지 않을 수 있습니다.';
+});
+
+// 페이지 내 링크나 버튼 클릭 시 SweetAlert2 확인창 표시
+function confirmPageLeave(targetUrl) {
+    Swal.fire({
+        title: '사이트에서 나가시겠습니까?',
+        text: '변경사항이 저장되지 않을 수 있습니다.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: '나가기',
+        cancelButtonText: '취소',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // 상담원 상태 리셋 후 페이지 이동
+            if (userRole === 'agent') {
+                // 상담원 상태 리셋 로직 실행
+                resetAgentStatus().then(() => {
+                    window.location.href = targetUrl || '/';
+                });
+            } else {
+                window.location.href = targetUrl || '/';
+            }
+        }
+    });
+}
+
+// 상담원 상태 리셋 함수
+async function resetAgentStatus() {
+    try {
+        const resetData = { 
+            present: false,
+            sessionId: sessionId 
+        };
+        
+        await fetch('/api/contract/status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(resetData)
+        });
+        
+        await fetch('/api/agent/reset', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({})
+        });
+        
+        console.log('상담원 상태 리셋 완료');
+    } catch (error) {
+        console.error('상담원 상태 리셋 오류:', error);
+    }
+}

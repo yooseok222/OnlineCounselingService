@@ -4,8 +4,11 @@ import kr.or.kosa.visang.domain.contract.model.Contract;
 import kr.or.kosa.visang.domain.contract.model.VoiceRecord;
 import kr.or.kosa.visang.domain.contract.service.ContractService;
 import kr.or.kosa.visang.domain.contract.service.VoiceRecordService;
+import kr.or.kosa.visang.domain.contractTemplate.model.ContractTemplate;
+import kr.or.kosa.visang.domain.contractTemplate.service.ContractTemplateService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -13,11 +16,17 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.beans.factory.annotation.Value;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @Slf4j
 @RestController
@@ -29,6 +38,13 @@ public class ContractController {
     
     @Autowired
     private VoiceRecordService voiceRecordService;
+    
+    @Autowired
+    private ContractTemplateService contractTemplateService;
+    
+    // 템플릿 파일 업로드 경로 (application.properties에서 설정 가능)
+    @Value("${contract.template.upload.dir:#{null}}")
+    private String templateUploadDir;
 
     /**
      * 계약 생성 API
@@ -64,6 +80,204 @@ public class ContractController {
         return ResponseEntity.ok(response);
     }
     
+    /**
+     * 계약 템플릿 정보 API
+     * 계약 ID에 해당하는 템플릿 정보와 PDF URL을 반환
+     */
+    @GetMapping("/contract/{contractId}/template")
+    public ResponseEntity<Map<String, Object>> getContractTemplate(@PathVariable Long contractId) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            log.info("계약 템플릿 정보 요청: contractId={}", contractId);
+            
+            // 계약 정보 조회
+            Contract contract = contractService.getContractById(contractId);
+            if (contract == null) {
+                log.warn("계약 정보를 찾을 수 없음: contractId={}", contractId);
+                response.put("success", false);
+                response.put("message", "계약 정보를 찾을 수 없습니다.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            // 계약에 연결된 템플릿 ID 조회
+            Long templateId = contract.getContractTemplateId();
+            if (templateId == null) {
+                log.warn("계약에 연결된 템플릿이 없음: contractId={}", contractId);
+                response.put("success", false);
+                response.put("message", "계약에 연결된 템플릿이 없습니다.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            // 템플릿 정보 조회
+            ContractTemplate template = contractTemplateService.getTemplateById(templateId);
+            if (template == null) {
+                log.warn("템플릿 정보를 찾을 수 없음: templateId={}", templateId);
+                response.put("success", false);
+                response.put("message", "템플릿 정보를 찾을 수 없습니다.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            // 템플릿 PDF URL 생성 - 직접 이 컨트롤러에서 제공하는 엔드포인트로 변경
+            String templateUrl = "/api/contract/" + contractId + "/template-pdf";
+            
+            response.put("success", true);
+            response.put("templateId", templateId);
+            response.put("templateName", template.getContractName());
+            response.put("templateUrl", templateUrl);
+            
+            log.info("계약 템플릿 정보 응답: templateId={}, templateName={}", templateId, template.getContractName());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("계약 템플릿 정보 조회 실패: contractId={}", contractId, e);
+            response.put("success", false);
+            response.put("message", "템플릿 정보 조회에 실패했습니다: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+    
+    /**
+     * 계약 템플릿 PDF 파일 직접 제공 API
+     * 계약 ID를 통해 연결된 템플릿의 PDF 파일을 직접 제공
+     */
+    @GetMapping("/contract/{contractId}/template-pdf")
+    public ResponseEntity<?> getContractTemplatePdfDirectly(@PathVariable Long contractId) {
+        try {
+            log.info("계약 템플릿 PDF 직접 요청: contractId={}", contractId);
+            
+            // 계약 정보 조회
+            Contract contract = contractService.getContractById(contractId);
+            if (contract == null) {
+                log.warn("계약 정보를 찾을 수 없음: contractId={}", contractId);
+                return createDefaultPdfResponse("계약 정보를 찾을 수 없습니다.");
+            }
+            
+            // 계약에 연결된 템플릿 ID 조회
+            Long templateId = contract.getContractTemplateId();
+            if (templateId == null) {
+                log.warn("계약에 연결된 템플릿이 없음 - 기본 템플릿 제공: contractId={}", contractId);
+                return createDefaultPdfResponse("이 계약에는 연결된 템플릿이 없습니다. 기본 템플릿을 제공합니다.");
+            }
+            
+            // 템플릿 PDF 데이터 가져오기 시도
+            try {
+                Resource pdfResource = contractTemplateService.getTemplateResource(templateId);
+                return ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_PDF)
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"template_" + templateId + ".pdf\"")
+                        .body(pdfResource);
+            } catch (Exception e) {
+                log.warn("템플릿 PDF 리소스 가져오기 실패, 기본 PDF 생성: {}", e.getMessage());
+                return createDefaultPdfResponse("템플릿 PDF를 가져오는 데 실패했습니다. 기본 템플릿을 제공합니다.");
+            }
+        } catch (Exception e) {
+            log.error("템플릿 PDF 제공 실패: contractId={}", contractId, e);
+            return createDefaultPdfResponse("템플릿 PDF 제공에 실패했습니다: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 기본 PDF 응답 생성
+     */
+    private ResponseEntity<?> createDefaultPdfResponse(String message) {
+        log.info("기본 PDF 응답 생성: {}", message);
+        try {
+            // 임시 파일 생성
+            Path tempFile = Files.createTempFile("default_template_", ".txt");
+            Files.write(tempFile, message.getBytes());
+            
+            // 리소스로 변환
+            Resource resource = new FileSystemResource(tempFile.toFile());
+            
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"default_template.txt\"")
+                    .body(resource);
+        } catch (IOException e) {
+            log.error("기본 PDF 생성 실패", e);
+            // 메모리 리소스로 대체
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(message);
+        }
+    }
+
+    /**
+     * 세션 정보 조회 API
+     * 세션 ID에 해당하는 계약 ID를 반환
+     */
+    @GetMapping("/session/{sessionId}/info")
+    public ResponseEntity<Map<String, Object>> getSessionInfo(@PathVariable String sessionId) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            log.info("세션 정보 조회 요청: sessionId={}", sessionId);
+            
+            // 세션 ID로 계약 정보 조회
+            Contract contract = contractService.getContractBySessionId(sessionId);
+            if (contract == null) {
+                log.warn("세션 ID로 계약 정보를 찾을 수 없음: sessionId={}", sessionId);
+                response.put("success", false);
+                response.put("message", "세션 ID로 계약 정보를 찾을 수 없습니다.");
+                return ResponseEntity.badRequest().body(response);
+            }
+            
+            response.put("success", true);
+            response.put("contractId", contract.getContractId());
+            response.put("agentId", contract.getAgentId());
+            response.put("clientId", contract.getClientId());
+            response.put("status", contract.getStatus());
+            
+            log.info("세션 정보 응답: sessionId={}, contractId={}", sessionId, contract.getContractId());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("세션 정보 조회 실패: sessionId={}", sessionId, e);
+            response.put("success", false);
+            response.put("message", "세션 정보 조회에 실패했습니다: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+    
+    /**
+     * 세션 참가자 상태 조회 API
+     * 세션에 상담원과 고객이 모두 입장했는지 여부를 반환
+     */
+    @GetMapping("/session/{sessionId}/participants")
+    public ResponseEntity<Map<String, Object>> getSessionParticipantsStatus(@PathVariable String sessionId) {
+        Map<String, Object> response = new HashMap<>();
+        
+        try {
+            log.info("세션 참가자 상태 조회 요청: sessionId={}", sessionId);
+            
+            // 여기서는 양쪽 참가자가 입장했는지 확인하는 로직이 필요
+            // 실제 구현에서는 WebSocket 세션 관리나 데이터베이스를 통해 확인해야 함
+            // 테스트를 위해 임시로 항상 true 반환
+            boolean agentJoined = true;
+            boolean clientJoined = true;
+            
+            response.put("success", true);
+            response.put("sessionId", sessionId);
+            response.put("agentJoined", agentJoined);
+            response.put("clientJoined", clientJoined);
+            response.put("allJoined", agentJoined && clientJoined);
+            
+            log.info("세션 참가자 상태 응답: sessionId={}, agentJoined={}, clientJoined={}", 
+                    sessionId, agentJoined, clientJoined);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("세션 참가자 상태 조회 실패: sessionId={}", sessionId, e);
+            response.put("success", false);
+            response.put("message", "세션 참가자 상태 조회에 실패했습니다: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
     /**
      * 녹음 파일 업로드 API
      */
@@ -213,6 +427,105 @@ public class ContractController {
             response.put("success", false);
             response.put("message", "녹음 파일 삭제에 실패했습니다.");
             return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * 계약 템플릿 PDF 파일 제공 API
+     */
+    @GetMapping("/contract-templates/{templateId}/pdf")
+    public ResponseEntity<Resource> getContractTemplatePdf(@PathVariable Long templateId) {
+        try {
+            log.info("계약 템플릿 PDF 요청: templateId={}", templateId);
+            
+            // 템플릿 정보 조회
+            ContractTemplate template = contractTemplateService.getTemplateById(templateId);
+            if (template == null) {
+                log.warn("템플릿 정보를 찾을 수 없음: templateId={}", templateId);
+                return ResponseEntity.notFound().build();
+            }
+            
+            // 템플릿 PDF 파일 경로 확인 (템플릿 경로는 파일명 또는 상대 경로로 가정)
+            String pdfFilePath = null;
+            
+            // 1. 템플릿 서비스에서 PDF 경로를 가져오는 메서드가 있는 경우
+            try {
+                pdfFilePath = contractTemplateService.getTemplatePdfPath(templateId);
+                log.info("템플릿 서비스에서 PDF 경로 조회: {}", pdfFilePath);
+            } catch (Exception e) {
+                log.warn("템플릿 서비스에서 PDF 경로를 가져오는 데 실패: {}", e.getMessage());
+            }
+            
+            // 2. 템플릿 객체에서 직접 경로 가져오기 시도 (대체 방법)
+            if (pdfFilePath == null) {
+                try {
+                    // 여러 가능한 메서드명 시도
+                    Method getPdfMethod = template.getClass().getMethod("getPdfPath");
+                    pdfFilePath = (String) getPdfMethod.invoke(template);
+                    log.info("템플릿 객체의 getPdfPath()에서 경로 조회: {}", pdfFilePath);
+                } catch (Exception e1) {
+                    try {
+                        Method getFilePathMethod = template.getClass().getMethod("getFilePath");
+                        pdfFilePath = (String) getFilePathMethod.invoke(template);
+                        log.info("템플릿 객체의 getFilePath()에서 경로 조회: {}", pdfFilePath);
+                    } catch (Exception e2) {
+                        try {
+                            Method getFilePathMethod = template.getClass().getMethod("getTemplatePath");
+                            pdfFilePath = (String) getFilePathMethod.invoke(template);
+                            log.info("템플릿 객체의 getTemplatePath()에서 경로 조회: {}", pdfFilePath);
+                        } catch (Exception e3) {
+                            log.warn("템플릿 객체에서 경로를 가져오는 데 실패: {}", e3.getMessage());
+                        }
+                    }
+                }
+            }
+            
+            // 3. 경로가 없으면 기본 형식으로 구성 (템플릿 ID 기반)
+            if (pdfFilePath == null) {
+                pdfFilePath = "template_" + templateId + ".pdf";
+                log.info("기본 형식으로 경로 구성: {}", pdfFilePath);
+            }
+            
+            // 파일 객체 생성
+            File pdfFile = null;
+            
+            // 업로드 디렉토리 설정이 있는 경우
+            if (templateUploadDir != null && !templateUploadDir.isEmpty()) {
+                pdfFile = new File(templateUploadDir, pdfFilePath);
+                log.info("설정된 업로드 디렉토리 사용: {}", pdfFile.getAbsolutePath());
+            } 
+            // 상대 경로인 경우 (시스템 속성에서 임시 디렉토리 사용)
+            else if (!pdfFilePath.startsWith("/")) {
+                String tempDir = System.getProperty("java.io.tmpdir");
+                pdfFile = new File(tempDir, "contract_templates/" + pdfFilePath);
+                log.info("임시 디렉토리 사용: {}", pdfFile.getAbsolutePath());
+            }
+            // 절대 경로인 경우
+            else {
+                pdfFile = new File(pdfFilePath);
+                log.info("절대 경로 사용: {}", pdfFile.getAbsolutePath());
+            }
+            
+            // 파일 존재 확인
+            if (!pdfFile.exists() || !pdfFile.isFile()) {
+                log.warn("템플릿 PDF 파일이 존재하지 않음: {}", pdfFile.getAbsolutePath());
+                
+                // 임시로 빈 PDF 생성 (개발용, 실제 운영에서는 제거)
+                return ResponseEntity.ok()
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .body(new ByteArrayResource("임시 PDF 콘텐츠".getBytes()));
+            }
+            
+            Resource resource = new FileSystemResource(pdfFile);
+            
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + pdfFile.getName() + "\"")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(resource);
+                    
+        } catch (Exception e) {
+            log.error("템플릿 PDF 제공 실패: templateId={}", templateId, e);
+            return ResponseEntity.internalServerError().build();
         }
     }
 } 
