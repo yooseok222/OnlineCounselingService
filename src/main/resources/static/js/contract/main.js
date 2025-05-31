@@ -1266,6 +1266,7 @@ async function generateAndSendPdf() {
         // PDF 생성 (기존 함수 사용)
         console.log('PDF 생성 함수 호출 시작');
         console.log('현재 업로드된 PDF URL:', uploadedPdfUrl);
+        console.log('현재 계약 ID:', currentContractId);
         
         // PDF URL 확인 - 템플릿 기반 PDF URL도 확인
         if (!uploadedPdfUrl && currentContractId) {
@@ -1298,14 +1299,19 @@ async function generateAndSendPdf() {
             // 오류가 발생해도 계속 진행 (실제 PDF 다운로드에서 다시 시도)
         }
         
-        const pdfData = await savePdfWithStampAndSignature(true); // forEmail = true
+        // PDF 데이터 생성 - 명시적으로 이메일 전송 플래그를 true로 설정
+        showToast("PDF 처리 중", "PDF 문서를 생성하고 서버에 저장 중입니다...", "info");
+        
+        // savePdfWithStampAndSignature 함수 호출
+        // forEmail=true로 설정하여 이메일 전송용 PDF 생성
+        const pdfData = await savePdfWithStampAndSignature(true);
         console.log('PDF 생성 함수 호출 완료');
         console.log('PDF 데이터 존재 여부:', !!pdfData);
         console.log('PDF 데이터 타입:', typeof pdfData);
         
         if (!pdfData) {
-            console.error('PDF 생성 결과가 null 또는 undefined');
-            throw new Error('PDF 생성에 실패했습니다.');
+            console.error('PDF 생성 결과가 null 또는 undefined - 서버 저장 실패 가능성');
+            throw new Error('PDF 생성 또는 서버 저장에 실패했습니다.');
         }
         
         if (typeof pdfData !== 'string') {
@@ -1351,11 +1357,45 @@ async function generateAndSendPdf() {
         
         console.log('고객 이메일:', clientEmail);
         
-        // PDF 이메일 전송
+        // PDF 이메일 전송 - PDF 데이터(base64 문자열)를 사용
         console.log('PDF 이메일 전송 요청 시작');
         console.log('- Contract ID:', currentContractId);
         console.log('- Client Email:', clientEmail);
         console.log('- PDF Data 길이:', pdfData ? pdfData.length : 'null');
+        
+        // 수동 PDF 파일 업로드 시도 (추가 안전장치)
+        try {
+            // Base64 데이터를 Blob으로 변환
+            const byteCharacters = atob(pdfData.split(',')[1]);
+            const byteArrays = [];
+            
+            for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+                const slice = byteCharacters.slice(offset, offset + 512);
+                
+                const byteNumbers = new Array(slice.length);
+                for (let i = 0; i < slice.length; i++) {
+                    byteNumbers[i] = slice.charCodeAt(i);
+                }
+                
+                const byteArray = new Uint8Array(byteNumbers);
+                byteArrays.push(byteArray);
+            }
+            
+            const pdfBlob = new Blob(byteArrays, { type: 'application/pdf' });
+            const fileName = `상담문서_수동업로드_${Date.now()}.pdf`;
+            
+            // 업로드 시도 (결과는 무시 - 이메일 전송을 위한 추가 보장 장치)
+            console.log("수동 PDF 업로드 시도 (안전장치):", fileName);
+            if (typeof uploadFinalPdfToServer === 'function') {
+                uploadFinalPdfToServer(pdfBlob, fileName).catch(e => {
+                    console.warn("수동 PDF 업로드 실패 (무시):", e);
+                });
+            } else {
+                console.warn("uploadFinalPdfToServer 함수를 찾을 수 없어 수동 업로드를 건너뜁니다.");
+            }
+        } catch (manualUploadError) {
+            console.warn("수동 PDF 업로드 실패 (무시):", manualUploadError);
+        }
         
         // CSRF 토큰 가져오기
         const csrfToken = document.querySelector("meta[name='_csrf']");

@@ -714,7 +714,7 @@ document.addEventListener('DOMContentLoaded', function() {
                        sessionStorage.removeItem('role');
 
                        // 5) 상태 변경 후 방으로 이동
-                     window.location.href = `/contract/room?contractId=${contractId}&role=agent`;
+                     window.location.href = `/contract/room?contractId=${contractId}&role=agent&session=${sessionId}`;
                    } catch (err) {
                      console.error('상태 변경 오류', err);
                      alert('통화 상태 변경에 실패했습니다. 다시 시도해주세요.');
