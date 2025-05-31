@@ -58,6 +58,7 @@
             <if test="state != null and state != ''">
                 AND state = #{state}
             </if>
+            AND company_id = #{companyId}
         </where>
     </select>
     
