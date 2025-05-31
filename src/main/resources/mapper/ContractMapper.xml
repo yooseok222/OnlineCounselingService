@@ -431,7 +431,7 @@
     <select id="selectMonthlyScheduleByAgentId" resultMap="ContractResultMap">
         SELECT contract_id, status, TO_CHAR(created_at, 'YYYY-MM-DD') as created_at,
         TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time,
-        client_id, agent_id, memo
+        client_id, agent_id, memo, contract_template_id
         FROM contract
         WHERE agent_id = #{id}
         AND contract_time BETWEEN
