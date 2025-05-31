@@ -58,9 +58,10 @@ public class AdminController {
     public List<Agent> searchAjax(
             @RequestParam(required=false) String name,
             @RequestParam(required=false) String email,
-            @RequestParam(required=false) String state
+            @RequestParam(required=false) String state,
+            @AuthenticationPrincipal CustomUserDetails admin
     ) {
-        return agentService.searchAgent(name, email, state);
+        return agentService.searchAgent(name, email, state, admin.getCompanyId());
     }
 
     // 상세정보 조회

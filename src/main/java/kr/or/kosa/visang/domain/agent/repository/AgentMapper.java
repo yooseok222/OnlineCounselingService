@@ -46,7 +46,7 @@ public interface AgentMapper {
      * @param state 상태 (옵션)
      * @return 상담원 목록
      */
-    List<Agent> selectAgentByCondition(@Param("name") String name, @Param("email") String email, @Param("state") String state);
+    List<Agent> selectAgentByCondition(@Param("name") String name, @Param("email") String email, @Param("state") String state, @Param("companyId") Long companyId);
     
     /**
      * 상담원 정보 업데이트
