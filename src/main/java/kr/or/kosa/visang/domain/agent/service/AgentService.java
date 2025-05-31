@@ -67,8 +67,8 @@ public class AgentService {
     }
 
     // 조건 검색
-    public List<Agent> searchAgent(String name, String email, String state) {
-        return agentMapper.selectAgentByCondition(name, email, state);
+    public List<Agent> searchAgent(String name, String email, String state, Long companyId) {
+        return agentMapper.selectAgentByCondition(name, email, state, companyId);
     }
 
     // 상세정보 조회
