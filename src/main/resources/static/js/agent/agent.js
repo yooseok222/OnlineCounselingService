@@ -307,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
 	// 통화하기 입장
 	function canEnterCall(reservationDateStr, reservationTimeStr) {
       /* 시간 무시하고 테스트 하기 return true 지워야함 */
-      //return true;
+      return true;
       const now = new Date();
 
       // 로컬 날짜 문자열 (YYYY-MM-DD) 생성
