@@ -648,90 +648,94 @@ document.addEventListener('DOMContentLoaded', function() {
 				return;
 			}
 
-             // 오늘 날짜 문자열 (YYYY-MM-DD) 구하기
-			 const today = new Date().toISOString().slice(0, 10);
+            uniqueContracts.forEach(c => {
+                  const li = document.createElement('li');
+                  li.className = 'list-group-item d-flex justify-content-between align-items-center';
 
-			 uniqueContracts.forEach(c => {
-                const li = document.createElement('li');
-                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                  const infoDiv = document.createElement('div');
+                  infoDiv.innerHTML = `
+                    <strong>${c.time}</strong>
+                    <span class="ms-2">${c.clientName}</span>
+                    <small class="text-muted ms-2">(${c.email})</small>
+                    <span class="badge bg-secondary ms-3">${c.invitationCode || '–'}</span>
+                  `;
 
-                // (1) 리스트에 텍스트 정보 넣기
-                li.innerHTML = `
-                      <div>
-                        <strong>${c.time}</strong>
-                        <span class="ms-2">${c.clientName}</span>
-                        <small class="text-muted ms-2">(${c.email})</small>
-                        <span class="badge bg-secondary ms-3">${c.invitationCode || '–'}</span>
-                      </div>
-                `;
+                  const btnDiv = document.createElement('div');
 
-                // (2) 통화시작 버튼 생성
-                const btn = document.createElement('button');
-                btn.className = 'btn btn-sm btn-primary start-webrtc-btn';
-                btn.textContent = '통화 시작';
+                  const detailBtn = document.createElement('button');
+                  detailBtn.className = 'btn btn-sm btn-info me-2';
+                  detailBtn.textContent = '상세 보기';
+                  detailBtn.addEventListener('click', () => {
+                    const ds = {
+                      contractTime:   c.contractTime,
+                      time:           c.time,
+                      email:          c.email,
+                      templateName:   c.contractTemplateName,
+                      status:         c.status,
+                      invitationCode: c.invitationCode,
+                      memo:           c.memo
+                    };
+                    showContractDetailsFromDataset(ds);
+                  });
 
-                // 필수 데이터 속성 세팅
-                btn.dataset.contractId = c.contractId;
-                btn.dataset.date       = c.contractTime.slice(0, 10);
-                btn.dataset.time       = c.time;
-                btn.dataset.sessionId  = c.sessionId;
+                  const startBtn = document.createElement('button');
+                  startBtn.className = 'btn btn-sm btn-primary';
+                  startBtn.textContent = '통화 시작';
+                  startBtn.dataset.contractId = c.contractId;
+                  startBtn.dataset.date       = c.contractTime.slice(0, 10);
+                  startBtn.dataset.time       = c.time;
+                  startBtn.dataset.sessionId  = c.sessionId;
+                  startBtn.addEventListener('click', async () => {
+                    const today = new Date().toISOString().slice(0, 10);
+                    if (startBtn.dataset.date !== today) {
+                      await Swal.fire({
+                        icon: 'warning',
+                        title: '아직 입장 불가',
+                        text: '아직 계약 시간이 아닙니다.',
+                        confirmButtonText: '확인'
+                      });
+                      return;
+                    }
+                    try {
+                      await updateContractStatus(startBtn.dataset.contractId, 'IN_PROGRESS');
+                      window.location.href =
+                        `/contract/room?contractId=${startBtn.dataset.contractId}&role=agent&session=${startBtn.dataset.sessionId}`;
+                    } catch (err) {
+                      console.error('상태 변경 오류:', err);
+                      await Swal.fire({
+                        icon: 'error',
+                        title: '오류',
+                        text: '통화 상태 변경에 실패했습니다. 다시 시도해주세요.',
+                        confirmButtonText: '확인'
+                      });
+                    }
+                  });
 
-                 // (3) 클릭 리스너: 오늘 날짜인지 비교 후 처리
-                 btn.addEventListener('click', async () => {
-                      // 1) “날짜 비교” – 버튼에 세팅된 날짜가 오늘(today)과 같은지 확인
-                      if (btn.dataset.date !== today) {
-                        await Swal.fire({
-                          icon: 'warning',
-                          title: '아직 입장 불가',
-                          text: '아직 계약 시간이 아닙니다.',
-                          confirmButtonText: '확인'
-                        });
-                        return; // 오늘 날짜가 아니면 더 이상 진행하지 않음
-                      }
+                  btnDiv.appendChild(detailBtn);
+                  btnDiv.appendChild(startBtn);
 
-                 // 2) “오늘 날짜”인 경우: 기존 로직대로 IN_PROGRESS 변경 후 입장
-                 try {
-                        await updateContractStatus(btn.dataset.contractId, 'IN_PROGRESS');
-                        // 세션 ID는 data-session-id로 이미 받아두었으므로,
-                        window.location.href = `/contract/room?contractId=${btn.dataset.contractId}&role=agent&session=${btn.dataset.sessionId}`;
-                      } catch (err) {
-                        console.error('상태 변경 오류:', err);
-                        await Swal.fire({
-                          icon: 'error',
-                          title: '오류',
-                          text: '통화 상태 변경에 실패했습니다. 다시 시도해주세요.',
-                          confirmButtonText: '확인'
-                        });
-                      }
-                 });
+                  li.appendChild(infoDiv);
+                  li.appendChild(btnDiv);
 
-                 // 버튼을 li에 붙이기
-                 li.appendChild(btn);
+                  li.dataset.filePath             = c.filePath;
+                  li.dataset.contractTime         = c.contractTime;
+                  li.dataset.invitationCode       = c.invitationCode;
+                  li.dataset.status               = c.status;
+                  li.dataset.time                 = c.time;
+                  li.dataset.memo                 = c.memo || '';
+                  li.dataset.clientId             = c.clientId;
+                  li.dataset.email                = c.email;
+                  li.dataset.contractTemplateId   = c.contractTemplateId;
+                  li.dataset.contractTemplateName = c.contractTemplateName;
 
-                 // (4) li의 data-* 속성(추후 상세 보기 등에서 사용) 세팅
-                 li.dataset.filePath            = c.filePath;
-                 li.dataset.contractTime        = c.contractTime;
-                 li.dataset.invitationCode      = c.invitationCode;
-                 li.dataset.status              = c.status;
-                 li.dataset.time                = c.time;
-                 li.dataset.memo                = c.memo || '';
-                 li.dataset.clientId            = c.clientId;
-                 li.dataset.email               = c.email;
-                 li.dataset.contractTemplateId  = c.contractTemplateId;
-                 li.dataset.contractTemplateName= c.contractTemplateName;
-
-                 // 최종적으로 ul에 li 붙이기
-                   ul.appendChild(li);
-                 });
-
-
-		} catch (err) {
-			console.error(err);
-		} finally {
-		    // 함수 호출이 완료되면 플래그 초기화
-		    loadTodayContracts.isLoading = false;
-		}
-	}
+                  ul.appendChild(li);
+                });
+              } catch (err) {
+                console.error(err);
+              } finally {
+                loadTodayContracts.isLoading = false;
+              }
+            }
 
 
 
