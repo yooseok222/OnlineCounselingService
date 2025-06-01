@@ -56,6 +56,8 @@ public class ChatMessage {
      */
     private String content;
 
+    private String fileHash;
+
     /**
      * 전송 시간 (서버에서 자동 설정)
      */

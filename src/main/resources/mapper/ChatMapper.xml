@@ -23,14 +23,16 @@
         contract_id,
         chat_content,
         chat_type,
-        send_time
+        send_time,
+        file_hash
         )
         VALUES (
         chat_seq.NEXTVAL,
         #{contractId},
         #{content},
         #{type},
-        SYSDATE
+        SYSDATE,
+        #{fileHash}
         )
     </insert>
 

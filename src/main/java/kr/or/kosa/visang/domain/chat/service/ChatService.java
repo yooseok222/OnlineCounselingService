@@ -1,5 +1,6 @@
 package kr.or.kosa.visang.domain.chat.service;
 
+import kr.or.kosa.visang.common.config.hash.HashUtil;
 import kr.or.kosa.visang.domain.chat.model.ChatMessage;
 import kr.or.kosa.visang.domain.chat.repository.ChatMapper;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
@@ -116,7 +118,7 @@ public class ChatService {
     }
 
     @Transactional
-    public void endAndExport(Long roomId, String username) {
+    public void endAndExport(Long roomId, String username) throws IOException, NoSuchAlgorithmException {
         log.info("=== 채팅 기록 내보내기 시작 ===");
         log.info("계약 ID: {}", roomId);
         log.info("사용자: {}", username);
@@ -141,6 +143,9 @@ public class ChatService {
         String filePath = exportFile(roomId, history);
         log.info("생성된 파일 경로: {}", filePath);
 
+        String hash = HashUtil.sha256(filePath);
+
+
         // 3) END 메시지 INSERT → chatId 자동 채워짐
         ChatMessage endMsg = ChatMessage.builder()
                 .contractId(roomId)
@@ -148,10 +153,10 @@ public class ChatService {
                 .content("통화를 종료하고 이력을 파일로 저장했습니다.")
                 .type(ChatMessage.MessageType.SYSTEM)
                 .timestamp(LocalDateTime.now())
+                .fileHash(hash)
                 .build();
         chatMapper.insertMessage(endMsg);
         log.info("시스템 메시지 DB 저장 완료. 메시지 ID: {}", endMsg.getMessageId());
-
         // 4) INSERT된 chat_id 로만 UPDATE
         Long newChatId = endMsg.getMessageId();
         chatMapper.updateExportPathByChatId(Map.of(
