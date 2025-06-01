@@ -20,12 +20,14 @@
             voice_id,
             file_path,
             created_at,
-            contract_id
+            contract_id,
+            file_hash
         ) VALUES (
             #{voiceId},
             #{filePath},
             #{createdAt},
-            #{contractId}
+            #{contractId},
+            #{fileHash}
         )
     </insert>
 

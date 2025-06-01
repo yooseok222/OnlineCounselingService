@@ -14,6 +14,7 @@ import java.util.Date;
 public class VoiceRecord {
     private Long voiceId;
     private String filePath;
+    private String fileHash;
     private Date createdAt;
     private Long contractId;
 } 

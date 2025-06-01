@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.UUID;
@@ -30,7 +31,7 @@ public class VoiceRecordService {
     /**
      * 녹음 파일 업로드 및 DB 저장
      */
-    public VoiceRecord saveVoiceRecord(MultipartFile file, Long contractId) {
+    public VoiceRecord saveVoiceRecord(MultipartFile file, Long contractId) throws IOException, NoSuchAlgorithmException {
         try {
             // 업로드 디렉토리 생성 (절대 경로 사용)
             Path uploadPath;
@@ -42,6 +43,9 @@ public class VoiceRecordService {
             }
             
             log.info("녹음 파일 저장 경로: {}", uploadPath.toString());
+
+//            String hash = HashUtil.sha256(uploadPath.toString());
+            String hash = "testHash"; // 임시 해시 값, 실제로는 파일의 해시를 계산해야 함
             
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
@@ -65,6 +69,7 @@ public class VoiceRecordService {
                     .filePath(filePath.toString())
                     .createdAt(new java.util.Date())
                     .contractId(contractId)
+                    .fileHash(hash)
                     .build();
 
             voiceRecordMapper.insertVoiceRecord(voiceRecord);
