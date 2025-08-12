@@ -1,0 +1,20 @@
+/**
+ * Pretendard Variable 폰트 전역 설정
+ * 
+ * 이 파일은 프로젝트의 모든 페이지에 자동으로 적용됩니다.
+ * - layout/main.html
+ * - fragments/header.html
+ * 
+ * 위 두 파일에 자동으로 포함되어, 새로운 페이지를 만들 때
+ * 별도로 font.css를 import할 필요가 없습니다.
+ * 
+ * 새 페이지를 만들 때는 다음 중 하나의 방법을 사용하세요:
+ * 1. layout/main.html 레이아웃 템플릿 활용
+ * 2. fragments/header.html 헤더 fragment 포함
+ */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+
+/* 프로젝트 기본 글꼴 설정 */
+body {
+  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+} 

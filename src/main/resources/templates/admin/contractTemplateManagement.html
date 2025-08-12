@@ -1,0 +1,160 @@
+<!-- 계약서 템플릿 관리 Fragment -->
+<div th:fragment="content">
+    <main class="dashboard-content container-fluid py-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3>계약서 템플릿 관리</h3>
+            <button class="btn btn-primary btn-sm" onclick="showTemplateForm()">
+                <i class="bi bi-plus-circle"></i> 새 템플릿 등록
+            </button>
+        </div>
+
+        <div id="templateFormArea" class="mb-4"></div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead class="table-light">
+                <tr>
+                    <th> </th>
+                    <th>템플릿 이름</th>
+                    <th>파일명</th>
+                    <th>설명</th>
+                    <th>버전</th>
+                    <th>등록일자</th>
+                    <th colspan="2">수정일자</th>
+<!--                    <th>액션</th>-->
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="template, iterStat : ${templateList}">
+<!--                <td th:text="${iterStat.index + 1}"></td> &lt;!&ndash; 1부터 시작 &ndash;&gt;-->
+                    <td th:text="${templateList.size() - iterStat.index}"></td><!-- 역순으로 표시 -->
+                    <td th:text="${template.contractName}"></td>
+                    <td th:text="${template.filePath}"></td>
+                    <td th:text="${#strings.abbreviate(template.descript, 50)}"></td>
+                    <td th:text="${template.version}"></td>
+                    <td th:text="${template.createdAt}"></td>
+                    <td th:text="${template.updatedAt}"></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" th:attr="onclick='editTemplate(' + ${template.contractTemplateId} + ')'">수정</button>
+                        <button class="btn btn-sm btn-outline-danger" th:attr="onclick='deleteTemplate(' + ${template.contractTemplateId} + ')'">삭제</button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</div>
+
+<script th:fragment="script">
+    const csrfToken = document.querySelector('meta[name="_csrf"]').content;
+    const csrfHeader = document.querySelector('meta[name="_csrf_header"]').content;
+
+    function showTemplateForm(template = null) {
+        const area = document.getElementById("templateFormArea");
+        area.innerHTML = `
+        <div class="card p-4 mb-4">
+          <h5 class="mb-3">${template ? '템플릿 수정' : '새 템플릿 등록'}</h5>
+          <form onsubmit="saveTemplate(event, ${template ? template.contractTemplateId : null})">
+            <div class="mb-2">
+              <label class="form-label">템플릿 이름</label>
+              <input class="form-control" name="contractName" value="${template?.contractName || ''}" required />
+            </div>
+            <div class="mb-2">
+              <label class="form-label">설명</label>
+              <textarea class="form-control" name="descript" rows="3" required>${template?.descript || ''}</textarea>
+            </div>
+            <div class="mb-2">
+              <label class="form-label">버전</label>
+              <input class="form-control" name="version" value="${template?.version || ''}" required/>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">계약서 템플릿</label>
+                <input type="file" class="form-control" name="pdf"
+                 ${!template ? 'required' : ''}/>
+                ${template?.filePath ? `<div class="form-text">기존 파일: ${template.filePath}</div>` : ''}
+                <input type="hidden" name="filePath" value="${template?.filePath || ''}" />
+            </div>
+
+            <div class="d-flex gap-2 justify-content-end">
+              <button type="submit" class="btn btn-primary">${template ? '수정' : '등록'}</button>
+              <button type="button" class="btn btn-secondary" onclick="document.getElementById('templateFormArea').innerHTML = ''">취소</button>
+            </div>
+          </form>
+        </div>`;
+    }
+
+    async function saveTemplate(e, id = null) {
+        e.preventDefault();
+
+        const form = e.target;
+
+        const formData = new FormData();
+        formData.append("contractName", form.contractName.value);
+        formData.append("descript", form.descript.value);
+        formData.append("version", form.version.value);
+        if (form.pdf.files.length > 0) {
+            formData.append("pdf", form.pdf.files[0]); // 새 파일만 전송
+        }
+        formData.append("filePath", form.filePath.value || '');
+
+        const url = id ? `/admin/template/${id}` : "/admin/template";
+        const method = id ? "PUT" : "POST";
+
+        try {
+            const res = await fetch(url, {
+                method,
+                body: formData,
+                headers: {
+                    [csrfHeader]: csrfToken,
+                }
+            });
+            console.log(res);
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(errorText || "계약서 저장에 실패했습니다.")
+            }
+            location.reload();
+        } catch (e) {
+            Swal.fire({
+                icon: 'error',
+                title: '오류 발생',
+                text: e.message,
+                confirmButtonText: '확인'
+            });
+        }
+    }
+
+    async function editTemplate(templateId) {
+        try {
+            const res = await fetch(`/admin/template/${templateId}`);
+            console.log(res)
+            if (!res.ok) throw new Error("불러오기 실패");
+            const template = await res.json();
+            showTemplateForm(template);
+        } catch (e) {
+            alert("템플릿 정보를 불러올 수 없습니다.");
+            console.error(e);
+        }
+    }
+
+    async function deleteTemplate(id) {
+        if (!confirm("정말 삭제하시겠습니까?")) return;
+        try {
+            const res = await fetch(`/admin/template/${id}`, {
+                method: "DELETE",
+                headers: {
+                    [csrfHeader]: csrfToken,
+                }
+            });
+
+            if (!res.ok) throw new Error();
+            alert("삭제되었습니다.");
+            location.reload();
+        } catch (e) {
+            alert("삭제 실패");
+            console.error(e);
+        }
+    }
+</script>

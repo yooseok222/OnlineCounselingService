@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>상담 완료 안내</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 10px;
+        }
+        .title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .highlight {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            margin: 20px 0;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #666;
+            font-size: 14px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">비상(Visang)</div>
+            <div class="title">상담 완료 안내</div>
+        </div>
+        
+        <div class="content">
+            <p>안녕하세요,</p>
+            <p>비상(Visang) 온라인 상담 서비스를 이용해 주셔서 감사합니다.</p>
+            
+            <div class="highlight">
+                <strong>상담이 성공적으로 완료되었습니다!</strong>
+            </div>
+            
+            <div class="info-box">
+                <h3>📋 상담 정보</h3>
+                <ul>
+                    <li><strong>계약 번호:</strong> <span th:text="${contractId}">CONTRACT_ID</span></li>
+                    <li><strong>완료 일시:</strong> <span th:text="${currentDate}">COMPLETION_DATE</span></li>
+                    <li><strong>서비스:</strong> 온라인 전자계약 상담</li>
+                </ul>
+            </div>
+            
+            <p>📎 <strong>첨부된 상담 문서를 확인해 주세요.</strong></p>
+            <p>상담 중 작성된 모든 내용이 PDF 문서로 첨부되어 있습니다. 중요한 문서이니 안전한 곳에 보관해 주시기 바랍니다.</p>
+            
+            <div class="info-box">
+                <h3>📞 추가 문의사항</h3>
+                <p>상담 내용에 대해 추가 문의사항이 있으시면 언제든지 연락해 주세요.</p>
+                <ul>
+                    <li>이메일: support@visang.co.kr</li>
+                    <li>전화: 1588-0000</li>
+                    <li>운영시간: 평일 09:00 ~ 18:00</li>
+                </ul>
+            </div>
+            
+            <p>앞으로도 비상(Visang)의 서비스를 이용해 주시기 바라며, 더 나은 서비스로 보답하겠습니다.</p>
+            
+            <p>감사합니다.</p>
+        </div>
+        
+        <div class="footer">
+            <p><strong>비상(Visang) 전자계약 서비스</strong></p>
+            <p>본 메일은 발신전용입니다. 문의사항은 고객센터를 이용해 주세요.</p>
+            <p>© 2024 Visang. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html> 

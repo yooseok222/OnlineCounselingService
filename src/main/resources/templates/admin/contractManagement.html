@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>계약 조회</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" />
+    <link rel="stylesheet" th:href="@{/css/common/main.css}" />
+</head>
+<body>
+<div th:fragment="content">
+    <main class="container-fluid py-4">
+        <!-- 헤더 및 검색 폼 -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 th:text="${pageTitle}">계약 조회</h3>
+        </div>
+        <form id="searchForm" class="row gx-2 gy-2 align-items-center mb-3">
+            <input type="hidden" name="status" th:value="${status}" />
+            <div class="col-auto"><input type="text" name="contractId" class="form-control form-control-sm" placeholder="계약 ID" th:value="${param.contractId}" /></div>
+            <div class="col-auto"><input type="month" name="contractTime" class="form-control form-control-sm" id="contractTime" th:value="${param.contractTime}" /></div>
+            <div class="col-auto"><input type="text" name="agentId" class="form-control form-control-sm" placeholder="상담사 ID" th:value="${param.agentId}" /></div>
+            <div class="col-auto"><input type="text" name="clientId" class="form-control form-control-sm" placeholder="고객 ID" th:value="${param.clientId}" /></div>
+            <div class="col-auto"><input type="text" name="contractName" class="form-control form-control-sm" placeholder="템플릿 이름" th:value="${param.contractName}" /></div>
+            <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-search"></i> 검색</button></div>
+            <div class="col-auto"><button type="button" class="btn btn-outline-secondary btn-sm" id="reset-button">초기화</button></div>
+            <!-- 줄바꿈 용 요소 -->
+            <div class="w-100"></div>
+            <!-- 페이지 크기 선택 드롭다운 우측 배치 -->
+            <div class="col-auto ms-auto">
+                <select id="pageSizeSelect" name="size" class="form-select form-select-sm w-auto">
+                    <option value="10" th:selected="${param.size == 10}">10개씩</option>
+                    <option value="20" th:selected="${param.size == 20}">20개씩</option>
+                </select>
+            </div>
+        </form>
+
+        <!-- 테이블 및 페이징 -->
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>계약 ID</th>
+                    <th>상담 계약 시간</th>
+                    <th>상담사</th>
+                    <th>고객</th>
+                    <th>템플릿 ID</th>
+                    <th>템플릿명</th>
+                    <th>상태</th>
+                </tr>
+                </thead>
+                <tbody id="contractTableBody"></tbody>
+            </table>
+        </div>
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center" id="pagination"></ul>
+        </nav>
+    </main>
+
+    <!-- PDF 미리보기용 Modal -->
+    <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="previewModalLabel">계약서 미리보기</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <iframe id="previewIframe" src="" width="100%" height="600px" frameborder="0"></iframe>
+                </div>
+            </div>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    </div>
+</div>
+<script th:fragment="script">
+    document.addEventListener('DOMContentLoaded', () => {
+        const previewIframe = document.getElementById("previewIframe");
+        const previewModal = document.getElementById("previewModal");
+        const searchForm = document.getElementById("searchForm");
+        const tableBody = document.getElementById("contractTableBody");
+        const contractTime = document.getElementById("contractTime");
+        const pageSizeSelect = document.getElementById("pageSizeSelect");
+        const paginationRoot = document.getElementById("pagination");
+        let PAGE_SIZE = 10;
+
+        let currentPage = /*[[${currentPage}]]*/ 1;
+
+        // 페이지 크기 변경 시 재검색
+        pageSizeSelect.addEventListener('change', () => {
+            PAGE_SIZE = Number(pageSizeSelect.value);
+            currentPage = 1;
+            fetchAndRender();
+        });
+
+        if (!contractTime.value) {
+            contractTime.value = new Date().toISOString().slice(0, 7);
+        }
+
+        document.getElementById('reset-button').addEventListener('click', () => {
+            searchForm.reset();
+        });
+
+
+        searchForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            console.log("submit 호출");
+            currentPage = 1;
+            fetchAndRender();
+        });
+
+        // 페이지네이션 클릭 이벤트
+        paginationRoot.addEventListener("click", async (e) => {
+            if (!e.target.matches('button.page-link')) return;
+            const page = Number(e.target.dataset.page);
+            if (page && page!==currentPage) {
+                currentPage = page;
+                await fetchAndRender();
+            }
+        });
+
+        fetchAndRender();
+
+        async function fetchAndRender() {
+
+            console.log("fetchAndRender 호출");
+
+            const params = new URLSearchParams(new FormData(searchForm));
+            params.set("page", currentPage);
+            params.set("size", PAGE_SIZE);
+
+            try {
+                const res = await fetch(`/admin/contracts/search?${params.toString()}`);
+                if (!res.ok) throw new Error("검색 실패");
+                const {content, totalCount }= await res.json();
+                renderContractTable(content);
+                renderPagination(totalCount);
+            } catch (err) {
+                alert("검색 중 오류 발생");
+                console.error(err);
+            }
+        }
+
+        tableBody.addEventListener("click", async (e) => {
+            // 위변조 검증 버튼 클릭
+            if (e.target.closest(".template-verify")) {
+                const btn = e.target.closest(".template-verify");
+                const templateId = btn.getAttribute("data-id");
+
+                try {
+                    const res = await fetch(`/admin/template/${templateId}/verify`);
+                    const result = await res.json();
+
+                    const downloadBtn = document.getElementById(`downloadBtn-${templateId}`);
+                    const previewBtn = document.querySelector(`.template-preview[data-id="${templateId}"]`);
+
+                    if (result.valid) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '검증 성공',
+                            text: '계약서 템플릿이 위변조되지 않았습니다.',
+                            confirmButtonText: '확인'
+                        });
+
+                        // 다운로드 버튼 활성화
+
+                        if (downloadBtn) {
+                            downloadBtn.style.pointerEvents = "auto";
+                            downloadBtn.style.opacity = "1";
+                            downloadBtn.removeAttribute('aria-disabled');
+                            downloadBtn.tabIndex = 0;
+                        }
+                        // 미리보기 버튼도 활성화 가능
+
+                        if (previewBtn) previewBtn.disabled = false;
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: '검증 실패',
+                            text: '계약서가 위변조되었을 가능성이 있습니다.',
+                            confirmButtonText: '확인'
+                        });
+
+                        if (downloadBtn) {
+                            downloadBtn.style.pointerEvents = "none";
+                            downloadBtn.style.opacity = "0.5";
+                            downloadBtn.setAttribute('aria-disabled', 'true');
+                            downloadBtn.tabIndex = -1;
+                        }
+
+                        if (previewBtn)previewBtn.disabled = true;
+                    }
+                } catch (err) {
+                    console.error(err);
+                    Swal.fire({
+                        icon: 'error',
+                        title: '오류 발생',
+                        text: '서버와의 통신 중 문제가 발생했습니다.',
+                        confirmButtonText: '확인'
+                    });
+                }
+                // 버튼 클릭 시 상세보기 row 확장/축소는 무시해야 하므로 return
+                e.stopPropagation();
+                return;
+            }
+
+            // [1] 버튼이나 링크 클릭은 무시
+            if (e.target.closest("a") || e.target.closest("button")) return;
+
+            const row = e.target.closest("tr");
+            if (!row || row.children.length < 2) return;
+
+            const contractId = row.children[1].textContent.trim();
+            if (!contractId) return;
+
+            document.querySelectorAll(".contract-detail-row").forEach(el => el.remove());
+
+            const detailRow = document.createElement("tr");
+            detailRow.className = "contract-detail-row";
+
+            const td = document.createElement("td");
+            td.colSpan = 8;
+            td.innerHTML = `
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status"></div>
+                    </div>`;
+            detailRow.appendChild(td);
+            row.insertAdjacentElement("afterend", detailRow);
+
+            try {
+                const res = await fetch(`/admin/contract/${contractId}`);
+                if (!res.ok) throw new Error("상세 조회 실패");
+                const data = await res.json();
+
+                const isCompleted = data.status === "COMPLETED";
+
+                let actionButtonsHtml = '';
+                if (isCompleted) {
+                    actionButtonsHtml = `
+                        <h4>계약 내용</h4>
+                        <hr/>
+                        <p>${data.memo || '없음'}</p>
+                        <div class="d-flex gap-2 mt-3">
+                            <button type="button" class="btn btn-sm btn-success chat-btn" data-id="${data.contractId}">
+                                <i class="bi bi-chat-dots"></i> 채팅
+                            </button>
+                            <button type="button" class="btn btn-sm btn-info voice-btn" data-id="${data.contractId}">
+                                <i class="bi bi-mic"></i> 음성
+                            </button>
+                            <button type="button"
+                                class="btn btn-sm btn-primary"
+                                id="downloadSignedBtn-${data.contractId}"
+                                <i class="bi bi-download"></i> 계약서 다운로드
+                            </button>
+                            <button type="button"
+                                class="btn btn-sm btn-secondary contract-preview-btn"
+                                data-id="${data.contractId}">
+                                <i class="bi bi-eye"></i> 계약서 미리보기
+                            </button>
+                        </div>
+                    `;
+                }
+
+                td.innerHTML = `
+                        <div class="card p-4">
+                            <div class="row">
+                                <!-- 계약 상세 정보 -->
+                                <div class="col-lg-3 mb-4">
+                                    <h5>계약 상세 정보</h5>
+                                    <hr/>
+                                    <p><strong>계약 ID :</strong> ${data.contractId}</p>
+                                    <p><strong>상태 :</strong> ${data.status}</p>
+                                    <p><strong>계약 시간 :</strong> ${data.contractTime}</p>
+                                    ${!isCompleted ? `<p><strong>메모 :</strong> ${data.memo}</p>` : ''}
+
+                                    <div class="d-flex gap-2" style="margin-top: 10px;">
+                                        <a href="/admin/files/${data.contractTemplateId}/download"
+                                            class="btn btn-sm btn-outline-primary"
+                                            id="downloadBtn-${data.contractTemplateId}"
+                                            style="pointer-events:none; opacity:0.5;"
+                                            tabindex="-1"
+                                            aria-disabled="true">
+                                            <i class="bi bi-download"></i> 다운로드
+                                        </a>
+                                        <button type="button"
+                                            class="btn btn-sm btn-outline-secondary template-link template-preview"
+                                            data-id="${data.contractTemplateId}"
+                                            disabled>
+                                            <i class="bi bi-eye"></i> 미리보기
+                                        </button>
+                                        <button type="button"
+                                            class="btn btn-sm btn-outline-secondary template-verify"
+                                            data-id="${data.contractTemplateId}">
+                                            <i class="bi bi-shield-check"></i> 위변조 검증
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- 상담사 정보 -->
+                                <div class="col-lg-4 mb-4">
+                                    <h5>상담사 정보</h5>
+                                    <hr/>
+                                    <div class="d-flex gap-3">
+                                        <img src="${data.profileImageUrl || '/images/profile/default_profile.png'}"
+                                             class="img-thumbnail"
+                                             style="width:130px; height:170px; object-fit:cover"/>
+                                        <div>
+                                            <p><strong>ID:</strong> ${data.agentId}</p>
+                                            <p><strong>이름:</strong> ${data.agentName}</p>
+                                            <p><strong>이메일:</strong> ${data.agentEmail}</p>
+                                            <p><strong>전화:</strong> ${data.agentPhoneNumber}</p>
+                                            <p><strong>주소:</strong> ${data.agentAddress}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 고객 정보 -->
+                                <div class="col-lg-4 mb-4">
+                                    <h5>고객 정보</h5>
+                                    <hr/>
+                                    <div class="d-flex gap-3">
+                                        <img src="${data.profileImageUrl || '/images/profile/default_profile.png'}"
+                                             class="img-thumbnail"
+                                             style="width:130px; height:170px; object-fit:cover"/>
+                                        <div>
+                                            <p><strong>ID:</strong> ${data.clientId}</p>
+                                            <p><strong>이름:</strong> ${data.clientName}</p>
+                                            <p><strong>이메일:</strong> ${data.clientEmail}</p>
+                                            <p><strong>전화:</strong> ${data.clientPhoneNumber}</p>
+                                            <p><strong>주소:</strong> ${data.clientAddress}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                ${actionButtonsHtml}
+                            </div>
+                        </div>
+                    `;
+                td.querySelector(".template-link").addEventListener("click", (e) => {
+                    e.preventDefault();
+                    e.stopPropagation(); // ✅ 여기 추가
+                    const templateId = e.target.dataset.id;
+                    previewIframe.src = `/admin/files/${templateId}/preview`;
+                    const modalInstance =  new bootstrap.Modal(previewModal);
+                    modalInstance.show();
+
+                });
+
+                if (isCompleted) {
+                    // 채팅 버튼
+                    td.querySelector(".chat-btn")?.addEventListener("click", (e) => {
+                        console.log('채팅 버튼 클릭');
+                        const contractId = e.target.dataset.id;
+
+                        const downloadUrl = `/admin/contract/chat/${contractId}/download`;
+                        const a = document.createElement("a");
+                        a.href = downloadUrl;
+                        a.setAttribute("download", ""); // 파일명은 서버가 지정
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    });
+
+                    // 음성 버튼
+                    td.querySelector(".voice-btn")?.addEventListener("click", (e) => {
+                        console.log('음성 버튼 클릭');
+                        const contractId = e.target.dataset.id;
+                        const downloadUrl = `/api/contract/recording/${contractId}/download`;
+                        const a = document.createElement("a");
+                        a.href = downloadUrl;
+                        a.setAttribute("download", ""); // 파일명은 서버가 지정
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    });
+
+                    // "계약서 미리보기" 버튼
+                    td.querySelector(".contract-preview-btn")?.addEventListener("click", (e) => {
+                        console.log('계약서 미리보기 버튼 클릭');
+                        const templateId = e.target.dataset.id;
+                        previewIframe.src = `/admin/files/signed/${templateId}/preview`;
+                        const modalInstance =  new bootstrap.Modal(previewModal);
+                        modalInstance.show();
+                    });
+                    // 다운로드 버튼
+                    td.querySelector(`#downloadSignedBtn-${contractId}`)?.addEventListener("click", (e) => {
+                        console.log('계약서 다운로드 버튼 클릭');
+                        const downloadUrl = `/admin/files/signed/${contractId}/download`;
+                        const link = document.createElement("a");
+                        link.href = downloadUrl;
+                        link.download = `contract_${contractId}.pdf`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    });
+
+                }
+
+
+
+            } catch (err) {
+                td.innerHTML = `<div class="text-danger">상세 정보를 불러오지 못했습니다.</div>`;
+                console.error(err);
+            }
+        });
+
+        function renderContractTable(contractList) {
+            tableBody.innerHTML = "";
+            if (!contractList.length) {
+                const row = document.createElement("tr");
+                row.classList.add("align-middle");
+                row.innerHTML = `<td colspan="8" class="text-center">검색 결과가 없습니다.</td>`;
+                tableBody.appendChild(row);
+                return;
+            }
+
+            contractList.forEach((c, index) => {
+                const row = document.createElement("tr");
+
+                row.classList.add("align-middle");
+                row.style.cursor="pointer";
+                row.dataset.id= c.contractId;
+                // badge 렌더링
+                let statusBadge;
+                switch (c.status) {
+                    case "IN_PROGRESS":
+                        statusBadge = '<span class="badge bg-warning">진행중</span>'; break;
+                    case "PENDING":
+                        statusBadge = '<span class="badge bg-secondary">진행전</span>'; break;
+                    case "COMPLETED":
+                        statusBadge = '<span class="badge bg-success">완료됨</span>'; break;
+                    case "CANCELED":
+                        statusBadge = '<span class="badge bg-danger">취소됨</span>'; break;
+                    default:
+                        statusBadge = `<span class="badge bg-light text-dark">${c.status}</span>`;
+                }
+
+                row.innerHTML = `
+                        <td>${(currentPage-1)*PAGE_SIZE + index + 1}</td>
+                        <td>${c.contractId}</td>
+                        <td>${c.contractTime || '-'}</td>
+                        <td>${c.agentName}(ID : ${c.agentId})</td>
+                        <td>${c.clientName}(ID : ${c.clientId})</td>
+                        <td class="text-center">${c.contractTemplateId}</td>
+                        <td>${c.contractTemplateName}</td>
+                        <td class="text-center">${statusBadge}</td>
+                        `;
+                tableBody.appendChild(row);
+            });
+        }
+        function renderPagination(totalCount) {
+            paginationRoot.innerHTML='';
+            const totalPages = Math.ceil(totalCount/PAGE_SIZE);
+            paginationRoot.append(createPageItem('«', currentPage>1?currentPage-1:null));
+            for(let i=1;i<=totalPages;i++) paginationRoot.append(createPageItem(i,i));
+            paginationRoot.append(createPageItem('»', currentPage<totalPages?currentPage+1:null));
+        }
+        function createPageItem(label,page) {
+            const li = document.createElement('li');
+            li.classList.add('page-item'); if(!page) li.classList.add('disabled'); if(page===currentPage) li.classList.add('active');
+            const btn=document.createElement('button'); btn.type='button'; btn.classList.add('page-link'); btn.dataset.page=page; btn.textContent=label; li.appendChild(btn);
+            return li;
+        }
+    });
+</script>
+</body>
+</html>

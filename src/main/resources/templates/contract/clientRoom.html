@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>고객 상담방</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <!-- SweetAlert2 CDN 추가 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- CSRF 토큰을 위한 메타 태그 추가 -->
+  <meta name="_csrf" th:content="${_csrf.token}"/>
+  <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+  <!-- 분리된 CSS 파일 참조 -->
+  <link rel="stylesheet" href="/css/contract/contractRoom.css">
+  <style>
+    /* 도장/서명 관련 추가 스타일 */
+    .stamp-popup, .signature-popup {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      z-index: 1000;
+      width: 450px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    
+    .stamp-popup h4, .signature-popup h4 {
+      margin-top: 0;
+      color: #0064E1;
+      margin-bottom: 15px;
+    }
+    
+    .stamp-upload {
+      margin-bottom: 15px;
+    }
+    
+    .stamp-preview, .signature-canvas-container {
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      padding: 10px;
+      height: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .stamp-preview img {
+      max-width: 100%;
+      max-height: 100%;
+    }
+    
+    .popup-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    
+    .popup-buttons button {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .popup-buttons button:first-child {
+      background-color: #0064E1;
+      color: white;
+    }
+    
+    .popup-buttons button:last-child {
+      background-color: #f1f3f5;
+      color: #495057;
+    }
+    
+    #signatureCanvas {
+      border: 1px solid #ddd;
+      background-color: #fff;
+    }
+    
+    .clear-btn {
+      background-color: #f8f9fa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 5px 10px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+    
+    /* 도장 탭 스타일 */
+    .stamp-tabs {
+      display: flex;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .stamp-tab {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
+    }
+    
+    .stamp-tab.active {
+      color: #0064E1;
+      border-bottom-color: #0064E1;
+      font-weight: bold;
+    }
+    
+    .stamp-tab:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .stamp-tab-content {
+      display: none;
+      min-height: 200px;
+    }
+    
+    .stamp-tab-content.active {
+      display: block;
+    }
+    
+    /* 업로드된 도장 목록 스타일 */
+    .uploaded-stamps-list {
+      max-height: 250px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    
+    .uploaded-stamp-item {
+      display: flex;
+      align-items: center;
+      padding: 8px;
+      border: 1px solid #eee;
+      border-radius: 5px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .uploaded-stamp-item:hover {
+      background-color: #f8f9fa;
+      border-color: #0064E1;
+    }
+    
+    .uploaded-stamp-item.selected {
+      background-color: #e3f2fd;
+      border-color: #0064E1;
+    }
+    
+    .uploaded-stamp-image {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      margin-right: 10px;
+    }
+    
+    .uploaded-stamp-info {
+      flex: 1;
+    }
+    
+    .uploaded-stamp-date {
+      font-size: 0.8em;
+      color: #666;
+    }
+    
+    .manage-stamps-btn {
+      display: inline-block;
+      padding: 6px 12px;
+      background-color: #f8f9fa;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      text-decoration: none;
+      color: #495057;
+      font-size: 0.9em;
+      transition: all 0.2s ease;
+    }
+    
+    .manage-stamps-btn:hover {
+      background-color: #e9ecef;
+      text-decoration: none;
+      color: #495057;
+    }
+    
+    /* 기본 도장 스타일 */
+    .default-stamps {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    
+    .default-stamp-btn {
+      flex: 1;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    
+    .default-stamp-btn:hover {
+      background-color: #f8f9fa;
+      border-color: #0064E1;
+    }
+    
+    .default-stamp-btn.selected {
+      background-color: #e3f2fd;
+      border-color: #0064E1;
+    }
+    
+    .upload-hint {
+      font-size: 0.9em;
+      color: #666;
+      margin-top: 5px;
+    }
+    
+    .loading-text {
+      text-align: center;
+      color: #666;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h3><i class="fas fa-comments"></i> 온라인 상담 (고객)</h3>
+    <div id="userRoleDisplay"></div>
+  </div>
+  
+  <div class="container">
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <button id="cursorBtn" class="tool-btn active" onclick="setCursor()"><i class="fas fa-mouse-pointer"></i> 커서</button>
+        <button id="penBtn" class="tool-btn" onclick="setPen()"><i class="fas fa-pen"></i> 펜</button>
+        <button id="highlighterBtn" class="tool-btn" onclick="setHighlighter()"><i class="fas fa-highlighter"></i> 형광펜</button>
+      </div>
+      <div class="toolbar-group">
+        <button id="textBtn" class="tool-btn" onclick="openTextPopup()"><i class="fas fa-font"></i> 텍스트</button>
+        <button id="stampBtn" class="tool-btn" onclick="handleStampButtonClick()" style="display: none;"><i class="fas fa-stamp"></i> 도장</button>
+        <button id="signatureBtn" class="tool-btn" onclick="handleSignatureButtonClick()" style="display: none;"><i class="fas fa-signature"></i> 서명</button>
+      </div>
+    </div>
+    
+    <div class="status-area">
+      <i class="fas fa-info-circle"></i>
+      <span>현재 모드: <span id="currentMode">커서</span></span>
+    </div>
+    
+    <div class="content-wrapper">
+      <div id="scrollWrapper">
+        <div class="scroll-sync-indicator" id="scrollSyncIndicator">
+          <i class="fas fa-sync-alt"></i> 스크롤 동기화 중
+        </div>
+        <canvas id="pdfCanvas"></canvas>
+        <canvas id="drawingCanvas"></canvas>
+      </div>
+      
+      <div class="video-container">
+        <div id="localVideoContainer" class="video-wrapper">
+          <h4>내 화면</h4>
+          <video id="localVideo" autoplay playsinline muted></video>
+          <div id="localVideoStatus" class="video-status">연결 중...</div>
+          <div class="media-controls">
+            <button id="toggleMicBtn" class="media-btn mic-on" onclick="toggleMicrophone()" title="마이크 끄기">
+              <i class="fas fa-microphone"></i>
+            </button>
+            <button id="toggleCameraBtn" class="media-btn camera-on" onclick="toggleCamera()" title="카메라 끄기">
+              <i class="fas fa-video"></i>
+            </button>
+          </div>
+        </div>
+        <div id="remoteVideoContainer" class="video-wrapper">
+          <h4>상담원 화면</h4>
+          <video id="remoteVideo" autoplay playsinline></video>
+          <div id="remoteVideoStatus" class="video-status">연결 대기 중...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 텍스트 입력 팝업 - SweetAlert2로 대체되어 더 이상 사용하지 않음 -->
+  <div id="textPopup" style="display: none;">
+    <h4><i class="fas fa-font"></i> 텍스트 입력</h4>
+    <input type="text" id="textInput" placeholder="입력할 텍스트를 작성하세요" autofocus>
+    <div>
+      <button onclick="confirmText()"><i class="fas fa-check"></i> 확인</button>
+      <button onclick="closeTextPopup()"><i class="fas fa-times"></i> 취소</button>
+    </div>
+  </div>
+  
+  <!-- 도장 업로드 팝업 -->
+  <div id="stampPopup" class="stamp-popup">
+    <h4><i class="fas fa-stamp"></i> 도장 삽입</h4>
+    
+    <!-- 탭 메뉴 -->
+    <div class="stamp-tabs">
+      <button class="stamp-tab active" onclick="switchStampTab('uploaded')">도장</button>
+      <button class="stamp-tab" onclick="switchStampTab('upload')">새 업로드</button>
+      <button class="stamp-tab" onclick="switchStampTab('default')">기본 도장</button>
+    </div>
+    
+    <!-- 업로드된 도장 목록 -->
+    <div id="uploadedStampsTab" class="stamp-tab-content active">
+      <div class="uploaded-stamps-container">
+        <div id="uploadedStampsList" class="uploaded-stamps-list">
+          <p class="loading-text">도장 목록을 불러오는 중...</p>
+        </div>
+        <div class="stamp-actions">
+          <a href="/stamp/upload" target="_blank" class="manage-stamps-btn">
+            <i class="fas fa-cog"></i> 도장 관리
+          </a>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 새 도장 업로드 -->
+    <div id="uploadStampTab" class="stamp-tab-content">
+      <div class="stamp-upload">
+        <input type="file" id="stampUpload" accept="image/*" onchange="previewStamp(this)">
+        <p class="upload-hint">이미지 파일을 선택하세요 (PNG, JPG)</p>
+      </div>
+    </div>
+    
+    <!-- 기본 도장 -->
+    <div id="defaultStampTab" class="stamp-tab-content">
+      <div class="default-stamps">
+        <button onclick="selectDefaultStamp('round')" class="default-stamp-btn">
+          <i class="fas fa-circle"></i> 둥근 도장
+        </button>
+        <button onclick="selectDefaultStamp('square')" class="default-stamp-btn">
+          <i class="fas fa-square"></i> 각인 도장
+        </button>
+      </div>
+    </div>
+    
+    <div class="stamp-preview" id="stampPreview">
+      <p>도장 미리보기</p>
+    </div>
+    <div class="popup-buttons">
+      <button onclick="confirmStamp()">확인</button>
+      <button onclick="closeStampPopup()">취소</button>
+    </div>
+  </div>
+  
+  <!-- 서명 팝업 -->
+  <div id="signaturePopup" class="signature-popup">
+    <h4><i class="fas fa-signature"></i> 서명 입력</h4>
+    
+    <!-- 서명 입력 영역만 표시 -->
+    <div class="signature-input-area">
+      <div class="signature-canvas-container">
+        <canvas id="signatureCanvas" width="300" height="150"></canvas>
+      </div>
+      <button class="clear-btn" onclick="clearSignature()">지우기</button>
+    </div>
+    
+    <div class="popup-buttons">
+      <button onclick="confirmSignature()">확인</button>
+      <button onclick="closeSignaturePopup()">취소</button>
+    </div>
+  </div>
+  
+  <!-- 불필요한 completeModal 제거 -->
+  
+  <div id="toastContainer"></div>
+  
+  <!-- 전역 변수 선언 -->
+  <script th:inline="javascript">
+    let drawingDataPerPage = {};
+    let stampDataPerPage = {};
+    let textDataPerPage = {};
+    let signatureDataPerPage = {};
+    
+    let pdfDoc = null;
+    let currentPage = 1;
+    let renderTask = null;
+    let stompClient = null;
+    let mode = null; // 'pen' | 'highlight' | null
+    let drawing = false;
+    let pendingText = null;
+    let uploadedPdfUrl = null;
+    let userRole = 'client'; // 고정값으로 'client' 설정
+    let sessionId = null; // 상담 세션 ID 추가
+    let customStampImage = null; // 사용자 정의 도장 이미지
+    let signatureCanvas = null; // 서명 캔버스
+    let signatureContext = null; // 서명 캔버스 컨텍스트
+    
+    // 서버에서 전달받은 entryType 정보
+    const serverEntryType = /*[[${entryType}]]*/ null;
+    const serverStampImage = /*[[${stampImage}]]*/ null;
+    const serverSignatureImage = /*[[${signatureImage}]]*/ null;
+    
+    console.log('서버에서 전달받은 entryType:', serverEntryType);
+    console.log('서버에서 전달받은 stampImage:', serverStampImage ? serverStampImage.substring(0, 50) + '...' : 'null');
+    console.log('서버에서 전달받은 signatureImage:', serverSignatureImage ? serverSignatureImage.substring(0, 50) + '...' : 'null');
+    
+    // main.js에서 접근할 수 있도록 전역 변수로 설정
+    window.serverEntryType = serverEntryType;
+    window.serverStampImage = serverStampImage;
+    window.serverSignatureImage = serverSignatureImage;
+    
+    // 이미지 데이터 크기 최적화 함수
+    function optimizeImageData(imageData, maxWidth = 400, maxHeight = 300, quality = 0.7) {
+      return new Promise((resolve, reject) => {
+        try {
+          const img = new Image();
+          img.onload = function() {
+            let width = img.width;
+            let height = img.height;
+            
+            // 이미지 크기 비율 유지하면서 축소
+            if (width > maxWidth) {
+              height = (height * maxWidth) / width;
+              width = maxWidth;
+            }
+            if (height > maxHeight) {
+              width = (width * maxHeight) / height;
+              height = maxHeight;
+            }
+            
+            // 캔버스에 이미지 그리기
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            
+            // 캔버스 초기화 (투명하게)
+            ctx.clearRect(0, 0, width, height);
+            
+            // 이미지 그리기
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // 투명도 유지를 위해 PNG 형식으로 변환
+            const optimizedImageData = canvas.toDataURL('image/png');
+            console.log(`이미지 최적화: ${imageData.length} -> ${optimizedImageData.length} 바이트`);
+            resolve(optimizedImageData);
+          };
+          img.onerror = function() {
+            console.error('이미지 최적화 실패');
+            resolve(imageData); // 실패 시 원본 반환
+          };
+          img.src = imageData;
+        } catch (error) {
+          console.error('이미지 최적화 오류:', error);
+          resolve(imageData); // 오류 발생 시 원본 반환
+        }
+      });
+    }
+  </script>
+  
+  <!-- 분리된 JS 파일 참조 -->
+  <script src="/js/contract/ui.js"></script>
+  <script src="/js/contract/pdfViewer.js"></script>
+  <script src="/js/contract/drawing.js"></script>
+  <script src="/js/contract/websocket.js"></script>
+  <script src="/js/contract/chat-ui.js"></script>
+  <script src="/js/contract/webRTC.js"></script>
+  <script src="/js/contract/main.js"></script>
+  
+  <!-- 도장 및 서명 관련 스크립트 -->
+  <script>
+    // 페이지 로드 시 서명 캔버스 초기화 및 입장 방식에 따른 UI 설정
+    document.addEventListener('DOMContentLoaded', function() {
+      signatureCanvas = document.getElementById('signatureCanvas');
+      signatureContext = signatureCanvas.getContext('2d');
+      
+      // 서명 캔버스 이벤트 설정
+      initSignatureCanvas();
+      
+      // 입장 방식에 따른 UI 설정
+      setupUIByEntryType();
+    });
+    
+    // 입장 방식에 따른 UI 설정
+    function setupUIByEntryType() {
+      // 서버에서 전달받은 entryType을 우선 사용, 없으면 sessionStorage에서 가져오기
+      const entryType = serverEntryType || sessionStorage.getItem('entryType');
+      const stampBtn = document.getElementById('stampBtn');
+      const signatureBtn = document.getElementById('signatureBtn');
+      
+      console.log('=== setupUIByEntryType 시작 ===');
+      console.log('입장 방식 확인:', entryType);
+      console.log('서버 entryType:', serverEntryType);
+      console.log('세션 entryType:', sessionStorage.getItem('entryType'));
+      console.log('도장 버튼 요소:', stampBtn);
+      console.log('서명 버튼 요소:', signatureBtn);
+      
+      if (entryType === 'stamp') {
+        // 도장으로 입장한 경우 - 도장 버튼만 표시
+        if (stampBtn) {
+          stampBtn.style.display = 'inline-block';
+          console.log('도장 모드로 설정됨 - 도장 버튼만 표시');
+        }
+        if (signatureBtn) {
+          signatureBtn.style.display = 'none';
+        }
+        
+        // 서버에서 전달받은 도장 이미지를 우선 사용, 없으면 세션에서 가져오기
+        const entryStampImage = serverStampImage || sessionStorage.getItem('stampImage');
+        console.log('사용할 도장 이미지 소스:', serverStampImage ? 'server' : 'sessionStorage');
+        console.log('도장 이미지 데이터:', entryStampImage ? entryStampImage.substring(0, 50) + '...' : 'null');
+        
+        if (entryStampImage) {
+          customStampImage = new Image();
+          customStampImage.onload = function() {
+            console.log('✅ 입장 시 사용한 도장 이미지 로드 완료');
+            console.log('customStampImage 설정됨:', !!customStampImage);
+          };
+          customStampImage.onerror = function() {
+            console.error('❌ 도장 이미지 로드 실패');
+          };
+          customStampImage.src = entryStampImage;
+        } else {
+          console.warn('⚠️  도장 이미지가 없습니다');
+        }
+        
+      } else if (entryType === 'signature') {
+        // 서명으로 입장한 경우 - 서명 버튼만 표시
+        if (stampBtn) {
+          stampBtn.style.display = 'none';
+          console.log('도장 버튼 숨김');
+        }
+        if (signatureBtn) {
+          signatureBtn.style.display = 'inline-block';
+          console.log('서명 모드로 설정됨 - 서명 버튼만 표시');
+        }
+        
+        // 서버에서 전달받은 서명 이미지를 우선 사용, 없으면 세션에서 가져오기
+        const entrySignatureImage = serverSignatureImage || sessionStorage.getItem('signatureImage');
+        console.log('사용할 서명 이미지 소스:', serverSignatureImage ? 'server' : 'sessionStorage');
+        console.log('서명 이미지 데이터:', entrySignatureImage ? entrySignatureImage.substring(0, 50) + '...' : 'null');
+        
+        if (entrySignatureImage) {
+          customStampImage = new Image();
+          customStampImage.onload = function() {
+            console.log('✅ 입장 시 사용한 서명 이미지 로드 완료');
+            console.log('customStampImage 설정됨:', !!customStampImage);
+          };
+          customStampImage.onerror = function() {
+            console.error('❌ 서명 이미지 로드 실패');
+          };
+          customStampImage.src = entrySignatureImage;
+        } else {
+          console.warn('⚠️  서명 이미지가 없습니다');
+        }
+        
+      } else {
+        // entryType이 없는 경우 - 도장/서명 버튼 모두 숨김 (기존 사용자)
+        if (stampBtn) {
+          stampBtn.style.display = 'none';
+        }
+        if (signatureBtn) {
+          signatureBtn.style.display = 'none';
+        }
+        console.log('기본 모드로 설정됨 - 도장/서명 버튼 모두 숨김');
+      }
+      
+      console.log('=== setupUIByEntryType 완료 ===');
+    }
+    
+    // 서명 캔버스 초기화
+    function initSignatureCanvas() {
+      let isDrawing = false;
+      let lastX = 0;
+      let lastY = 0;
+      
+      // 마우스 이벤트
+      signatureCanvas.addEventListener('mousedown', startSignature);
+      signatureCanvas.addEventListener('mousemove', drawSignature);
+      signatureCanvas.addEventListener('mouseup', endSignature);
+      signatureCanvas.addEventListener('mouseout', endSignature);
+      
+      // 터치 이벤트
+      signatureCanvas.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent('mousedown', {
+          clientX: touch.clientX,
+          clientY: touch.clientY
+        });
+        signatureCanvas.dispatchEvent(mouseEvent);
+      });
+      
+      signatureCanvas.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent('mousemove', {
+          clientX: touch.clientX,
+          clientY: touch.clientY
+        });
+        signatureCanvas.dispatchEvent(mouseEvent);
+      });
+      
+      signatureCanvas.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        const mouseEvent = new MouseEvent('mouseup', {});
+        signatureCanvas.dispatchEvent(mouseEvent);
+      });
+      
+      // 서명 시작
+      function startSignature(e) {
+        isDrawing = true;
+        const rect = signatureCanvas.getBoundingClientRect();
+        lastX = e.clientX - rect.left;
+        lastY = e.clientY - rect.top;
+      }
+      
+      // 서명 그리기
+      function drawSignature(e) {
+        if (!isDrawing) return;
+        
+        const rect = signatureCanvas.getBoundingClientRect();
+        const currentX = e.clientX - rect.left;
+        const currentY = e.clientY - rect.top;
+        
+        signatureContext.lineJoin = 'round';
+        signatureContext.lineCap = 'round';
+        signatureContext.lineWidth = 2;
+        signatureContext.strokeStyle = '#000';
+        
+        signatureContext.beginPath();
+        signatureContext.moveTo(lastX, lastY);
+        signatureContext.lineTo(currentX, currentY);
+        signatureContext.stroke();
+        
+        lastX = currentX;
+        lastY = currentY;
+      }
+      
+      // 서명 종료
+      function endSignature() {
+        isDrawing = false;
+      }
+    }
+    
+    // 도장 미리보기
+    function previewStamp(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          customStampImage = new Image();
+          customStampImage.src = e.target.result;
+          
+          customStampImage.onload = function() {
+            const previewDiv = document.getElementById('stampPreview');
+            previewDiv.innerHTML = '';
+            
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            previewDiv.appendChild(img);
+          };
+        };
+        
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+    
+    // 기본 도장 선택
+    function selectDefaultStamp(type) {
+      // 기존 선택 해제
+      document.querySelectorAll('.default-stamp-btn').forEach(btn => {
+        btn.classList.remove('selected');
+      });
+      
+      // 새 선택 표시
+      event.target.classList.add('selected');
+      
+      const stampPath = type === 'round' ? '/images/round-stamp.png' : '/images/square-stamp.png';
+      
+      customStampImage = new Image();
+      customStampImage.src = stampPath;
+      
+      customStampImage.onload = function() {
+        const previewDiv = document.getElementById('stampPreview');
+        previewDiv.innerHTML = '';
+        
+        const img = document.createElement('img');
+        img.src = stampPath;
+        previewDiv.appendChild(img);
+      };
+    }
+    
+    // 도장 팝업 열기
+    function openStampPopup() {
+      document.getElementById('stampPopup').style.display = 'block';
+      mode = 'stamp';
+      document.getElementById('currentMode').textContent = '도장';
+      updateToolbarButtons('stampBtn');
+      
+      // 업로드된 도장 목록 로드
+      loadUploadedStamps();
+      
+      // localStorage에서 선택된 도장 확인
+      checkSelectedStampFromStorage();
+    }
+    
+    // 업로드된 도장 목록 로드
+    function loadUploadedStamps() {
+      const stampsList = document.getElementById('uploadedStampsList');
+      const entryType = serverEntryType || sessionStorage.getItem('entryType');
+      
+      // 이미 입장 시 사용한 도장이 있으면 그것을 표시
+      if (entryType === 'stamp' && customStampImage) {
+        stampsList.innerHTML = `
+          <div class="uploaded-stamp-item selected">
+            <img src="/stamp/image/${customStampImage.src}" class="uploaded-stamp-image" alt="도장">
+            <div class="uploaded-stamp-info">
+              <div>도장</div>
+              <div class="uploaded-stamp-date">현재 세션</div>
+            </div>
+          </div>
+        `;
+        console.log('입장 시 사용한 도장으로 목록 표시');
+        return;
+      }
+      
+      stampsList.innerHTML = '<p class="loading-text">도장 목록을 불러오는 중...</p>';
+      
+      // 현재 로그인한 사용자의 도장 목록 조회
+      fetch('/stamp/api/list')
+        .then(response => {
+          if (response.status === 401) {
+            throw new Error('로그인이 필요합니다.');
+          }
+          if (!response.ok) {
+            throw new Error('도장 목록을 불러올 수 없습니다.');
+          }
+          return response.json();
+        })
+        .then(stamps => {
+          if (stamps.length === 0) {
+            stampsList.innerHTML = `
+              <div class="text-center" style="padding: 20px; color: #666;">
+                <i class="fas fa-stamp" style="font-size: 2em; margin-bottom: 10px; color: #ddd;"></i>
+                <p>업로드된 도장이 없습니다.</p>
+                <p style="font-size: 0.9em;">도장 관리에서 새 도장을 업로드하세요.</p>
+              </div>
+            `;
+          } else {
+            // 첫 번째 도장만 표시 (한 고객당 하나의 도장만 허용)
+            const stamp = stamps[0];
+            const date = new Date(stamp.createdAt).toLocaleDateString('ko-KR');
+            const stampsHtml = `
+              <div class="uploaded-stamp-item selected" onclick="selectUploadedStamp(${stamp.stampId}, '${stamp.imagePath}')">
+                <img src="/stamp/image/${stamp.imagePath}" class="uploaded-stamp-image" alt="도장">
+                <div class="uploaded-stamp-info">
+                  <div>도장</div>
+                  <div class="uploaded-stamp-date">등록일: ${date}</div>
+                </div>
+              </div>
+            `;
+            stampsList.innerHTML = stampsHtml;
+            
+            // 자동으로 도장 선택
+            selectUploadedStamp(stamp.stampId, stamp.imagePath);
+          }
+        })
+        .catch(error => {
+          console.error('도장 목록 로드 실패:', error);
+          if (error.message === '로그인이 필요합니다.') {
+            stampsList.innerHTML = `
+              <div class="text-center" style="padding: 20px; color: #dc3545;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 2em; margin-bottom: 10px;"></i>
+                <p>도장 기능을 사용하려면 로그인이 필요합니다.</p>
+                <p style="font-size: 0.9em;">현재 세션의 도장을 계속 사용할 수 있습니다.</p>
+              </div>
+            `;
+          } else {
+            stampsList.innerHTML = `
+              <div class="text-center" style="padding: 20px; color: #dc3545;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 2em; margin-bottom: 10px;"></i>
+                <p>도장 목록을 불러올 수 없습니다.</p>
+                <button onclick="loadUploadedStamps()" class="clear-btn">다시 시도</button>
+              </div>
+            `;
+          }
+        });
+    }
+    
+    // 도장 팝업 닫기
+    function closeStampPopup() {
+      document.getElementById('stampPopup').style.display = 'none';
+      setCursor();
+    }
+    
+    // 도장 탭 전환
+    function switchStampTab(tabName) {
+      // 모든 탭 비활성화
+      document.querySelectorAll('.stamp-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelectorAll('.stamp-tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      
+      // 선택된 탭 활성화
+      event.target.classList.add('active');
+      document.getElementById(tabName + 'Tab').classList.add('active');
+      
+      // 탭별 초기화
+      if (tabName === 'uploaded') {
+        loadUploadedStamps();
+      }
+    }
+    
+    // 업로드된 도장 선택
+    function selectUploadedStamp(stampId, imagePath) {
+      // 기존 선택 해제
+      document.querySelectorAll('.uploaded-stamp-item').forEach(item => {
+        item.classList.remove('selected');
+      });
+      
+      // 새 선택 표시
+      event.currentTarget.classList.add('selected');
+      
+      // 도장 이미지 로드
+      customStampImage = new Image();
+      customStampImage.src = `/stamp/image/${imagePath}`;
+      
+      customStampImage.onload = function() {
+        const previewDiv = document.getElementById('stampPreview');
+        previewDiv.innerHTML = '';
+        
+        const img = document.createElement('img');
+        img.src = `/stamp/image/${imagePath}`;
+        previewDiv.appendChild(img);
+      };
+    }
+    
+    // localStorage에서 선택된 도장 확인
+    function checkSelectedStampFromStorage() {
+      const selectedStamp = localStorage.getItem('selectedStamp');
+      if (selectedStamp) {
+        try {
+          const stampData = JSON.parse(selectedStamp);
+          selectUploadedStamp(stampData.stampId, stampData.imagePath);
+          
+          // 업로드된 도장 탭으로 전환
+          switchStampTab('uploaded');
+          
+          // localStorage에서 제거
+          localStorage.removeItem('selectedStamp');
+        } catch (error) {
+          console.error('선택된 도장 데이터 파싱 오류:', error);
+        }
+      }
+    }
+    
+    // 도장 확인
+    function confirmStamp() {
+      if (!customStampImage) {
+        alert('도장 이미지를 선택하거나 업로드해주세요.');
+        return;
+      }
+      
+      closeStampPopup();
+      
+      // 도장 모드로 설정하고 클릭 대기
+      mode = 'stamp';
+      document.getElementById('currentMode').textContent = '도장 위치 선택';
+      
+      // 사용자에게 안내 메시지 표시
+      showToast("위치 선택", "도장을 추가할 위치를 클릭하세요.", "info");
+    }
+    
+    // 서명 팝업 열기
+    function openSignaturePopup() {
+      document.getElementById('signaturePopup').style.display = 'block';
+      clearSignature(); // 서명 캔버스 초기화
+      mode = 'signature';
+      document.getElementById('currentMode').textContent = '서명';
+      updateToolbarButtons('signatureBtn');
+    }
+    
+    // 서명 지우기
+    function clearSignature() {
+      signatureContext.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+    }
+    
+    // 서명 확인
+    function confirmSignature() {
+      // 빈 서명인지 확인
+      const imageData = signatureContext.getImageData(0, 0, signatureCanvas.width, signatureCanvas.height);
+      const data = imageData.data;
+      let hasSignature = false;
+      
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] > 0) { // 알파 채널이 0보다 크면 그려진 픽셀이 있는 것
+          hasSignature = true;
+          break;
+        }
+      }
+      
+      if (!hasSignature) {
+        alert('서명을 그려주세요.');
+        return;
+      }
+      
+      // 서명 이미지 생성
+      const signatureImage = new Image();
+      signatureImage.src = signatureCanvas.toDataURL();
+      
+      // 서명 이미지를 전역 변수에 저장
+      customStampImage = signatureImage;
+      
+      closeSignaturePopup();
+      
+      // 서명 위치 선택 모드로 전환
+      mode = 'signature';
+      document.getElementById('currentMode').textContent = '서명 위치 선택';
+      
+      // 사용자에게 안내 메시지 표시
+      showToast("위치 선택", "서명을 추가할 위치를 클릭하세요.", "info");
+    }
+    
+    // 서명 팝업 닫기
+    function closeSignaturePopup() {
+      document.getElementById('signaturePopup').style.display = 'none';
+      setCursor();
+    }
+    
+    // 기존 setStampMode 함수 대체
+    function setStampMode() {
+      openStampPopup();
+    }
+    
+    // 기존 setSignatureMode 함수 대체
+    function setSignatureMode() {
+      openSignaturePopup();
+    }
+    
+    // 도장/서명 배치 처리 재정의
+    async function handleStampPlacement(event) {
+      if (mode !== 'stamp') return;
+      
+      const rect = drawingCanvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      
+      if (!customStampImage) {
+        showToast("오류", "도장 이미지가 없습니다.", "error");
+        return;
+      }
+      
+      // 도장 크기 설정
+      const stampWidth = 100;
+      const stampHeight = 100;
+      
+      // 도장 그리기
+      drawingContext.drawImage(customStampImage, x - stampWidth/2, y - stampHeight/2, stampWidth, stampHeight);
+      
+      // 도장 데이터 저장
+      if (!stampDataPerPage[currentPage]) {
+        stampDataPerPage[currentPage] = [];
+      }
+      
+      // 도장 이미지 데이터 (base64) - 최적화
+      const originalStampImageData = customStampImage.src;
+      const stampImageData = await optimizeImageData(originalStampImageData, 200, 200, 0.8);
+      
+      const stampData = {
+        x: x - stampWidth/2,
+        y: y - stampHeight/2,
+        width: stampWidth,
+        height: stampHeight,
+        imageData: stampImageData
+      };
+      
+      stampDataPerPage[currentPage].push(stampData);
+      
+      // WebSocket으로 도장 데이터 전송
+      if (stompClient && stompClient.connected) {
+        const stampMessage = {
+          type: 'stamp',
+          x: x - stampWidth/2,
+          y: y - stampHeight/2,
+          width: stampWidth,
+          height: stampHeight,
+          imageData: stampImageData, // 최적화된 이미지 데이터 전송
+          page: currentPage,
+          sessionId: sessionId,
+          sender: userRole
+        };
+        
+        // 서버를 통해 브로드캐스팅하기 위해 /app 경로 사용
+        stompClient.send(`/app/room/${sessionId}/stamp`, {
+          contentType: 'application/json',
+          sessionId: sessionId,
+          userRole: userRole
+        }, JSON.stringify(stampMessage));
+        console.log("도장 데이터 전송:", stampMessage);
+      }
+      
+      // 세션 데이터 저장
+      saveStampData();
+      saveSessionData();
+      
+      // 커서 모드로 되돌리기
+      setCursor();
+    }
+    
+    // 서명 배치 처리 재정의
+    async function handleSignaturePlacement(event) {
+      if (mode !== 'signature') return;
+      
+      const rect = drawingCanvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      
+      if (!customStampImage) {
+        showToast("오류", "서명 이미지가 없습니다.", "error");
+        return;
+      }
+      
+      // 서명 크기 설정
+      const signatureWidth = 200;
+      const signatureHeight = 100;
+      
+      // 서명 그리기
+      drawingContext.drawImage(customStampImage, x - signatureWidth/2, y - signatureHeight/2, signatureWidth, signatureHeight);
+      
+      // 서명 데이터 저장
+      if (!signatureDataPerPage[currentPage]) {
+        signatureDataPerPage[currentPage] = [];
+      }
+      
+      // 서명 이미지 데이터 (base64) - 최적화
+      const originalSignatureImageData = customStampImage.src;
+      const signatureImageData = await optimizeImageData(originalSignatureImageData, 300, 150, 0.8);
+      
+      const signatureData = {
+        x: x - signatureWidth/2,
+        y: y - signatureHeight/2,
+        width: signatureWidth,
+        height: signatureHeight,
+        imageData: signatureImageData,
+        timestamp: new Date().getTime()
+      };
+      
+      signatureDataPerPage[currentPage].push(signatureData);
+      
+      // WebSocket으로 서명 데이터 전송
+      if (stompClient && stompClient.connected) {
+        const data = {
+          type: 'signature',
+          x: x - signatureWidth/2,
+          y: y - signatureHeight/2,
+          width: signatureWidth,
+          height: signatureHeight,
+          imageData: signatureImageData, // 최적화된 이미지 데이터 전송
+          page: currentPage,
+          sessionId: sessionId,
+          sender: userRole
+        };
+        
+        // 서버를 통해 브로드캐스팅하기 위해 /app 경로 사용
+        stompClient.send(`/app/room/${sessionId}/signature`, {
+          contentType: 'application/json',
+          sessionId: sessionId,
+          userRole: userRole
+        }, JSON.stringify(data));
+        console.log("서명 데이터 전송:", data);
+      }
+      
+      // 서명 후 커서 모드로 돌아가기
+      setCursor();
+      
+      // 세션 데이터 저장
+      saveSessionData();
+    }
+    
+    // 도장 버튼 클릭 시 입장 방식에 따른 처리
+    function handleStampButtonClick() {
+      const entryType = serverEntryType || sessionStorage.getItem('entryType');
+      
+      console.log('=== 도장 버튼 클릭 ===');
+      console.log('entryType:', entryType);
+      console.log('customStampImage 존재 여부:', !!customStampImage);
+      
+      // 도장으로 입장한 경우는 무조건 바로 배치 모드로 전환
+      if (entryType === 'stamp') {
+        if (customStampImage) {
+          console.log('✅ 기존 도장으로 바로 배치 모드 진입');
+          mode = 'stamp';
+          document.getElementById('currentMode').textContent = '도장 위치 선택';
+          updateToolbarButtons('stampBtn');
+          showToast("위치 선택", "도장을 추가할 위치를 클릭하세요.", "info");
+          return;
+        } else {
+          console.warn('⚠️  도장 이미지가 없습니다 - 새로 선택 필요');
+          showToast("오류", "도장 데이터가 없습니다. 새로 선택해주세요.", "error");
+        }
+      }
+      
+      console.log('🔖 도장 팝업을 엽니다');
+      // 새로운 도장이 필요한 경우만 팝업 열기
+      openStampPopup();
+    }
+    
+    // 서명 버튼 클릭 시 입장 방식에 따른 처리
+    function handleSignatureButtonClick() {
+      const entryType = serverEntryType || sessionStorage.getItem('entryType');
+      
+      console.log('=== 서명 버튼 클릭 ===');
+      console.log('entryType:', entryType);
+      console.log('customStampImage 존재 여부:', !!customStampImage);
+      
+      // 서명으로 입장한 경우는 무조건 바로 배치 모드로 전환
+      if (entryType === 'signature') {
+        if (customStampImage) {
+          console.log('✅ 기존 서명으로 바로 배치 모드 진입');
+          mode = 'signature';
+          document.getElementById('currentMode').textContent = '서명 위치 선택';
+          updateToolbarButtons('signatureBtn');
+          showToast("위치 선택", "서명을 추가할 위치를 클릭하세요.", "info");
+          return;
+        } else {
+          console.warn('⚠️  서명 이미지가 없습니다 - 새로 생성 필요');
+          showToast("오류", "서명 데이터가 없습니다. 새로 그려주세요.", "error");
+        }
+      }
+      
+      console.log('📝 서명 팝업을 엽니다');
+      // 새로운 서명이 필요한 경우만 팝업 열기
+      openSignaturePopup();
+    }
+  </script>
+</body>
+</html> 

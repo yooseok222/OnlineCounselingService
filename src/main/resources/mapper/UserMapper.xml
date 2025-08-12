@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.kosa.visang.domain.user.repository.UserMapper">
+    
+    <!-- 이메일로 사용자 유형 확인 -->
+    <select id="findUserTypeByEmail" resultType="string">
+        SELECT 
+            CASE
+                WHEN EXISTS (SELECT 1 FROM client WHERE email = #{email}) THEN 'CLIENT'
+                WHEN EXISTS (SELECT 1 FROM agent WHERE email = #{email}) THEN 'AGENT'
+                WHEN EXISTS (SELECT 1 FROM admin WHERE email = #{email}) THEN 'ADMIN'
+                ELSE NULL
+            END AS user_type
+        FROM DUAL
+    </select>
+    
+    <!-- 이메일로 사용자 조회 -->
+    <select id="findByEmail" parameterType="string" resultMap="userResultMap">
+        SELECT * FROM (
+            SELECT
+                'CLIENT' AS user_type,
+                client_id AS id,
+                name,
+                email,
+                password,
+                phone_number,
+                address,
+                role,
+                email_verified,
+                created_at,
+                updated_at,
+                verification_code
+            FROM client
+            WHERE email = #{email}
+            UNION ALL
+            SELECT
+                'AGENT' AS user_type,
+                agent_id AS id,
+                name,
+                email,
+                password,
+                phone_number,
+                address,
+                role,
+                email_verified,
+                created_at,
+                updated_at,
+                verification_code
+            FROM agent
+            WHERE email = #{email}
+            UNION ALL
+            SELECT
+                'ADMIN' AS user_type,
+                admin_id AS id,
+                name,
+                email,
+                password,
+                phone_number,
+                address,
+                role,
+                email_verified,
+                created_at,
+                updated_at,
+                verification_code
+            FROM admin
+            WHERE email = #{email}
+        ) WHERE ROWNUM = 1
+    </select>
+    
+    <!-- 이메일 중복 확인 -->
+    <select id="countByEmail" resultType="int">
+        SELECT
+            (SELECT COUNT(*) FROM client WHERE email = #{email}) +
+            (SELECT COUNT(*) FROM agent WHERE email = #{email}) +
+            (SELECT COUNT(*) FROM admin WHERE email = #{email})
+        AS count
+    </select>
+    
+    <!-- 전화번호 중복 확인 -->
+    <select id="countByPhoneNumber" resultType="int">
+        SELECT
+            (SELECT COUNT(*) FROM client WHERE phone_number = #{phoneNumber}) +
+            (SELECT COUNT(*) FROM agent WHERE phone_number = #{phoneNumber}) +
+            (SELECT COUNT(*) FROM admin WHERE phone_number = #{phoneNumber})
+        AS count
+    </select>
+    
+    <!-- 인증 코드로 사용자 조회 -->
+    <select id="findByVerificationCode" resultMap="userResultMap">
+        SELECT
+            u.id,
+            u.name,
+            u.email,
+            u.password,
+            u.phone_number,
+            u.address,
+            u.role,
+            u.email_verified,
+            u.created_at,
+            u.updated_at,
+            u.verification_code
+        FROM (
+            SELECT * FROM client WHERE verification_code = #{verificationCode}
+            UNION ALL
+            SELECT * FROM agent WHERE verification_code = #{verificationCode}
+            UNION ALL
+            SELECT * FROM admin WHERE verification_code = #{verificationCode}
+        ) u
+        WHERE ROWNUM = 1
+    </select>
+    
+    <!-- 사용자 이메일 인증 상태 업데이트 -->
+    <update id="updateEmailVerificationStatus">
+        UPDATE ${tableName}
+        SET email_verified = #{verified},
+            verification_code = NULL,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{userId}
+    </update>
+    
+    <!-- 사용자 기본 결과 매핑 -->
+    <resultMap id="userResultMap" type="kr.or.kosa.visang.domain.user.model.User">
+        <id property="id" column="id" />
+        <result property="name" column="name" />
+        <result property="email" column="email" />
+        <result property="password" column="password" />
+        <result property="phoneNumber" column="phone_number" />
+        <result property="address" column="address" />
+        <result property="role" column="role" />
+        <result property="emailVerified" column="email_verified" />
+        <result property="createdAt" column="created_at" />
+        <result property="updatedAt" column="updated_at" />
+    </resultMap>
+</mapper> 

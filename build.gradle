@@ -13,6 +13,10 @@ java {
 	}
 }
 
+tasks.withType(JavaCompile).configureEach {
+	options.compilerArgs += ["-parameters"]
+}
+
 configurations {
 	compileOnly {
 		extendsFrom annotationProcessor
@@ -24,6 +28,15 @@ repositories {
 }
 
 dependencies {
+	// iText 7 핵심 PDF 기능
+	implementation "com.itextpdf:kernel:7.2.4"    // PDF 처리 핵심
+	implementation "com.itextpdf:layout:7.2.4"    // PDF 레이아웃 API
+	// PDF 전자서명을 위한 iText 모듈
+	implementation "com.itextpdf:sign:7.2.4"	// BouncyCastle: 암호화 및 전자서명 알고리즘 제공 (PKCS#7 등)
+	implementation 'org.bouncycastle:bcprov-jdk15on:1.70'
+	implementation 'org.bouncycastle:bcpkix-jdk15on:1.70'
+
+
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
@@ -33,16 +46,28 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-websocket'
 	implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4'
 	implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
+
+	implementation 'com.github.ulisesbocchio:jasypt-spring-boot-starter:3.0.5'
+
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
+	runtimeOnly 'com.h2database:h2'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.4'
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	
+	/*메일*/
+	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+	
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+tasks.named("bootJar") {
+    mainClass.set("kr.or.kosa.visang.VisangApplication")
 }

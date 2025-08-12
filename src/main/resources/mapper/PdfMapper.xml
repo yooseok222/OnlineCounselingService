@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.kosa.visang.domain.contract.repository.PdfMapper">
+
+    <resultMap id="PDFResultMap" type="kr.or.kosa.visang.domain.pdf.model.PDF">
+        <id property="pdfId" column="pdf_id" />
+        <result property="filePath" column="file_path" />
+        <result property="fileHash" column="file_hash" />
+        <result property="createdAt" column="created_at" />
+        <result property="contractId" column="contract_id" />
+    </resultMap>
+
+    <resultMap id="ContractSignedInfoResultMap" type="kr.or.kosa.visang.domain.contract.model.ContractSingedDTO">
+        <result property="agentName" column="agent_name" />
+        <result property="clientName" column="client_name" />
+    </resultMap>
+
+    <!-- PDF 기본 컬럼 -->
+    <sql id="baseColumns">
+        pdf_id, file_path, file_hash, created_at, contract_id
+    </sql>
+    
+    <!-- PDF 조회 -->
+    <select id="selectPdfById" resultType="PdfDTO">
+        SELECT <include refid="baseColumns" />
+        FROM pdf
+        WHERE pdf_id = #{pdfId}
+    </select>
+    
+    <!-- 계약 ID로 PDF 조회 -->
+    <select id="selectPdfsByContractId" resultType="PdfDTO">
+        SELECT <include refid="baseColumns" />
+        FROM pdf
+        WHERE contract_id = #{contractId}
+    </select>
+    
+    <!-- PDF 추가 - Oracle 시퀀스 사용 -->
+    <insert id="insertPdf" parameterType="PdfDTO" useGeneratedKeys="true" keyProperty="pdfId">
+        <selectKey keyProperty="pdfId" resultType="long" order="BEFORE">
+            SELECT NVL(MAX(pdf_id), 0) + 1 FROM pdf
+        </selectKey>
+        INSERT INTO pdf (
+            pdf_id, file_path, file_hash, created_at, contract_id
+        ) VALUES (
+            #{pdfId}, #{filePath}, #{fileHash}, #{createdAt}, #{contractId}
+        )
+    </insert>
+    
+    <!-- PDF 정보 업데이트 -->
+    <update id="updatePdf" parameterType="PdfDTO">
+        UPDATE pdf
+        SET 
+            file_path = #{filePath},
+            file_hash = #{fileHash}
+        WHERE pdf_id = #{pdfId}
+    </update>
+    
+    <!-- PDF 삭제 -->
+    <delete id="deletePdf">
+        DELETE FROM pdf
+        WHERE pdf_id = #{pdfId}
+    </delete>
+
+    <!-- PDF 해시 조회 -->
+    <select id="getPathAndHash" resultMap="PDFResultMap">
+        SELECT file_path, file_hash, created_at, contract_id, pdf_id
+        FROM pdf
+        WHERE pdf_id = #{pdfId}
+    </select>
+
+
+    <select id="selectSignedContractInfoByContractId" resultMap="ContractSignedInfoResultMap">
+        SELECT
+        a.name AS agent_name,
+        cl.name AS client_name
+        FROM contract c
+        LEFT JOIN agent a ON c.agent_id = a.agent_id
+        LEFT JOIN client cl ON c.client_id = cl.client_id
+        WHERE c.contract_id = #{contractId}
+    </select>
+</mapper> 

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <title>비대면 상담 채팅</title>
+    <!-- SockJS & STOMP.js -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <script th:src="@{/js/chat/chat.js}"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 1rem; }
+        #chatArea {
+          width: 100%; max-width: 600px;
+          height: 300px; border: 1px solid #ccc;
+          overflow-y: auto; padding: 0.5rem; margin-bottom: 0.5rem;
+        }
+        .message { margin: 4px 0; }
+        .sender { font-weight: bold; }
+        .content { margin-left: 8px; }
+        #msgInput { width: calc(100% - 150px); padding: 0.5rem; }
+        #sendBtn, #endBtn { padding: 0.5rem 1rem; margin-left: 4px; }
+        #exportLink { margin-left: 8px; color: blue; text-decoration: underline; cursor: pointer; display: none; }
+    </style>
+</head>
+<body>
+<h2>상담 채팅 (방 #<span id="roomLabel"></span>)</h2>
+<div id="chatArea"></div>
+<input type="text" id="msgInput" placeholder="메시지를 입력하세요" autocomplete="off"/>
+<button id="sendBtn">전송</button>
+<button id="endBtn">종료</button>
+<a id="exportLink" download>상담 내역 다운로드</a>
+</body>
+</html>

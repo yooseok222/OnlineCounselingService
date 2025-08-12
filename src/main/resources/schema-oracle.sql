@@ -1,0 +1,438 @@
+-- 기존 테이블 Drop
+BEGIN
+  EXECUTE IMMEDIATE 'DROP TABLE agent CASCADE CONSTRAINTS';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -942 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'DROP TABLE admin CASCADE CONSTRAINTS';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -942 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'DROP TABLE client CASCADE CONSTRAINTS';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -942 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'DROP TABLE company CASCADE CONSTRAINTS';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -942 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'DROP TABLE users CASCADE CONSTRAINTS';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -942 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'DROP TABLE contract CASCADE CONSTRAINTS';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -942 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- 시퀀스 Drop
+BEGIN
+  EXECUTE IMMEDIATE 'DROP SEQUENCE company_seq';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2289 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'DROP SEQUENCE client_seq';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2289 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'DROP SEQUENCE admin_seq';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2289 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'DROP SEQUENCE agent_seq';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2289 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'DROP SEQUENCE contract_seq';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2289 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'DROP SEQUENCE voice_record_seq';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2289 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'DROP SEQUENCE chat_seq';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2289 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- 시퀀스 생성
+CREATE SEQUENCE company_seq START WITH 2 INCREMENT BY 1
+/
+CREATE SEQUENCE client_seq START WITH 100 INCREMENT BY 1
+/
+CREATE SEQUENCE admin_seq START WITH 2 INCREMENT BY 1
+/
+CREATE SEQUENCE agent_seq START WITH 2 INCREMENT BY 1
+/
+
+-- Contract 시퀀스 생성 (이미 있다면 건너뛰기)
+CREATE SEQUENCE contract_seq
+START WITH 1
+INCREMENT BY 1
+NOCACHE
+NOCYCLE
+/
+
+-- Voice Record 시퀀스 생성
+CREATE SEQUENCE voice_record_seq
+START WITH 1
+INCREMENT BY 1
+NOCACHE
+NOCYCLE
+/
+
+-- Chat 시퀀스 생성
+CREATE SEQUENCE chat_seq
+START WITH 1
+INCREMENT BY 1
+NOCACHE
+NOCYCLE
+/
+
+-- 회사 테이블
+BEGIN
+  EXECUTE IMMEDIATE '
+  CREATE TABLE company (
+      company_id NUMBER(19) PRIMARY KEY,
+      company_name VARCHAR2(100) NOT NULL,
+      created_at TIMESTAMP NOT NULL
+  )';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- Contract 테이블 생성
+BEGIN
+  EXECUTE IMMEDIATE '
+  CREATE TABLE contract (
+      contract_id NUMBER(19) PRIMARY KEY,
+      status VARCHAR2(20) DEFAULT ''IN_PROGRESS'' NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      contract_time TIMESTAMP,
+      client_id VARCHAR2(100),
+      agent_id VARCHAR2(100),
+      contract_template_id VARCHAR2(100),
+      memo CLOB,
+      company_id NUMBER(19)
+  )';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- Contract 테이블 인덱스 생성
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE INDEX idx_contract_status ON contract(status)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE INDEX idx_contract_client_id ON contract(client_id)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE INDEX idx_contract_agent_id ON contract(agent_id)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- 고객 테이블
+BEGIN
+  EXECUTE IMMEDIATE '
+  CREATE TABLE client (
+      client_id NUMBER(19) PRIMARY KEY,
+      ssn VARCHAR2(20) NOT NULL,
+      name VARCHAR2(50) NOT NULL,
+      email VARCHAR2(100) NOT NULL,
+      password VARCHAR2(100) NOT NULL,
+      phone_number VARCHAR2(20),
+      address VARCHAR2(255),
+      role VARCHAR2(20) DEFAULT ''USER'' NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      profile_image_url VARCHAR2(255),
+      email_verified NUMBER(1) DEFAULT 0
+  )';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'ALTER TABLE client ADD CONSTRAINT client_email_uk UNIQUE (email)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2261 AND SQLCODE != -2275 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- 관리자 테이블
+BEGIN
+  EXECUTE IMMEDIATE '
+  CREATE TABLE admin (
+      admin_id NUMBER(19) PRIMARY KEY,
+      company_id NUMBER(19) NOT NULL,
+      name VARCHAR2(50) NOT NULL,
+      email VARCHAR2(100) NOT NULL,
+      password VARCHAR2(100) NOT NULL,
+      phone_number VARCHAR2(20),
+      address VARCHAR2(255),
+      role VARCHAR2(20) DEFAULT ''ADMIN'' NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      email_verified NUMBER(1) DEFAULT 0,
+      CONSTRAINT admin_company_id_fk FOREIGN KEY (company_id) REFERENCES company(company_id)
+  )';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'ALTER TABLE admin ADD CONSTRAINT admin_email_uk UNIQUE (email)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2261 AND SQLCODE != -2275 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- 상담원 테이블
+BEGIN
+  EXECUTE IMMEDIATE '
+  CREATE TABLE agent (
+      agent_id NUMBER(19) PRIMARY KEY,
+      company_id NUMBER(19) NOT NULL,
+      name VARCHAR2(50) NOT NULL,
+      email VARCHAR2(100) NOT NULL,
+      password VARCHAR2(100) NOT NULL,
+      phone_number VARCHAR2(20),
+      address VARCHAR2(255),
+      role VARCHAR2(20) DEFAULT ''AGENT'' NOT NULL,
+      state VARCHAR2(20) DEFAULT ''INACTIVE'' NOT NULL,
+      created_at TIMESTAMP NOT NULL,
+      profile_image_url VARCHAR2(255),
+      email_verified NUMBER(1) DEFAULT 0,
+      CONSTRAINT agent_company_id_fk FOREIGN KEY (company_id) REFERENCES company(company_id)
+  )';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'ALTER TABLE agent ADD CONSTRAINT agent_email_uk UNIQUE (email)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2261 AND SQLCODE != -2275 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- 인덱스 생성
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE INDEX idx_admin_company_id ON admin(company_id)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE INDEX idx_agent_company_id ON agent(company_id)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- Voice Record 테이블 생성
+BEGIN
+  EXECUTE IMMEDIATE '
+  CREATE TABLE voice_record (
+      voice_id NUMBER(19) PRIMARY KEY,
+      file_path VARCHAR2(255) NOT NULL,
+      created_at DATE NOT NULL,
+      contract_id NUMBER(19) NOT NULL,
+      CONSTRAINT voice_record_contract_fk FOREIGN KEY (contract_id) REFERENCES contract(contract_id)
+  )';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- Voice Record 테이블 인덱스 생성
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE INDEX idx_voice_record_contract_id ON voice_record(contract_id)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE INDEX idx_voice_record_created_at ON voice_record(created_at)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- Chat 테이블 생성
+BEGIN
+  EXECUTE IMMEDIATE '
+  CREATE TABLE chat (
+      chat_id NUMBER(19) PRIMARY KEY,
+      contract_id NUMBER(19) NOT NULL,
+      chat_content CLOB,
+      chat_type VARCHAR2(20),
+      send_time TIMESTAMP DEFAULT SYSDATE,
+      export_filepath VARCHAR2(500)
+  )';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+-- Chat 테이블 인덱스 생성
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE INDEX idx_chat_contract_id ON chat(contract_id)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/
+
+BEGIN
+  EXECUTE IMMEDIATE 'CREATE INDEX idx_chat_send_time ON chat(send_time)';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -955 THEN
+      RAISE;
+    END IF;
+END;
+/ 

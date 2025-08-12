@@ -266,3 +266,18 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/java,intellij,eclipse,windows,macos
+
+
+## env
+*.env
+
+.idea/*
+
+.gradle/*
+
+build/*
+
+*.p12
+
+# 업로드 파일 무시
+upload/*

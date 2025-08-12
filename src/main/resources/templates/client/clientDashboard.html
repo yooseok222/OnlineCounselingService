@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="content">
+	<main class="dashboard-content">
+		<!-- 페이지 헤더 -->
+		<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+			<h1 class="h2">대시보드</h1>
+		</div>
+		
+		<div class="row">
+			<!-- 오늘의 계약 카드 -->
+			<div class="col-md-6 mb-4">
+				<div class="card h-100">
+					<div class="card-header bg-primary text-white">
+						<h5 class="card-title mb-0">
+							<i class="bi bi-calendar-day me-2"></i>오늘의 계약
+						</h5>
+					</div>
+					<div class="card-body">
+						<div th:if="${todayContracts.empty}" class="text-center py-4">
+							<p class="text-muted mb-0">오늘 예정된 계약이 없습니다.</p>
+						</div>
+						<div th:unless="${todayContracts.empty}" class="list-group list-group-flush">
+							<div th:each="contract : ${todayContracts}" class="list-group-item px-0">
+								<div class="d-flex justify-content-between align-items-center">
+									<div>
+										<h6 class="mb-1">
+											<i class="bi bi-clock me-1"></i>
+											<span th:text="${#strings.substring(contract.contractTime, 11, 16)}"></span>
+										</h6>
+										<p class="mb-0 text-muted" th:text="${contract.agentName} ?: '상담사 미정'"></p>
+									</div>
+									<span class="badge bg-warning text-dark" th:text="${contract.status}"></span>
+								</div>
+							</div>
+						</div>
+						<div class="mt-3 text-center">
+							<a th:href="@{/client/contracts/today}" class="btn btn-sm btn-outline-primary">
+								전체 보기 <i class="bi bi-arrow-right"></i>
+							</a>
+						</div>
+					</div>
+				</div>
+			</div>
+			
+			<!-- 나의 계약 현황 카드 -->
+			<div class="col-md-6 mb-4">
+				<div class="card h-100">
+					<div class="card-header bg-success text-white">
+						<h5 class="card-title mb-0">
+							<i class="bi bi-bar-chart me-2"></i>나의 계약 현황
+						</h5>
+					</div>
+					<div class="card-body">
+						<div class="row text-center">
+							<div class="col-6 mb-3">
+								<div class="border rounded p-3">
+									<h3 class="mb-1 text-primary" th:text="${contractCounts.get('pending') ?: 0}">0</h3>
+									<p class="mb-0 text-muted">예정</p>
+								</div>
+							</div>
+							<div class="col-6 mb-3">
+								<div class="border rounded p-3">
+									<h3 class="mb-1 text-warning" th:text="${contractCounts.get('inProgress') ?: 0}">0</h3>
+									<p class="mb-0 text-muted">진행중</p>
+								</div>
+							</div>
+							<div class="col-6">
+								<div class="border rounded p-3">
+									<h3 class="mb-1 text-success" th:text="${contractCounts.get('completed') ?: 0}">0</h3>
+									<p class="mb-0 text-muted">완료</p>
+								</div>
+							</div>
+							<div class="col-6">
+								<div class="border rounded p-3">
+									<h3 class="mb-1 text-danger" th:text="${contractCounts.get('canceled') ?: 0}">0</h3>
+									<p class="mb-0 text-muted">취소</p>
+								</div>
+							</div>
+						</div>
+						<div class="mt-3 text-center">
+							<a th:href="@{/client/contracts}" class="btn btn-sm btn-outline-success">
+								전체 보기 <i class="bi bi-arrow-right"></i>
+							</a>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<!-- 빠른 메뉴 -->
+		<div class="row mt-4">
+			<div class="col-12">
+				<div class="card">
+					<div class="card-header">
+						<h5 class="card-title mb-0">
+							<i class="bi bi-grid-3x2-gap me-2"></i>빠른 메뉴
+						</h5>
+					</div>
+					<div class="card-body">
+						<div class="row">
+							<div class="col-md-3 col-6 mb-3">
+								<a th:href="@{/client/contracts/today}" class="text-decoration-none">
+									<div class="text-center p-3 border rounded hover-shadow">
+										<i class="bi bi-calendar-check fs-1 text-primary"></i>
+										<p class="mb-0 mt-2">오늘의 계약</p>
+									</div>
+								</a>
+							</div>
+							<div class="col-md-3 col-6 mb-3">
+								<a th:href="@{/client/contracts}" class="text-decoration-none">
+									<div class="text-center p-3 border rounded hover-shadow">
+										<i class="bi bi-file-text fs-1 text-success"></i>
+										<p class="mb-0 mt-2">계약 현황</p>
+									</div>
+								</a>
+							</div>
+							<div class="col-md-3 col-6 mb-3">
+								<a th:href="@{/client/stamp}" class="text-decoration-none">
+									<div class="text-center p-3 border rounded hover-shadow">
+										<i class="bi bi-shield-check fs-1 text-warning"></i>
+										<p class="mb-0 mt-2">도장 관리</p>
+									</div>
+								</a>
+							</div>
+							<div class="col-md-3 col-6 mb-3">
+								<a th:href="@{/client/profile}" class="text-decoration-none">
+									<div class="text-center p-3 border rounded hover-shadow">
+										<i class="bi bi-person-gear fs-1 text-info"></i>
+										<p class="mb-0 mt-2">개인정보 수정</p>
+									</div>
+								</a>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+</div>
+
+<div th:fragment="script">
+<script th:inline="javascript">
+$(document).ready(function() {
+	// 호버 효과
+	$('.hover-shadow').hover(
+		function() { $(this).addClass('shadow'); },
+		function() { $(this).removeClass('shadow'); }
+	);
+});
+</script>
+</div>
+</html>
+

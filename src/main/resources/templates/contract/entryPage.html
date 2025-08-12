@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>온라인 상담 시스템</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f8f9fa;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    
+    .header {
+      background-color: #0064E1;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .header h2 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 50px auto;
+      padding: 20px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .card {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      padding: 30px;
+      width: 100%;
+      max-width: 600px;
+      text-align: center;
+    }
+    
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 20px;
+      color: #0064E1;
+      font-size: 24px;
+    }
+    
+    .role-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin: 30px 0;
+    }
+    
+    .role-button {
+      padding: 15px 25px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      width: 150px;
+    }
+    
+    .role-button i {
+      font-size: 24px;
+    }
+    
+    .agent-button {
+      background-color: #0064E1;
+      color: white;
+    }
+    
+    .agent-button:hover {
+      background-color: #0053b3;
+    }
+    
+    .client-button {
+      background-color: #28a745;
+      color: white;
+    }
+    
+    .client-button:hover {
+      background-color: #218838;
+    }
+    
+    .info-text {
+      margin-top: 20px;
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .session-input {
+      margin: 20px 0;
+      display: flex;
+      justify-content: center;
+    }
+    
+    .session-input input {
+      padding: 10px 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      width: 250px;
+      font-size: 16px;
+    }
+    
+    .session-input button {
+      background-color: #0064E1;
+      color: white;
+      border: none;
+      border-radius: 0 5px 5px 0;
+      padding: 10px 15px;
+      cursor: pointer;
+    }
+    
+    .footer {
+      background-color: #f1f1f1;
+      padding: 15px;
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+      margin-top: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2><i class="fas fa-comments"></i> 온라인 상담 시스템</h2>
+  </div>
+  
+  <div class="container">
+    <div class="card">
+      <h3>상담 입장</h3>
+      <p>역할을 선택하여 상담에 참여하세요</p>
+      
+      <div class="session-input">
+        <input type="text" id="sessionInput" placeholder="세션 ID 입력 (선택사항)">
+        <button onclick="generateSession()"><i class="fas fa-sync"></i></button>
+      </div>
+      
+      <div class="role-buttons">
+        <button class="role-button agent-button" onclick="enterAsAgent()">
+          <i class="fas fa-user-tie"></i>
+          <span>상담원 입장</span>
+        </button>
+        <button class="role-button client-button" onclick="enterAsClient()">
+          <i class="fas fa-user"></i>
+          <span>고객 입장</span>
+        </button>
+      </div>
+      
+      <div class="info-text">
+        <p>* 같은 세션 ID로 입장하면 같은 상담방에 참여합니다</p>
+        <p>* 세션 ID를 입력하지 않으면 자동으로 생성됩니다</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="footer">
+    © 2023 온라인 상담 시스템
+  </div>
+  
+  <script>
+    // 세션 ID 생성 함수
+    function generateSession() {
+      const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+      document.getElementById('sessionInput').value = sessionId;
+    }
+    
+    // 페이지 로드 시 세션 ID 자동 생성
+    window.addEventListener('DOMContentLoaded', function() {
+      if (!document.getElementById('sessionInput').value) {
+        generateSession();
+      }
+    });
+    
+    // 상담원으로 입장
+    function enterAsAgent() {
+      const sessionId = document.getElementById('sessionInput').value;
+      if (!sessionId) {
+        alert('세션 ID를 입력하거나 생성해주세요.');
+        return;
+      }
+      
+      // 세션 스토리지에 역할 및 세션 ID 저장
+      sessionStorage.setItem('role', 'agent');
+      sessionStorage.setItem('sessionId', sessionId);
+      
+      // 상담원 페이지로 이동
+      window.location.href = `/contract/room?role=agent&session=${sessionId}`;
+    }
+    
+    // 고객으로 입장
+    function enterAsClient() {
+      const sessionId = document.getElementById('sessionInput').value;
+      if (!sessionId) {
+        alert('세션 ID를 입력하거나 생성해주세요.');
+        return;
+      }
+      
+      // 세션 스토리지에 역할 및 세션 ID 저장
+      sessionStorage.setItem('role', 'client');
+      sessionStorage.setItem('sessionId', sessionId);
+      
+      // 고객 페이지로 이동
+      window.location.href = `/contract/room?role=client&session=${sessionId}`;
+    }
+  </script>
+</body>
+</html> 

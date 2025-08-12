@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>상담원 입장 | 전자계약 원스톱 AI 서비스</title>
+    
+    <!-- 부트스트랩 5 CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 부트스트랩 아이콘 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- Google Fonts - Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        .main-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            max-width: 550px;
+            width: 100%;
+            transition: transform 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            background-color: #0064E1;
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 1.5rem;
+        }
+        
+        .card-body {
+            padding: 2rem;
+        }
+        
+        .btn-primary {
+            background-color: #0064E1;
+            border-color: #0064E1;
+            padding: 10px 25px;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0053b3;
+            border-color: #0053b3;
+        }
+        
+        .btn-outline-secondary {
+            color: #6c757d;
+            border-color: #6c757d;
+            padding: 10px 25px;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+        
+        .btn-outline-secondary:hover {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .icon-section {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #0064E1;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="card">
+            <div class="card-header text-center">
+                <h2 class="mb-0"><i class="bi bi-headset me-2"></i>상담원 입장</h2>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div class="icon-section">
+                        <i class="bi bi-person-workspace"></i>
+                    </div>
+                    <p class="card-text">
+                        상담원으로 입장하시면 고객들이 상담실에 입장할 수 있습니다.<br>
+                        입장 후에는 PDF를 업로드하고 상담을 시작할 수 있습니다.
+                    </p>
+                </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" id="enterBtn">
+                        <i class="bi bi-door-open me-1"></i> 상담실 입장하기
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="location.href='/main-page'">
+                        <i class="bi bi-house me-1"></i> 처음으로 돌아가기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 부트스트랩 5 JS 번들 (Popper 포함) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // 계약 ID 확인
+        const hasContract = /*[[${hasContract}]]*/ false;
+        const contractId = /*[[${contractId}]]*/ null;
+        
+        // 서버에서 전달받은 세션 ID 사용
+        const sessionIdFromServer = /*[[${sessionId}]]*/ null;
+        
+        // URL에서 세션 ID 파라미터 추출 (백업용)
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionIdFromUrl = urlParams.get('session');
+        
+        console.log('계약 정보 - hasContract:', hasContract, 'contractId:', contractId);
+        console.log('서버에서 받은 세션 ID:', sessionIdFromServer);
+        console.log('URL에서 받은 세션 ID:', sessionIdFromUrl);
+        
+        // 페이지 로드 시 새로고침 방지 - 이벤트 리스너를 변수에 저장
+        const beforeUnloadHandler = function(e) {
+            // 상담원 입장 직전 페이지이므로 가벼운 경고만 표시
+            var confirmationMessage = '상담 서비스를 종료하시겠습니까?';
+            e.returnValue = confirmationMessage;
+            return confirmationMessage;
+        };
+        
+        // 이벤트 리스너 등록
+        window.addEventListener('beforeunload', beforeUnloadHandler);
+        
+        document.getElementById('enterBtn').addEventListener('click', function() {
+            // 세션 스토리지에 상담원 역할 저장
+            sessionStorage.setItem("role", "agent");
+            
+            // 세션 ID 우선순위: 서버에서 받은 것 > URL에서 받은 것 > 새로 생성
+            let sessionId;
+            if (sessionIdFromServer) {
+                sessionId = sessionIdFromServer;
+                console.log("서버에서 받은 세션 ID 사용:", sessionId);
+            } else if (sessionIdFromUrl) {
+                sessionId = sessionIdFromUrl;
+                console.log("URL에서 받은 세션 ID 사용:", sessionId);
+            } else {
+                // 백업용: 세션 ID가 없으면 contractId 기반으로 생성
+                if (contractId) {
+                    sessionId = 'session_' + contractId + '_fixed';
+                    console.log("계약 ID 기반으로 세션 ID 생성:", sessionId);
+                } else {
+                    // contractId도 없는 경우에만 랜덤 생성 (예외 케이스)
+                    sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+                    console.warn("세션 ID와 계약 ID가 모두 없어서 랜덤 생성:", sessionId);
+                }
+            }
+            
+            // 세션 ID를 sessionStorage에 저장
+            sessionStorage.setItem("sessionId", sessionId);
+            console.log("상담원 세션 ID 저장:", sessionId);
+            
+            // 새로고침 방지 이벤트 제거 (상담실로 이동 전) - 저장된 핸들러 사용
+            window.removeEventListener('beforeunload', beforeUnloadHandler);
+            
+            // 상담실로 이동 (contractId도 포함)
+            if (contractId) {
+                location.href = `/contract/room?contractId=${contractId}&role=agent&session=${sessionId}`;
+            } else {
+                location.href = `/contract/room?role=agent&session=${sessionId}`;
+            }
+        });
+    </script>
+</body>
+</html> 

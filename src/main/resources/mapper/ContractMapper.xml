@@ -1,0 +1,740 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper
+        namespace="kr.or.kosa.visang.domain.contract.repository.ContractMapper">
+
+    <resultMap id="monthlyStatusCountsResultMap"
+               type="kr.or.kosa.visang.domain.contract.model.ContractStatusCountsByMonthDTO">
+        <result column="total_count"      property="totalCount"/>
+        <result column="inProgress_count" property="inProgressCount"/>
+        <result column="completed_count"  property="completedCount"/>
+        <result column="canceled_count"   property="canceledCount"/>
+        <result column="pending_count"    property="pendingCount"/>
+    </resultMap>
+
+    <resultMap id="contractDetailResultMap"
+               type="kr.or.kosa.visang.domain.contract.model.ContractDetail">
+        <result column="contract_id"               property="contractId"/>
+        <result column="status"                    property="status"/>
+        <result column="created_at"                property="createdAt"/>
+        <result column="contract_time"             property="contractTime"/>
+        <result column="client_id"                 property="clientId"/>
+        <result column="agent_id"                  property="agentId"/>
+        <result column="memo"                      property="memo"/>
+        <result column="client_name"               property="clientName"/>
+        <result column="client_email"              property="clientEmail"/>
+        <result column="client_phone_number"       property="clientPhoneNumber"/>
+        <result column="client_address"            property="clientAddress"/>
+        <result column="agent_name"                property="agentName"/>
+        <result column="agent_email"               property="agentEmail"/>
+        <result column="agent_phone_number"        property="agentPhoneNumber"/>
+        <result column="agent_address"             property="agentAddress"/>
+        <result column="client_profile_image_url"  property="clientProfileImageUrl"/>
+        <result column="agent_profile_image_url"   property="agentProfileImageUrl"/>
+        <result column="contract_name"             property="contractName"/>
+        <result column="contract_template_id"      property="contractTemplateId"/>
+    </resultMap>
+
+    <!-- searchContracts 전용 매핑 -->
+    <resultMap id="contractListResultMap"
+               type="kr.or.kosa.visang.domain.contract.model.ContractListDTO">
+        <result column="contract_id"             property="contractId"/>
+        <result column="contract_time"           property="contractTime"/>
+        <result column="agent_id"                property="agentId"/>
+        <result column="agent_name"              property="agentName"/>
+        <result column="client_id"               property="clientId"/>
+        <result column="client_name"             property="clientName"/>
+        <result column="status"                  property="status"/>
+        <result column="contract_template_id"    property="contractTemplateId"/>
+        <result column="contract_name"           property="contractTemplateName"/>
+    </resultMap>
+
+    <resultMap id="contractResultMap" type="kr.or.kosa.visang.domain.contract.model.Contract">
+        <result column="contract_id" property="contractId"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="company_id" property="companyId"/>
+        <result column="contract_time" property="contractTime"/>
+        <result column="client_id" property="clientId"/>
+        <result column="agent_id" property="agentId"/>
+        <result column="contract_template_id" property="contractTemplateId"/>
+        <result column="memo" property="memo"/>
+        <result column="client_name" property="clientName"/>
+        <result column="client_email"       property="clientEmail"/>
+        <result column="agent_name" property="agentName"/>
+        <result column="invitation_code" property="invitationCode"/>
+    </resultMap>
+    <!--<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+            "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    <mapper namespace="kr.or.kosa.visang.domain.contract.repository.ContractMapper">-->
+    <resultMap id="ContractResultMap" type="kr.or.kosa.visang.domain.contract.model.Contract">
+        <id column="contract_id" property="contractId" jdbcType="NUMERIC"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="created_at" property="createdAt" jdbcType="VARCHAR"/>
+        <result column="contract_time" property="contractTime" jdbcType="VARCHAR"/>
+        <result column="agent_id" property="agentId" jdbcType="VARCHAR"/>
+        <result column="client_id" property="clientId" jdbcType="VARCHAR"/>
+        <result column="contract_template_id" property="contractTemplateId" jdbcType="VARCHAR"/>
+        <result column="memo" property="memo" jdbcType="CLOB"/>
+        <result column="client_email" property="clientEmail" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!-- mapper 최상단에 추가 -->
+    <resultMap id="recentCompletedContractResultMap"
+               type="kr.or.kosa.visang.domain.contract.model.RecentCompletedContract">
+        <result column="contract_time" property="contractTime"/>
+        <result column="client_name"   property="clientName"/>
+        <result column="agent_name"    property="agentName"/>
+    </resultMap>
+
+	<resultMap id="scheduleResultMap" type="kr.or.kosa.visang.domain.contract.model.Schedule">
+		<result column="contract_id" property="contractId" />
+		<result column="created_at" property="createdAt" jdbcType="VARCHAR" />
+		<result column="status" property="status" />
+		<result column="contract_time" property="contractTime" />
+		<result column="client_id" property="clientId" />
+		<result column="agent_id" property="agentId" />
+		<result column="memo" property="memo" />
+		<result column="email" property="email" />
+		<result column="name" property="clientName" />
+		<result column="phone_number" property="phoneNumber" />
+		<result column="time" property="time" />
+		<result column="contract_template_id" property="contractTemplateId" />
+        <result column="contractTemplateName"  property="contractTemplateName"/>
+        <result column="company_id" property="companyId" />
+        <result column="invitation_code" property="invitationCode" />
+    </resultMap>
+
+	<resultMap id="CompleteCountsByMonthResultMap" type="kr.or.kosa.visang.domain.contract.model.ContractCompleteCountsByMonthDTO">
+		<result property="firstMonthCount" column="first_month_count"/>
+		<result property="secondMonthCount" column="second_month_count"/>
+		<result property="thirdMonthCount" column="third_month_count"/>
+		<result property="fourthMonthCount" column="fourth_month_count"/>
+		<result property="fifthMonthCount" column="fifth_month_count"/>
+	</resultMap>
+
+<!--	<select id="selectRecentCompletedContract" resultMap="selectRecentCompletedContract">-->
+<!--		SELECT-->
+<!--		    TO_CHAR(c.contract_time, 'YYYY-MM-DD HH24:MI:SS') AS contract_time,-->
+<!--			cl.name AS client_name,-->
+<!--			a.name AS agent_name-->
+<!--		FROM contract c-->
+<!--		JOIN client cl ON c.client_id = cl.client_id-->
+<!--		JOIN agent a ON c.agent_id = a.agent_id-->
+<!--		WHERE c.company_id = #{companyId}-->
+<!--		AND c.status = 'COMPLETED'-->
+<!--		ORDER BY c.contract_time DESC-->
+<!--		FETCH FIRST 5 ROWS ONLY-->
+<!--	</select> Oracle 12c 이상 문법 -->
+	<select id="selectRecentCompletedContract" resultMap="recentCompletedContractResultMap">
+		SELECT *
+		FROM (
+		SELECT
+		TO_CHAR(c.contract_time, 'YYYY-MM-DD HH24:MI:SS') AS contract_time,
+		cl.name   AS client_name,
+		a.name    AS agent_name
+		FROM contract c
+		LEFT JOIN client cl ON c.client_id = cl.client_id
+		LEFT JOIN agent  a  ON c.agent_id  = a.agent_id
+		WHERE c.company_id = #{companyId}
+		AND c.status     = 'COMPLETED'
+		ORDER BY c.contract_time DESC
+		)
+		WHERE ROWNUM &lt; = 5
+	</select>
+
+	<select id="selectInProgressContract" resultMap="recentCompletedContractResultMap">
+		SELECT *
+		FROM (
+				 SELECT
+					 TO_CHAR(c.contract_time, 'YYYY-MM-DD HH24:MI:SS') AS contract_time,
+					 cl.name   AS client_name,
+					 a.name    AS agent_name
+				 FROM contract c
+						  LEFT JOIN client cl ON c.client_id = cl.client_id
+						  LEFT JOIN agent  a  ON c.agent_id  = a.agent_id
+				 WHERE c.company_id = #{companyId}
+				   AND c.status     = 'IN_PROGRESS'
+				 ORDER BY c.contract_time DESC
+			 )
+		WHERE ROWNUM &lt;= 5
+	</select>
+
+	<select id="selectMonthlyStatusCounts" resultMap="monthlyStatusCountsResultMap" parameterType="map">
+		SELECT
+			COUNT(*) AS total_count,
+			SUM(CASE WHEN status = 'IN_PROGRESS' THEN 1 ELSE 0 END) AS inProgress_count,
+			SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_count,
+			SUM(CASE WHEN status = 'CANCELED' THEN 1 ELSE 0 END) AS canceled_count,
+			SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END) AS pending_count
+		FROM contract
+		WHERE company_id = #{companyId,  jdbcType=BIGINT}
+		AND TRUNC(contract_time, 'MM') = TO_DATE(#{year} || '-' || LPAD(#{month},2,'0'), 'YYYY-MM')
+	</select>
+
+	<select id="getLastFiveMonthsCompleted" resultMap="CompleteCountsByMonthResultMap" parameterType="map">
+		<!-- 최근 5개월간 계약 완료 건수-->
+		SELECT
+			SUM(CASE WHEN TRUNC(contract_time, 'MM') = ADD_MONTHS(TO_DATE(#{year} || '-' || LPAD(#{month},2,'0'), 'YYYY-MM'), -4)
+						AND status = 'COMPLETED'
+						THEN 1 ELSE 0 END) AS first_month_count,
+			SUM(CASE WHEN TRUNC(contract_time, 'MM') = ADD_MONTHS(TO_DATE(#{year} || '-' || LPAD(#{month},2,'0'), 'YYYY-MM'), -3)
+						AND status = 'COMPLETED'
+						THEN 1 ELSE 0 END) AS second_month_count,
+			SUM(CASE WHEN TRUNC(contract_time, 'MM') = ADD_MONTHS(TO_DATE(#{year} || '-' || LPAD(#{month},2,'0'), 'YYYY-MM'), -2)
+						AND status = 'COMPLETED'
+						THEN 1 ELSE 0 END) AS third_month_count,
+			SUM(CASE WHEN TRUNC(contract_time, 'MM') = ADD_MONTHS(TO_DATE(#{year} || '-' || LPAD(#{month},2,'0'), 'YYYY-MM'), -1)
+						AND status = 'COMPLETED'
+						THEN 1 ELSE 0 END) AS fourth_month_count,
+			SUM(CASE WHEN TRUNC(contract_time, 'MM') = TO_DATE(#{year} || '-' || LPAD(#{month},2,'0'), 'YYYY-MM')
+						AND status = 'COMPLETED'
+						THEN 1 ELSE 0 END) AS fifth_month_count
+			FROM contract
+			WHERE company_id = #{companyId}
+			AND status = 'COMPLETED'
+			/* 이 범위 조건은 불필요하긴 하나, 성능 튜닝을 위해 인덱스 스캔 범위를 제한하고 싶다면 켜 두셔도 됩니다 */
+			AND TRUNC(contract_time, 'MM') BETWEEN
+			ADD_MONTHS(TO_DATE(#{year} || '-' || LPAD(#{month},2,'0'), 'YYYY-MM'), -4)
+			AND TO_DATE(#{year} || '-' || LPAD(#{month},2,'0'), 'YYYY-MM')
+</select>
+
+    <insert id="insertSchedule"
+            parameterType="kr.or.kosa.visang.domain.contract.model.Contract">
+        <selectKey keyProperty="contractId" order="BEFORE"
+                   resultType="long">
+            SELECT contract_seq.NEXTVAL FROM DUAL
+        </selectKey>
+        INSERT INTO contract (
+        contract_id,
+        status,
+        created_at,
+        contract_time,
+        company_id,
+        client_id,
+        agent_id,
+        memo,
+        contract_template_id
+        ) VALUES (
+        #{contractId,      jdbcType=NUMERIC},
+        #{status,          jdbcType=VARCHAR},
+        TO_DATE(#{createdAt}, 'YYYY-MM-DD HH24:MI:SS'),
+        TO_DATE(#{contractTime}, 'YYYY-MM-DD HH24:MI'),
+        #{companyId,       jdbcType=NUMERIC},
+        #{clientId,        jdbcType=NUMERIC},
+        #{agentId,         jdbcType=NUMERIC},
+        #{memo,            jdbcType=CLOB},
+        #{contractTemplateId,      jdbcType=NUMERIC}
+        )
+    </insert>
+
+    <select id="selectSchedulesByAgent" parameterType="long"
+            resultMap="scheduleResultMap">
+        SELECT
+        c.contract_id,
+        c.company_id,
+        c.contract_template_id,
+        c.created_at,
+        c.status,
+        c.contract_time,
+        c.client_id,
+        c.agent_id,
+        c.memo,
+        cl.email,
+        cl.name,
+        cl.phone_number
+        FROM
+        contract c
+        LEFT JOIN client cl ON c.client_id = cl.client_id
+        WHERE c.agent_id
+        = #{agentId}
+        ORDER BY c.contract_time
+    </select>
+
+    <!-- PENDING, IN_PROGRESS 상태만 카운트 -->
+    <select id="countByClientAndTime" parameterType="map"
+            resultType="int">
+        SELECT COUNT(*)
+        FROM contract
+        WHERE client_id = #{clientId}
+        AND contract_time = #{contractTime}
+        AND status IN ('PENDING','IN_PROGRESS')
+    </select>
+
+    <!-- PENDINGM IN_PROGRESS 상태만 카운트 -->
+    <select id="countByAgentAndTime" resultType="int"
+            parameterType="map">
+        SELECT COUNT(*)
+        FROM contract
+        WHERE agent_id = #{agentId}
+        AND contract_time = #{contractTime}
+        AND status IN ('PENDING','IN_PROGRESS')
+    </select>
+
+
+    <select id="countByClientAndTimeExcept" resultType="int">
+        SELECT COUNT(*)
+        FROM contract
+        WHERE client_id = #{clientId}
+        AND contract_time = #{contractTime}
+        AND contract_id != #{excludeContractId}
+        AND status IN ('PENDING','IN_PROGRESS')
+    </select>
+
+    <select id="countByAgentAndTimeExcept" resultType="int">
+        SELECT COUNT(*)
+        FROM contract
+        WHERE agent_id = #{agentId}
+        AND contract_time = #{contractTime}
+        AND contract_id != #{excludeContractId}
+        AND status IN ('PENDING','IN_PROGRESS')
+    </select>
+
+    <update id="updateSchedule">
+        UPDATE contract
+        SET contract_time = #{contractTime},
+        memo = #{memo},
+        status = #{status}
+        WHERE contract_id = #{contractId}
+    </update>
+
+    <select id="findTodayContracts" parameterType="map" resultMap="scheduleResultMap">
+        SELECT
+            c.contract_id,
+            c.created_at,
+            c.status,
+            c.contract_time,
+            TO_CHAR(c.contract_time, 'HH24:MI') AS time,
+            i.invitation_code,
+            cl.client_id,
+            cl.name,
+            cl.email AS email,
+            cl.phone_number,
+            tmpl.contract_name AS contractTemplateName
+        FROM contract c
+        LEFT JOIN client cl
+        ON c.client_id = cl.client_id
+        LEFT JOIN invitation i
+        ON i.contract_id = c.contract_id
+        LEFT JOIN contract_templates tmpl
+        ON c.contract_template_id = tmpl.contract_template_id
+        WHERE
+        TRUNC(c.contract_time) = TO_DATE(#{date}, 'YYYY-MM-DD')
+        AND c.agent_id = #{agentId}
+        AND c.status = 'PENDING'
+        ORDER BY c.contract_time
+    </select>
+
+    <select id="findById" parameterType="long"
+            resultType="kr.or.kosa.visang.domain.contract.model.Contract">
+        SELECT * FROM contract WHERE contract_id = #{contractId}
+    </select>
+
+	<!-- 계약 조건 조회-->
+	<select id="searchContracts" resultMap="contractListResultMap">
+		SELECT *
+		FROM (
+		SELECT a.*, ROWNUM rn
+		FROM (
+		SELECT
+		c.contract_id           AS contract_id,
+		c.contract_time         AS contract_time,
+		a.agent_id              AS agent_id,
+		a.name                  AS agent_name,
+		cl.client_id            AS client_id,
+		cl.name                 AS client_name,
+		c.status                AS status,
+		t.contract_template_id  AS contract_template_id,
+		t.contract_name         AS contract_name
+		FROM contract c
+		LEFT JOIN agent a  ON a.agent_id  = c.agent_id
+		LEFT JOIN client cl ON cl.client_id = c.client_id
+		LEFT JOIN contract_templates t
+		ON c.contract_template_id = t.contract_template_id
+		<where>
+			c.company_id = #{companyId}
+			<if test="contractId != null and contractId != ''">
+				AND c.contract_id = #{contractId}
+			</if>
+			<if test="contractTime != null and contractTime != ''">
+				AND TRUNC(c.contract_time, 'MM') = TO_DATE(#{contractTime}, 'YYYY-MM')
+			</if>
+			<if test="agentId != null and agentId != ''">
+				AND c.agent_id = #{agentId}
+			</if>
+			<if test="clientId != null and clientId != ''">
+				AND c.client_id = #{clientId}
+			</if>
+			<if test="status != null and status != ''">
+				AND c.status = #{status}
+			</if>
+			<if test="contractName != null and contractName != ''">
+				AND LOWER(t.contract_name) LIKE '%' || LOWER(#{contractName}) || '%'
+			</if>
+		</where>
+		ORDER BY c.contract_time ASC
+		) a
+		WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+		)
+		WHERE rn > #{offset}
+	</select>
+
+	<select id="countContracts" resultType="int" parameterType="map">
+		SELECT COUNT(*)
+		FROM contract c
+		<!-- contractName 필터가 필요한 경우에만 templates 조인 -->
+		<if test="contractName != null and contractName != ''">
+			LEFT JOIN contract_templates t
+			ON c.contract_template_id = t.contract_template_id
+		</if>
+		<where>
+			c.company_id = #{companyId}
+			<if test="contractId != null and contractId != ''">
+				AND c.contract_id = #{contractId}
+			</if>
+			<if test="contractTime != null and contractTime != ''">
+				AND TRUNC(c.contract_time, 'MM') = TO_DATE(#{contractTime}, 'YYYY-MM')
+			</if>
+			<if test="agentId != null and agentId != ''">
+				AND c.agent_id = #{agentId}
+			</if>
+			<if test="clientId != null and clientId != ''">
+				AND c.client_id = #{clientId}
+			</if>
+			<if test="status != null and status != ''">
+				AND c.status = #{status}
+			</if>
+			<if test="contractName != null and contractName != ''">
+				AND LOWER(t.contract_name) LIKE '%' || LOWER(#{contractName}) || '%'
+			</if>
+		</where>
+	</select>
+    <select id="selectContractByStatus" resultMap="ContractResultMap">
+        SELECT *
+        FROM contract
+        WHERE status = #{status} and company_id = #{companyId}
+        ORDER BY contract_time DESC
+    </select>
+
+    <!-- 모든 계약 조회 -->
+    <select id="selectAllContracts" resultMap="ContractResultMap">
+        SELECT<include refid="baseColumns"/>,
+        TO_CHAR(created_at, 'YYYY-MM-DD') as created_at,
+        TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
+        FROM contract
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectMonthlyScheduleByAgentId" resultMap="ContractResultMap">
+        SELECT contract_id, status, TO_CHAR(created_at, 'YYYY-MM-DD') as created_at,
+        TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time,
+        client_id, agent_id, memo, contract_template_id
+        FROM contract
+        WHERE agent_id = #{id}
+        AND contract_time BETWEEN
+        TO_DATE(#{year} || '-'|| LPAD(#{month}, 2, '0'), 'YYYY-MM')
+        AND LAST_DAY(TO_DATE(#{year}|| '-'|| LPAD(#{month}, 2, '0'), 'YYYY-MM')) + (1 - 1/86400)
+        ORDER BY contract_time
+    </select>
+
+    <!-- 계약 기본 컬럼 -->
+    <sql id="baseColumns">
+        contract_id, status, client_id, agent_id, memo, contract_template_id, company_id
+    </sql>
+
+    <!-- 계약 조회 -->
+    <select id="selectContractById" resultMap="ContractResultMap">
+        SELECT<include refid="baseColumns"/>,
+        TO_CHAR(created_at, 'YYYY-MM-DD') as created_at,
+        TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
+        FROM contract
+        WHERE contract_id = #{contractId}
+    </select>
+
+    <!-- 고객 ID로 계약 목록 조회 -->
+    <select id="selectContractsByClientId" resultMap="ContractResultMap">
+        SELECT<include refid="baseColumns"/>,
+        TO_CHAR(created_at, 'YYYY-MM-DD') as created_at,
+        TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
+        FROM contract
+        WHERE client_id = #{clientId}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 상담사 ID로 계약 목록 조회 -->
+    <select id="selectContractsByAgentId" resultMap="ContractResultMap">
+        SELECT<include refid="baseColumns"/>,
+        TO_CHAR(created_at, 'YYYY-MM-DD') as created_at,
+        TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
+        FROM contract
+        WHERE agent_id = #{agentId}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 계약 상태별 조회 -->
+    <select id="selectContractsByStatus" resultMap="ContractResultMap">
+        SELECT<include refid="baseColumns"/>,
+        TO_CHAR(created_at, 'YYYY-MM-DD') as created_at,
+        TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
+        FROM contract
+        WHERE status = #{status}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 계약 추가 - 순차적인 ID 사용 -->
+    <insert id="insertContract" parameterType="kr.or.kosa.visang.domain.contract.model.Contract">
+        <selectKey keyProperty="contractId" resultType="long" order="BEFORE">
+            SELECT NVL(MAX(contract_id), 0) + 1 FROM contract
+        </selectKey>
+        INSERT INTO contract (
+        contract_id, status, created_at, client_id, agent_id, memo
+        ) VALUES (
+        <!--#{contractId}, #{status}, TO_DATE(#{createdAt}, 'YYYY-MM-DD HH24:MI:SS'), #{clientId}, #{agentId}, #{memo}
+        -->
+        #{contractId, jdbcType=NUMERIC},
+        #{status, jdbcType=VARCHAR},
+        TO_DATE(#{createdAt}, 'YYYY-MM-DD HH24:MI:SS'),
+        #{clientId, jdbcType=NUMERIC},
+        #{agentId, jdbcType=NUMERIC},
+        #{memo, jdbcType=CLOB}
+        )
+    </insert>
+
+	<!-- 계약 상태 업데이트 -->
+	<update id="updateContractStatus">
+		UPDATE contract
+		SET status = #{param2, jdbcType=VARCHAR}
+		WHERE contract_id = #{param1}
+	</update>
+
+	<!-- 계약 메모 업데이트 -->
+	<update id="updateContractMemo">
+		UPDATE contract
+		SET memo = #{param2, jdbcType=CLOB}
+		WHERE contract_id = #{param1}
+	</update>
+
+	<!-- 계약의 상담원 ID 업데이트 -->
+	<update id="updateContractAgentId">
+		UPDATE contract
+		SET agent_id = #{agentId, jdbcType=NUMERIC}
+		WHERE contract_id = #{contractId}
+	</update>
+
+	<!-- 계약의 고객 ID 업데이트 -->
+	<update id="updateContractClientId">
+		UPDATE contract
+		SET client_id = #{clientId, jdbcType=NUMERIC}
+		WHERE contract_id = #{contractId}
+	</update>
+
+	<!-- 상담 종료 (상태 변경 및 메모 업데이트) -->
+	<update id="endConsultation">
+		UPDATE contract
+		SET status = 'COMPLETED',
+			memo = #{param2, jdbcType=CLOB}
+		WHERE contract_id = #{param1}
+	</update>
+
+	<!-- 세션 ID로 계약 조회 - Oracle 문법 사용 -->
+	<select id="selectContractBySessionId" resultMap="ContractResultMap">
+		SELECT * FROM (
+			SELECT <include refid="baseColumns" />, created_at,
+				   TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
+			FROM contract
+			WHERE memo LIKE '%SessionId: ' || #{sessionId} || '%'
+			OR contract_id = (
+				SELECT MAX(contract_id)
+				FROM contract
+				WHERE status = 'IN_PROGRESS'
+			)
+			ORDER BY contract_id DESC
+		) WHERE ROWNUM &lt;= 1
+	</select>
+
+    <select id="selectContractsByAgentIdAndStatusPaged" resultMap="contractResultMap" parameterType="map">
+        <bind name="endIndex" value="offset + pageSize"/>
+        SELECT *
+        FROM (
+        SELECT
+        c.contract_id,
+        TO_CHAR(c.created_at,   'YYYY-MM-DD HH24:MI:SS') AS created_at,
+        c.company_id,
+        c.contract_template_id  AS contract_template_id,
+        c.contract_time,
+        c.agent_id,
+        c.client_id,
+        c.status,
+        cl.email                  AS client_email,
+        cl.name                   AS client_name,
+        c.memo,
+        ROW_NUMBER() OVER (
+        ORDER BY
+        <choose>
+            <when test="sort == 'ASC'">
+                c.contract_time ASC
+            </when>
+            <otherwise>
+                c.contract_time DESC
+            </otherwise>
+        </choose>
+        ) AS rn
+        FROM contract c
+        LEFT JOIN client cl
+        ON c.client_id = cl.client_id
+        WHERE c.agent_id = #{agentId}
+        AND c.status   = #{status}
+        ) sub
+        WHERE sub.rn &gt; #{offset}
+        AND sub.rn &lt;= #{endIndex}
+    </select>
+
+    <select id="countContractsByAgentAndStatus" resultType="int">
+        SELECT COUNT(*)
+        FROM contract
+        WHERE agent_id = #{agentId}
+        AND status = #{status}
+    </select>
+
+    <!--contractID로 PDFID 조회-->
+    <select id="selectPdfIdByContractId" resultType="long">
+        SELECT pdf_id
+        FROM pdf
+        WHERE contract_id = #{contractId}
+    </select>
+
+	<!-- 계약 상세조회 -->
+	<select id="selectContractDetail" resultMap="contractDetailResultMap">
+		SELECT
+			c.contract_id, c.status, c.created_at, c.contract_time, c.client_id, c.agent_id, c.memo,
+			cl.name AS client_name, cl.email AS client_email, cl.phone_number AS client_phone_number, cl.address AS client_address,
+			a.name AS agent_name, a.email AS agent_email, a.phone_number AS agent_phone_number, a.address AS agent_address
+			, cl.profile_image_url AS client_profile_image_url, a.profile_image_url AS agent_profile_image_url
+			, ct.contract_name AS contract_name, ct.contract_template_id AS contract_template_id
+		FROM contract c
+				 LEFT JOIN client cl ON c.client_id = cl.client_id
+				 LEFT JOIN agent a ON c.agent_id = a.agent_id
+				 LEFT JOIN contract_templates ct ON c.contract_template_id = ct.contract_template_id
+		WHERE c.contract_id = #{contractId}
+	</select>
+
+	<!-- 계약 상세조회 (템플릿 없이) -->
+	<select id="selectContractDetailWithEmail" resultMap="contractDetailResultMap">
+		SELECT
+			c.contract_id, c.status,
+			TO_CHAR(c.created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at,
+			TO_CHAR(c.contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time,
+			c.client_id, c.agent_id, c.memo,
+			cl.name AS client_name, cl.email AS client_email, cl.phone_number AS client_phone_number, cl.address AS client_address,
+			a.name AS agent_name, a.email AS agent_email, a.phone_number AS agent_phone_number, a.address AS agent_address,
+			cl.profile_image_url AS client_profile_image_url, a.profile_image_url AS agent_profile_image_url
+		FROM contract c
+				 LEFT JOIN client cl ON c.client_id = cl.client_id
+				 LEFT JOIN agent a ON c.agent_id = a.agent_id
+		WHERE c.contract_id = #{contractId}
+	</select>
+
+	<!-- 계약 ID로 고객 이메일 조회 -->
+	<select id="selectClientEmailByContractId" resultType="string">
+		SELECT cl.email
+		FROM contract c
+		LEFT JOIN client cl ON c.client_id = cl.client_id
+		WHERE c.contract_id = #{contractId}
+	</select>
+
+	<!-- agent_id와 client_id로 기존 계약 조회 (PENDING 상태) -->
+	<select id="selectContractByAgentAndClient" resultMap="ContractResultMap">
+		SELECT * FROM (
+			SELECT <include refid="baseColumns" />,
+				   TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at,
+				   TO_CHAR(contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time
+			FROM contract
+			WHERE agent_id = #{agentId}
+			AND client_id = #{clientId}
+			AND status = 'PENDING'
+			ORDER BY contract_id DESC
+		) WHERE ROWNUM &lt;= 1
+	</select>
+
+    <!-- 통화시작 계약상태 업데이트-->
+    <update id="updateStatus" parameterType="map">
+        UPDATE contract
+        SET status = #{status}
+        WHERE contract_id = #{contractId}
+    </update>
+
+
+	<!-- 고객의 오늘 계약 조회 -->
+	<select id="selectTodayContractsByClientId" parameterType="map" resultMap="contractResultMap">
+		SELECT
+			c.contract_id,
+			c.status,
+			TO_CHAR(c.created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at,
+			TO_CHAR(c.contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time,
+			c.client_id,
+			c.agent_id,
+			c.memo,
+			a.name AS agent_name,
+			i.invitation_code
+		FROM contract c
+		LEFT JOIN agent a ON c.agent_id = a.agent_id
+		LEFT JOIN invitation i ON c.contract_id = i.contract_id
+		WHERE c.client_id = #{clientId}
+		AND TRUNC(c.contract_time) = TO_DATE(#{contractDate}, 'YYYY-MM-DD')
+		AND c.status = #{status}
+		ORDER BY c.contract_time ASC
+	</select>
+
+	<!-- 고객별 계약 상태 카운트 -->
+	<select id="selectContractCountsByClientId" parameterType="long" resultType="java.util.HashMap">
+		SELECT
+			COUNT(*) AS "total",
+			SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END) AS "pending",
+			SUM(CASE WHEN status = 'IN_PROGRESS' THEN 1 ELSE 0 END) AS "inProgress",
+			SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) AS "completed",
+			SUM(CASE WHEN status = 'CANCELED' THEN 1 ELSE 0 END) AS "canceled"
+		FROM contract
+		WHERE client_id = #{clientId}
+	</select>
+
+	<!-- 고객별 계약 목록 페이징 조회 -->
+	<select id="selectContractsByClientIdPaged" parameterType="map" resultMap="contractResultMap">
+		SELECT *
+		FROM (
+			SELECT a.*, ROWNUM rn
+			FROM (
+				SELECT
+					c.contract_id,
+					c.status,
+					TO_CHAR(c.created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at,
+					TO_CHAR(c.contract_time, 'YYYY-MM-DD HH24:MI:SS') as contract_time,
+					c.client_id,
+					c.agent_id,
+					c.memo,
+					a.name AS agent_name
+				FROM contract c
+				LEFT JOIN agent a ON c.agent_id = a.agent_id
+				WHERE c.client_id = #{clientId}
+				<if test="status != null and status != ''">
+					AND c.status = #{status}
+				</if>
+				ORDER BY c.contract_time DESC
+			) a
+			WHERE ROWNUM &lt;= #{offset} + #{pageSize}
+		)
+		WHERE rn > #{offset}
+	</select>
+
+	<!-- 고객별 계약 총 개수 (페이징용) -->
+	<select id="countContractsByClientId" parameterType="map" resultType="int">
+		SELECT COUNT(*)
+		FROM contract
+		WHERE client_id = #{clientId}
+		<if test="status != null and status != ''">
+			AND status = #{status}
+		</if>
+	</select>
+</mapper>

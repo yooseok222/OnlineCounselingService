@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper
+	namespace="kr.or.kosa.visang.domain.invitation.repository.InvitationMapper">
+	<resultMap id="InvitationResultMap"
+		type="kr.or.kosa.visang.domain.invitation.model.Invitation">
+		<result column="invitation_id" property="invitationId" />
+		<result column="invitation_code" property="invitationCode" />
+		<result column="expired_time" property="expiredTime" />
+		<result column="created_at" property="createdAt" />
+		<result column="contract_id" property="contractId" />
+	</resultMap>
+
+	<insert id="insertInvitation"
+		parameterType="kr.or.kosa.visang.domain.invitation.model.Invitation">
+		<selectKey keyProperty="invitationId" order="BEFORE"
+			resultType="long">
+			SELECT invitation_seq.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO invitation
+		(invitation_id, invitation_code, expired_time,
+		created_at, contract_id)
+		VALUES
+		(#{invitationId},
+		#{invitationCode}, #{expiredTime}, #{createdAt}, #{contractId})
+	</insert>
+
+	<delete id="deleteByContractId" parameterType="long">
+		DELETE FROM
+		invitation
+		WHERE contract_id = #{contractId}
+	</delete>
+
+	<select id="findByCode"
+		resultType="kr.or.kosa.visang.domain.invitation.model.Invitation">
+		SELECT * FROM invitation WHERE invitation_code = #{code}
+	</select>
+
+
+</mapper>
